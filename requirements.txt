@@ -1,0 +1,5 @@
+flask
+truststore
+torch
+transformers
+accelerate
