@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "classification": "SYNTHETIC_DEMO_ONLY",
+  "documents": [
+    {
+      "id": "gcmc-pulse",
+      "workspace": "market",
+      "title": "GCMC Market Pulse — July 2026",
+      "filename": "GCMC/GCMC_Market_Pulse.xlsx",
+      "displayFilename": "GCMC_Market_Pulse.xlsx",
+      "format": "XLSX",
+      "owner": "Group Corporate Marketing & Communications",
+      "updated": "31 Jul 2026 · 18:00 MYT",
+      "status": "Loaded",
+      "excerpt": "Synthetic monthly index, trading, investor participation and regional benchmark observations for the competition demo."
+    },
+    {
+      "id": "market-primer",
+      "workspace": "learn",
+      "title": "Bursa Market Primer",
+      "filename": "Learn/Bursa_Market_Primer.pdf",
+      "displayFilename": "Bursa_Market_Primer.pdf",
+      "format": "PDF",
+      "owner": "Learning & Development",
+      "updated": "28 Jul 2026 · 09:30 MYT",
+      "status": "Loaded",
+      "excerpt": "A beginner-friendly introduction to the exchange, market capitalisation, ADV, velocity and investor participation."
+    },
+    {
+      "id": "conduct-guide",
+      "workspace": "learn",
+      "title": "New Joiner Conduct Guide — Demo",
+      "filename": "Learn/New_Joiner_Conduct_Guide.pdf",
+      "displayFilename": "New_Joiner_Conduct_Guide.pdf",
+      "format": "PDF",
+      "owner": "Governance & Sustainability",
+      "updated": "20 Jul 2026 · 11:15 MYT",
+      "status": "Loaded",
+      "excerpt": "Practical guidance on confidentiality, responsible data handling and escalation for new joiners."
+    },
+    {
+      "id": "hr-procedure",
+      "workspace": "hr",
+      "title": "Talent Acquisition Procedure — Demo",
+      "filename": "HR/Hiring_Procedure_Demo.pdf",
+      "displayFilename": "Hiring_Procedure_Demo.pdf",
+      "format": "PDF",
+      "owner": "Human Resources",
+      "updated": "24 Jul 2026 · 15:10 MYT",
+      "status": "Restricted",
+      "excerpt": "Synthetic hiring stages, service-level targets and escalation rules used for the People Services scenario."
+    },
+    {
+      "id": "hr-applications",
+      "workspace": "hr",
+      "title": "Applicant Tracker — Demo",
+      "filename": "HR/HR_Applications_Demo.xlsx",
+      "displayFilename": "HR_Applications_Demo.xlsx",
+      "format": "XLSX",
+      "owner": "Human Resources",
+      "updated": "30 Jul 2026 · 17:40 MYT",
+      "status": "Restricted",
+      "excerpt": "Fictional applicant records created solely to demonstrate role-based access and status retrieval."
+    }
+  ]
+}

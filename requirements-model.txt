@@ -1,0 +1,3 @@
+# Optional only: the Stage 02 demo works without a language model.
+# Recommended on the 8 GB MacBook Air: install Ollama separately and use a small
+# quantised model such as qwen2.5:1.5b. No Python model packages are required.

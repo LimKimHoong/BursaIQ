@@ -1,0 +1,9 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+myenv/
+.venv/
+venv/
+runtime/*.sqlite3
+output/pdf/*.pdf
+!output/pdf/.gitkeep

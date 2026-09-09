@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07161c">
+  <meta name="description" content="BursaIQ — evidence-grounded market intelligence for Bursa Malaysia teams.">
+  <title>BursaIQ — Decision intelligence, with evidence</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/app.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to workspace</a>
+  <div class="app-shell" id="app">
+    <aside class="primary-sidebar" id="primary-sidebar" aria-label="BursaIQ navigation">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div><strong>Bursa<span>IQ</span></strong><small>Decision intelligence</small></div>
+      </div>
+
+      <div class="demo-badge"><span></span> Stage 02 prototype</div>
+
+      <nav class="primary-nav" aria-label="Workspaces">
+        <p class="nav-label">Workspaces</p>
+        <button class="nav-item is-active" data-workspace="home" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z"/></svg>
+          <span>Ask BursaIQ</span>
+        </button>
+        <button class="nav-item" data-workspace="market" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>
+          <span>Market Intelligence</span>
+        </button>
+        <button class="nav-item" data-workspace="learn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
+          <span>Learn Bursa</span><em>New</em>
+        </button>
+        <button class="nav-item" data-workspace="hr" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3h6m-3-3v6"/></svg>
+          <span>People Services</span>
+        </button>
+
+        <p class="nav-label nav-label-spaced">Workflow</p>
+        <button class="nav-item" data-workspace="reports" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8m-8 4h6"/></svg>
+          <span>Briefings</span><b id="report-count">0</b>
+        </button>
+        <button class="nav-item" data-workspace="verification" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
+          <span>Verification Centre</span><b id="verification-count">1</b>
+        </button>
+        <button class="nav-item" data-workspace="sources" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a4 4 0 0 0-4 4v12a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4zM8 7H5a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h3m8-13h3a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-3"/></svg>
+          <span>Data Sources</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <label for="role-select">Demo identity</label>
+        <div class="identity-control">
+          <span class="avatar" id="avatar">NK</span>
+          <div><strong id="identity-name">Nadia Karim</strong><small id="identity-role">GCMC · Analyst</small></div>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
+          <select id="role-select" aria-label="Switch demo identity">
+            <option value="gcmc">Nadia Karim — GCMC</option>
+            <option value="hr">Farah Lee — HR</option>
+            <option value="securities">Arif Rahman — Securities Market</option>
+            <option value="finance">Mei Tan — Finance</option>
+          </select>
+        </div>
+      </div>
+    </aside>
+
+    <div class="main-shell">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+        <div class="breadcrumb"><span>BursaIQ</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><strong id="breadcrumb-label">Ask BursaIQ</strong></div>
+        <div class="topbar-actions">
+          <div class="system-state" title="All demo services available"><span></span><strong>Local demo ready</strong></div>
+          <button class="icon-button" id="new-thread-button" type="button" aria-label="Start a new conversation">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1">
+        <section class="workspace-heading" id="workspace-heading" hidden>
+          <div>
+            <h1 id="workspace-title">Market Intelligence</h1>
+            <p id="workspace-description">Ask about market performance, participation and the forces moving the market.</p>
+          </div>
+          <div class="heading-actions">
+            <span class="asof-chip" id="asof-chip"><span></span> As at 31 Jul 2026</span>
+            <button class="button secondary" id="open-report-button" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
+              Create briefing
+            </button>
+          </div>
+        </section>
+
+        <section class="workspace-grid home-layout" id="workspace-grid"></section>
+      </main>
+    </div>
+  </div>
+
+  <div class="mobile-scrim" id="mobile-scrim"></div>
+
+  <dialog class="app-dialog" id="report-dialog" aria-labelledby="report-dialog-title">
+    <form method="dialog" class="dialog-shell" id="report-form">
+      <div class="dialog-header">
+        <div><h2 id="report-dialog-title">Create executive briefing</h2></div>
+        <button class="icon-button" aria-label="Close dialog" type="button" data-close-dialog><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <p class="dialog-intro">Package the current answer, governed calculations and cited sources into a real PDF.</p>
+      <label>Briefing title<input id="report-title" name="title" value="GCMC Market Pulse — July 2026" maxlength="140"></label>
+      <fieldset>
+        <legend>Publication state</legend>
+        <label class="radio-card"><input type="radio" name="report-state" value="draft" checked><span><strong>Draft briefing</strong><small>Clearly marked as not yet human verified</small></span></label>
+        <label class="radio-card"><input type="radio" name="report-state" value="review"><span><strong>Submit with review request</strong><small>Adds the item to Verification Centre</small></span></label>
+      </fieldset>
+      <div class="dialog-actions"><button class="button ghost" type="button" data-close-dialog>Cancel</button><button class="button primary" id="generate-report-button" type="submit">Generate PDF</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <script src="/static/js/demo-data.js" defer></script>
+  <script src="/static/js/engine.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</body>
+</html>

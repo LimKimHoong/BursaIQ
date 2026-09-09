@@ -1,5 +1,5 @@
-flask
-truststore
-torch
-transformers
-accelerate
+Flask==3.1.3
+openpyxl==3.1.5
+pypdf==6.18.0
+reportlab==5.0.1
+truststore==0.10.4
