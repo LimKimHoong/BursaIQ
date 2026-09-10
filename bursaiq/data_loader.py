@@ -14,11 +14,16 @@ from pypdf import PdfReader
 
 
 TOKEN_PATTERN = re.compile(r"[a-z0-9][a-z0-9-]{1,}", re.IGNORECASE)
+QUERY_STOPWORDS = {
+    "about", "are", "bursa", "can", "could", "current", "does", "explain", "for", "from", "give", "how", "in", "is",
+    "language", "me", "of", "plain", "please", "show", "summarise", "summarize", "tell", "the", "this",
+    "to", "what", "when", "where", "which", "who", "why", "with",
+}
 ROLE_WORKSPACES = {
     "gcmc": {"market", "learn"},
     "securities": {"market", "learn"},
-    "hr": {"hr", "learn"},
-    "finance": {"learn"},
+    "hr": {"market", "hr", "learn"},
+    "finance": {"market", "learn"},
 }
 
 
@@ -140,7 +145,8 @@ class LocalDataRepository:
     def search(self, query: str, workspace: str, role: str, limit: int = 5) -> list[SearchResult]:
         if workspace not in ROLE_WORKSPACES.get(role, set()):
             return []
-        tokens = set(TOKEN_PATTERN.findall(query.lower()))
+        all_tokens = set(TOKEN_PATTERN.findall(query.lower()))
+        tokens = all_tokens.difference(QUERY_STOPWORDS) or all_tokens
         if not tokens:
             return []
         results: list[SearchResult] = []
@@ -148,7 +154,13 @@ class LocalDataRepository:
             if doc["workspace"] != workspace:
                 continue
             haystack = f'{doc["title"]} {doc.get("excerpt", "")} {doc.get("_text", "")}'.lower()
-            matches = [token for token in tokens if token in haystack]
+            haystack_tokens = set(TOKEN_PATTERN.findall(haystack))
+            matches = [
+                token for token in tokens
+                if token in haystack_tokens
+                or (not token.endswith("s") and f"{token}s" in haystack_tokens)
+                or (token.endswith("s") and token[:-1] in haystack_tokens)
+            ]
             if not matches:
                 continue
             excerpt = self._best_excerpt(doc.get("_text", doc.get("excerpt", "")), tokens)
@@ -246,10 +258,14 @@ class LocalDataRepository:
         ]
 
     @staticmethod
-    def _best_excerpt(text: str, tokens: set[str], length: int = 280) -> str:
+    def _best_excerpt(text: str, tokens: set[str], length: int = 900) -> str:
         collapsed = " ".join(text.split())
-        positions = [collapsed.lower().find(token) for token in tokens]
-        positions = [position for position in positions if position >= 0]
+        lowered = collapsed.lower()
+        positions = []
+        for token in tokens:
+            variants = {token, token[:-1] if token.endswith("s") else f"{token}s"}
+            matches = [re.search(rf"\b{re.escape(variant)}\b", lowered) for variant in variants if variant]
+            positions.extend(match.start() for match in matches if match)
         start = max(0, (min(positions) if positions else 0) - 70)
         excerpt = collapsed[start : start + length].strip()
         if start:

@@ -110,7 +110,10 @@ class BriefingGenerator:
         question = clean_text(payload.get("question"))
         if question:
             story.extend([Paragraph("QUESTION", styles["eyebrow"]), Paragraph(safe_paragraph(question), styles["callout"])])
-        story.extend([Paragraph("Management read", styles["h1"]), Paragraph(safe_paragraph(answer.get("html") or answer.get("summary") or "No answer content supplied."), styles["body"])])
+        story.extend([
+            Paragraph("Management read", styles["h1"]),
+            Paragraph(safe_paragraph(answer.get("modelNarrative") or answer.get("html") or answer.get("summary") or "No answer content supplied."), styles["body"]),
+        ])
 
         context = answer.get("context") or {}
         if context:

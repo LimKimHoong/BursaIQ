@@ -6,10 +6,10 @@ window.BURSAIQ_DEMO = {
     disclaimer: "All names, values and records in this prototype are invented for the Stage 02 demonstration."
   },
   identities: {
-    gcmc: { initials: "NK", name: "Nadia Karim", role: "GCMC · Analyst", access: ["market", "learn", "reports", "verification", "sources"] },
-    hr: { initials: "FL", name: "Farah Lee", role: "HR · People Partner", access: ["hr", "learn", "reports", "verification", "sources"] },
-    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Manager", access: ["market", "learn", "reports", "verification", "sources"] },
-    finance: { initials: "MT", name: "Mei Tan", role: "Finance · Business Partner", access: ["learn", "reports", "verification", "sources"] }
+    gcmc: { initials: "NK", name: "Nadia Karim", role: "GCMC · Analyst", access: ["market", "learn", "reports", "sources"], reviewerFor: [] },
+    hr: { initials: "FL", name: "Farah Lee", role: "HR · People Partner & Reviewer", access: ["market", "hr", "learn", "reports", "verification", "sources"], reviewerFor: ["HR Policy Owner"] },
+    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Market Reviewer", access: ["market", "learn", "reports", "verification", "sources"], reviewerFor: ["Market Intelligence Lead"] },
+    finance: { initials: "MT", name: "Mei Tan", role: "Finance · Business Partner", access: ["market", "learn", "reports", "sources"], reviewerFor: [] }
   },
   market: {
     headline: {
@@ -85,6 +85,18 @@ window.BURSAIQ_DEMO = {
       pages: "6 pages",
       status: "Loaded",
       excerpt: "A beginner-friendly introduction to the exchange, market capitalisation, ADV, velocity and investor participation."
+    },
+    {
+      id: "product-overview",
+      workspace: "learn",
+      title: "Bursa Products Overview",
+      filename: "Bursa_Products_Overview.pdf",
+      format: "PDF",
+      owner: "Learning & Development",
+      updated: "10 Sep 2026 · 14:30 MYT",
+      pages: "2 pages",
+      status: "Loaded",
+      excerpt: "A high-level guide to Bursa securities, derivatives, Islamic-market products, indices, LFX and Bursa Gold Dinar."
     },
     {
       id: "hr-procedure",

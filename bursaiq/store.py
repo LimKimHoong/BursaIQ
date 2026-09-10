@@ -39,7 +39,8 @@ class VerificationStore:
                     scope TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     reviewed_at TEXT,
-                    report_filename TEXT
+                    report_filename TEXT,
+                    details_json TEXT NOT NULL DEFAULT '{}'
                 );
                 CREATE TABLE IF NOT EXISTS audit_events (
                     event_id TEXT PRIMARY KEY,
@@ -52,15 +53,33 @@ class VerificationStore:
                 );
                 """
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(verification_cases)").fetchall()}
+            if "details_json" not in columns:
+                connection.execute("ALTER TABLE verification_cases ADD COLUMN details_json TEXT NOT NULL DEFAULT '{}'")
+            seed_details = {
+                "question": "How did the market perform in July?",
+                "answerTitle": "The market advanced in July, with broad but selective support",
+                "answerText": "The synthetic FBM KLCI closed at 1,638.2, up 2.4% month to date. Technology and Financial Services contributed 17.8 index points together, while market breadth remained positive.",
+                "formula": "MTD return = (1,638.2 / 1,599.8 - 1) x 100 = 2.40%",
+                "context": {"Reporting period": "1-31 Jul 2026", "Data class": "Synthetic demo"},
+                "sources": [{"title": "GCMC Market Pulse - July 2026", "filename": "GCMC_Market_Pulse.xlsx", "owner": "GCMC", "detail": "Index Summary, Sector Attribution and Market Breadth worksheets"}],
+            }
             count = connection.execute("SELECT COUNT(*) AS count FROM verification_cases").fetchone()["count"]
             if count == 0:
                 case_id = "VER-260731-01"
                 created = "2026-07-31T10:12:00+00:00"
                 connection.execute(
-                    "INSERT INTO verification_cases VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (case_id, "July market performance briefing", "GCMC", "Nadia Karim", "Market Intelligence Lead", "Pending review", "Answer narrative, calculations and source citations", created, None, None),
+                    """INSERT INTO verification_cases
+                       (id, title, workspace, requested_by, reviewer, status, scope, created_at, reviewed_at, report_filename, details_json)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (case_id, "July market performance briefing", "GCMC", "Nadia Karim", "Market Intelligence Lead", "Pending review", "Answer narrative, calculations and source citations", created, None, None, json.dumps(seed_details, ensure_ascii=True, sort_keys=True)),
                 )
                 self._audit(connection, case_id, "submitted", "Nadia Karim", {"seed": True}, created)
+            else:
+                connection.execute(
+                    "UPDATE verification_cases SET details_json = ? WHERE id = ? AND details_json = '{}'",
+                    (json.dumps(seed_details, ensure_ascii=True, sort_keys=True), "VER-260731-01"),
+                )
 
     @staticmethod
     def _audit(connection: sqlite3.Connection, case_id: str, action: str, actor: str, metadata: dict[str, Any], occurred_at: str | None = None) -> None:
@@ -69,19 +88,30 @@ class VerificationStore:
             (str(uuid.uuid4()), case_id, action, actor, occurred_at or utc_now(), json.dumps(metadata, sort_keys=True)),
         )
 
-    def list_cases(self) -> list[dict[str, Any]]:
+    def list_cases(self, reviewers: set[str] | None = None) -> list[dict[str, Any]]:
+        if reviewers is not None and not reviewers:
+            return []
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM verification_cases ORDER BY created_at DESC").fetchall()
+            if reviewers is None:
+                rows = connection.execute("SELECT * FROM verification_cases ORDER BY created_at DESC").fetchall()
+            else:
+                placeholders = ",".join("?" for _ in reviewers)
+                rows = connection.execute(
+                    f"SELECT * FROM verification_cases WHERE reviewer IN ({placeholders}) ORDER BY created_at DESC",
+                    tuple(sorted(reviewers)),
+                ).fetchall()
         return [self._case_dict(row) for row in rows]
 
-    def create_case(self, title: str, workspace: str, requested_by: str, report_filename: str | None = None) -> dict[str, Any]:
+    def create_case(self, title: str, workspace: str, requested_by: str, report_filename: str | None = None, details: dict[str, Any] | None = None) -> dict[str, Any]:
         case_id = f"VER-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
         reviewer = "HR Policy Owner" if workspace.lower().startswith("people") or workspace.lower() == "hr" else "Market Intelligence Lead"
         created = utc_now()
         with self._connect() as connection:
             connection.execute(
-                "INSERT INTO verification_cases VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                (case_id, title, workspace, requested_by, reviewer, "Pending review", "Answer narrative, calculations and source citations", created, None, report_filename),
+                """INSERT INTO verification_cases
+                   (id, title, workspace, requested_by, reviewer, status, scope, created_at, reviewed_at, report_filename, details_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (case_id, title, workspace, requested_by, reviewer, "Pending review", "Answer narrative, calculations and source citations", created, None, report_filename, json.dumps(details or {}, ensure_ascii=True, sort_keys=True)),
             )
             self._audit(connection, case_id, "submitted", requested_by, {"reportFilename": report_filename})
         return self.get_case(case_id)
@@ -112,6 +142,10 @@ class VerificationStore:
     @staticmethod
     def _case_dict(row: sqlite3.Row) -> dict[str, Any]:
         created = row["created_at"]
+        try:
+            details = json.loads(row["details_json"] or "{}") if "details_json" in row.keys() else {}
+        except (json.JSONDecodeError, TypeError):
+            details = {}
         return {
             "id": row["id"],
             "title": row["title"],
@@ -124,4 +158,5 @@ class VerificationStore:
             "createdAt": created,
             "reviewedAt": row["reviewed_at"],
             "reportFilename": row["report_filename"],
+            "details": details,
         }

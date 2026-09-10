@@ -27,6 +27,18 @@
       "excerpt": "A beginner-friendly introduction to the exchange, market capitalisation, ADV, velocity and investor participation."
     },
     {
+      "id": "product-overview",
+      "workspace": "learn",
+      "title": "Bursa Products Overview",
+      "filename": "Learn/Bursa_Products_Overview.pdf",
+      "displayFilename": "Bursa_Products_Overview.pdf",
+      "format": "PDF",
+      "owner": "Learning & Development",
+      "updated": "10 Sep 2026 · 14:30 MYT",
+      "status": "Loaded",
+      "excerpt": "A high-level guide to Bursa securities, derivatives, Islamic-market products, indices, LFX and Bursa Gold Dinar."
+    },
+    {
       "id": "conduct-guide",
       "workspace": "learn",
       "title": "New Joiner Conduct Guide — Demo",

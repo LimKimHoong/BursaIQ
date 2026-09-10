@@ -134,15 +134,16 @@ def doc_page(canvas, document) -> None:
     canvas.drawString(18 * mm, A4[1] - 10 * mm, "BURSAIQ  /  CONTROLLED DEMO SOURCE")
     canvas.setFillColor(colors.HexColor("#6B7E82"))
     canvas.setFont("Helvetica", 7)
-    canvas.drawString(18 * mm, 10 * mm, "SYNTHETIC COMPETITION MATERIAL — NOT AN OFFICIAL BURSA MALAYSIA DOCUMENT")
+    canvas.drawString(18 * mm, 10 * mm, "CONTROLLED COMPETITION MATERIAL - NOT AN OFFICIAL BURSA MALAYSIA DOCUMENT")
     canvas.drawRightString(A4[0] - 18 * mm, 10 * mm, f"PAGE {document.page}")
     canvas.restoreState()
 
 
-def create_pdf(path: Path, title: str, subtitle: str, sections: list[tuple[str, list[str]]]) -> None:
+def create_pdf(path: Path, title: str, subtitle: str, sections: list[tuple[str, list[str]]], purpose: str | None = None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     styles = pdf_styles()
-    story = [Spacer(1, 10 * mm), Paragraph(title, styles["title"]), Paragraph(subtitle, styles["callout"]), Paragraph("Purpose and status", styles["h1"]), Paragraph("This controlled source was created for the BursaIQ Stage 02 competition prototype. All examples are invented. Replace it only with material approved for the demonstration environment.", styles["body"])]
+    purpose_text = purpose or "This controlled source was created for the BursaIQ Stage 02 competition prototype. All examples are invented. Replace it only with material approved for the demonstration environment."
+    story = [Spacer(1, 10 * mm), Paragraph(title, styles["title"]), Paragraph(subtitle, styles["callout"]), Paragraph("Purpose and status", styles["h1"]), Paragraph(purpose_text, styles["body"])]
     for index, (heading, paragraphs) in enumerate(sections):
         if index and index % 3 == 0:
             story.append(PageBreak())
@@ -155,7 +156,40 @@ def create_pdf(path: Path, title: str, subtitle: str, sections: list[tuple[str, 
     document.build(story, onFirstPage=doc_page, onLaterPages=doc_page)
 
 
+def create_product_overview_pdf() -> None:
+    create_pdf(
+        INPUT / "Learn" / "Bursa_Products_Overview.pdf",
+        "Bursa Products Overview",
+        "High-level product map for new joiners",
+        [
+            ("Product map at a glance", [
+                "Bursa's product choices span securities such as shares, structured products, ETFs, REITs, bonds and sukuk; commodity, equity and financial futures and options; Shariah-compliant participation through Bursa Malaysia-i and Bursa Suq Al-Sila'; indices; the Labuan International Financial Exchange (LFX); and Bursa Gold Dinar."
+            ]),
+            ("1. Securities market", [
+                "Common product groups include shares, structured products such as warrants, exchange-traded funds (ETFs), real estate investment trusts (REITs), and exchange-traded bonds and sukuk.",
+                "These products have different structures, risks and eligibility requirements. This overview names categories; it is not investment advice or a complete product specification."
+            ]),
+            ("2. Derivatives market", [
+                "Bursa Malaysia Derivatives provides commodity, equity and financial derivatives. Examples include crude palm oil futures, equity-index futures, single-stock futures, and Malaysian Government Securities futures.",
+                "If a user asks specifically about options, examples include equity-index options and options linked to crude palm oil futures. Contract availability and specifications must be checked against the current official product page."
+            ]),
+            ("3. Islamic market", [
+                "Bursa Malaysia-i supports end-to-end Shariah-compliant securities investing. Bursa Suq Al-Sila' is a commodity trading platform that supports Islamic liquidity management and financing."
+            ]),
+            ("4. Other product and market areas", [
+                "The broader product map also includes Bursa Malaysia indices, the Labuan International Financial Exchange (LFX), and Bursa Gold Dinar. Services such as listing, trading, clearing, settlement, depository and market information support these markets."
+            ]),
+            ("5. How to use this answer", [
+                "Start with the user's objective: investing, hedging, Shariah-compliant participation, issuer access, or learning. Then open the relevant official product page for current eligibility, risks, fees and contract specifications.",
+                "Public reference: Bursa Malaysia, Our Products and Services - www.bursamalaysia.com/trade/our_products_services. Public reference: Bursa Assist, Bursa Securities Market - assist.bursamalaysia.com."
+            ])
+        ],
+        purpose="This controlled source is a concise public-product summary prepared for the BursaIQ Stage 02 competition prototype. It is not an exhaustive catalogue and must not be treated as investment advice. Product availability and specifications should be checked against Bursa Malaysia's current official pages."
+    )
+
+
 def create_source_pdfs() -> None:
+    create_product_overview_pdf()
     create_pdf(INPUT / "Learn" / "Bursa_Market_Primer.pdf", "Bursa Market Primer", "Plain-language starter material for new joiners", [
         ("1. What an exchange does", ["An exchange brings together investors and issuers within an organised market. It provides listing, trading, clearing and market-information services under applicable rules.", "BursaIQ should help a new joiner understand a term while keeping the original source one click away."]),
         ("2. Average Daily Value (ADV)", ["ADV is total traded value divided by the number of trading days in the measurement window. Always name the window because a 30-day ADV and a monthly ADV may differ.", "Worked synthetic example: RM68.4 billion traded over 20 trading days gives RM3.42 billion ADV."]),

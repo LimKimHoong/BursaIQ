@@ -6,6 +6,7 @@ Open:     http://127.0.0.1:5000
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,7 @@ from bursaiq.data_loader import IngestionError, LocalDataRepository, ROLE_WORKSP
 from bursaiq.metrics import MetricEngine
 from bursaiq.model_provider import OptionalModelProvider
 from bursaiq.reporting import BriefingGenerator
+from bursaiq.routing import choose_workspace, is_product_learning_question, policy_workspace
 from bursaiq.store import VerificationStore
 
 
@@ -32,6 +34,26 @@ reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 model_provider = OptionalModelProvider()
 
+DEMO_IDENTITIES = {
+    "gcmc": "Nadia Karim",
+    "hr": "Farah Lee",
+    "securities": "Arif Rahman",
+    "finance": "Mei Tan",
+}
+REVIEWER_ASSIGNMENTS = {
+    "hr": {"HR Policy Owner"},
+    "securities": {"Market Intelligence Lead"},
+}
+
+
+def reviewer_assignments(role: str) -> set[str]:
+    """Return the review queues assigned to a simulated identity role."""
+    return REVIEWER_ASSIGNMENTS.get(role, set())
+
+
+def reviewer_can_access(case: dict[str, Any], role: str) -> bool:
+    return case.get("reviewer") in reviewer_assignments(role)
+
 
 def body_json() -> dict[str, Any]:
     payload = request.get_json(silent=True)
@@ -47,6 +69,53 @@ def bounded_text(payload: dict[str, Any], key: str, maximum: int, required: bool
     if len(value) > maximum:
         raise ValueError(f"{key} must be {maximum} characters or fewer.")
     return value
+
+
+def review_details(payload: dict[str, Any]) -> dict[str, Any]:
+    """Keep a small, inspectable snapshot with each local verification case."""
+    provided = payload.get("details")
+    answer = payload.get("answer") if isinstance(payload.get("answer"), dict) else {}
+    source_value = provided.get("sources", []) if isinstance(provided, dict) else answer.get("sources", [])
+    context_value = provided.get("context", {}) if isinstance(provided, dict) else answer.get("context", {})
+
+    def clipped(value: Any, maximum: int) -> str:
+        return str(value or "").strip()[:maximum]
+
+    sources = []
+    if isinstance(source_value, list):
+        for source in source_value[:8]:
+            if not isinstance(source, dict):
+                continue
+            sources.append({
+                "title": clipped(source.get("title") or source.get("filename"), 180),
+                "filename": clipped(source.get("filename"), 180),
+                "owner": clipped(source.get("owner"), 180),
+                "detail": clipped(source.get("detail") or source.get("excerpt"), 500),
+            })
+
+    context = {}
+    if isinstance(context_value, dict):
+        context = {clipped(key, 80): clipped(value, 240) for key, value in list(context_value.items())[:12]}
+
+    if isinstance(provided, dict):
+        question = provided.get("question")
+        answer_title = provided.get("answerTitle")
+        answer_text = provided.get("answerText")
+        formula = provided.get("formula")
+    else:
+        question = payload.get("question")
+        answer_title = answer.get("title") or payload.get("title")
+        answer_text = answer.get("html")
+        formula = answer.get("formula")
+
+    return {
+        "question": clipped(question, 1000),
+        "answerTitle": clipped(answer_title, 180),
+        "answerText": clipped(answer_text, 4000),
+        "formula": clipped(formula, 1000),
+        "context": context,
+        "sources": sources,
+    }
 
 
 @app.after_request
@@ -93,8 +162,11 @@ def health():
 
 @app.get("/api/bootstrap")
 def bootstrap():
+    role = str(request.args.get("role", "")).lower()
     payload = repository.public_bootstrap()
-    payload["verification"] = verification.list_cases()
+    payload["verification"] = verification.list_cases(reviewer_assignments(role))
+    payload["reviewerAccess"] = bool(reviewer_assignments(role))
+    payload["model"] = model_provider.status()
     return jsonify(payload)
 
 
@@ -142,25 +214,87 @@ def metric_query():
 
 
 @app.post("/api/chat")
-def chat_compatibility():
-    """Compatibility route for the original prototype; keeps model use optional."""
+def chat():
+    """Access-controlled retrieval/calculation followed by optional Ollama wording."""
     payload = body_json()
     question = bounded_text(payload, "question", 1000)
-    workspace = str(payload.get("workspace", "market")).lower()
-    role = str(payload.get("role", "gcmc")).lower()
-    if workspace == "market":
-        if "market" not in ROLE_WORKSPACES.get(role, set()):
-            return jsonify({"error": "Access denied."}), 403
-        result = MetricEngine(repository.load()["market"]).query(question)
-        optional = model_provider.generate(question, f"{result['summary']}\nFormula: {result['formula']}")
-        return jsonify({"answer": optional or result["summary"], "result": result, "model": model_provider.status(), "classification": "SYNTHETIC_DEMO_ONLY"})
+    requested_workspace = bounded_text(payload, "workspace", 30).lower()
+    role = bounded_text(payload, "role", 30).lower()
+    use_model = payload.get("useModel", True) is not False
+    response_style = str(payload.get("responseStyle", "balanced")).lower()
+    if response_style not in {"concise", "balanced", "detailed"}:
+        response_style = "balanced"
+    routed_by = "selected-workspace"
+
+    if requested_workspace == "assistant":
+        governed_route = policy_workspace(question)
+        model_route = None if governed_route or not use_model else model_provider.route(question)
+        workspace, routed_by = choose_workspace(question, model_route)
+    else:
+        workspace = requested_workspace
+
+    if workspace not in {"market", "learn", "hr"}:
+        raise ValueError("workspace must be assistant, market, learn or hr.")
     if workspace not in ROLE_WORKSPACES.get(role, set()):
-        return jsonify({"error": "Access denied."}), 403
+        return jsonify({
+            "error": "The active demo identity cannot retrieve this workspace.",
+            "workspace": workspace,
+            "routedBy": routed_by,
+            "model": model_provider.status(),
+        }), 403
+
+    if workspace == "market":
+        result = MetricEngine(repository.load()["market"]).query(question)
+        result["calculationMode"] = "deterministic"
+        context = json.dumps({
+            "summary": result["summary"],
+            "facts": result["facts"],
+            "formula": result["formula"],
+            "sourceRefs": result["sourceRefs"],
+            "definitions": {"ADV": "Average Daily Value"},
+            "classification": "SYNTHETIC_DEMO_ONLY",
+        }, ensure_ascii=False, sort_keys=True)
+        optional = model_provider.generate(question, context, "market", response_style) if use_model else None
+        return jsonify({
+            "answer": optional or result["summary"],
+            "result": result,
+            "workspace": workspace,
+            "routedBy": routed_by,
+            "narrativeMode": "ollama" if optional else "deterministic",
+            "model": model_provider.status(),
+            "classification": "SYNTHETIC_DEMO_ONLY",
+        })
+
     matches = repository.search(question, workspace, role, 3)
-    context = "\n".join(item.excerpt for item in matches)
-    optional = model_provider.generate(question, context)
+    context = "\n\n".join(f"SOURCE: {item.title}\nEXCERPT: {item.excerpt}" for item in matches)
+    if workspace == "learn" and is_product_learning_question(question) and matches:
+        return jsonify({
+            "answer": (
+                "At a high level, Bursa products fall into four groups:\n\n"
+                "- Securities: shares, structured products such as warrants, ETFs, REITs, bonds and sukuk.\n"
+                "- Derivatives: commodity, equity and financial futures and options.\n"
+                "- Islamic market: Bursa Malaysia-i and Bursa Suq Al-Sila'.\n"
+                "- Other areas: indices, the Labuan International Financial Exchange (LFX) and Bursa Gold Dinar.\n\n"
+                "This is an introductory map, not investment advice. Would you like to explore one group in more detail?"
+            ),
+            "sources": [item.as_dict() for item in matches],
+            "workspace": workspace,
+            "routedBy": routed_by,
+            "narrativeMode": "governed-retrieval",
+            "model": model_provider.status(),
+            "classification": "SYNTHETIC_DEMO_ONLY",
+        })
+    optional = model_provider.generate(question, context, workspace, response_style) if matches and use_model else None
     fallback = matches[0].excerpt if matches else "I could not find that in the approved local demo sources."
-    return jsonify({"answer": optional or fallback, "sources": [item.as_dict() for item in matches], "model": model_provider.status(), "classification": "SYNTHETIC_DEMO_ONLY"})
+    return jsonify({
+        "answer": optional or fallback,
+        "sources": [item.as_dict() for item in matches],
+        "workspace": workspace,
+        "routedBy": routed_by,
+        "narrativeMode": "ollama" if optional else "retrieval",
+        "model": model_provider.status(),
+        "classification": "SYNTHETIC_DEMO_ONLY",
+    })
 
 
 @app.post("/api/report")
@@ -175,7 +309,7 @@ def generate_report():
     result = reports.generate(payload)
     case = None
     if str(payload.get("verification", "")).lower().startswith("pending"):
-        case = verification.create_case(payload["title"], payload["workspace"], payload["requestedBy"], result["filename"])
+        case = verification.create_case(payload["title"], payload["workspace"], payload["requestedBy"], result["filename"], review_details(payload))
     return jsonify({
         "filename": result["filename"],
         "downloadUrl": f"/api/reports/{result['filename']}",
@@ -195,7 +329,11 @@ def download_report(filename: str):
 
 @app.get("/api/verification")
 def list_verification():
-    return jsonify({"cases": verification.list_cases()})
+    role = str(request.args.get("role", "")).lower()
+    assignments = reviewer_assignments(role)
+    if not assignments:
+        return jsonify({"error": "This demo identity is not assigned to a review queue.", "cases": []}), 403
+    return jsonify({"cases": verification.list_cases(assignments)})
 
 
 @app.post("/api/verification")
@@ -206,6 +344,7 @@ def create_verification():
         bounded_text(payload, "workspace", 80),
         bounded_text(payload, "requestedBy", 100),
         bounded_text(payload, "reportFilename", 180, required=False) or None,
+        review_details(payload),
     )
     return jsonify(case), 201
 
@@ -214,7 +353,11 @@ def create_verification():
 def review_verification(case_id: str):
     payload = body_json()
     try:
-        case = verification.update_status(case_id, bounded_text(payload, "status", 30), bounded_text(payload, "actor", 100))
+        role = bounded_text(payload, "role", 30).lower()
+        existing = verification.get_case(case_id)
+        if not reviewer_can_access(existing, role):
+            return jsonify({"error": "This verification case is not assigned to the active reviewer."}), 403
+        case = verification.update_status(case_id, bounded_text(payload, "status", 30), DEMO_IDENTITIES.get(role, "Demo reviewer"))
     except KeyError:
         return jsonify({"error": "Verification case not found."}), 404
     return jsonify(case)
@@ -222,10 +365,13 @@ def review_verification(case_id: str):
 
 @app.get("/api/verification/<case_id>/history")
 def verification_history(case_id: str):
+    role = str(request.args.get("role", "")).lower()
     try:
-        verification.get_case(case_id)
+        case = verification.get_case(case_id)
     except KeyError:
         return jsonify({"error": "Verification case not found."}), 404
+    if not reviewer_can_access(case, role):
+        return jsonify({"error": "This verification case is not assigned to the active reviewer."}), 403
     return jsonify({"caseId": case_id, "events": verification.history(case_id)})
 
 

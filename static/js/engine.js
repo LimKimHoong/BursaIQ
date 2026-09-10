@@ -181,6 +181,26 @@
 
   function learnAnswer(question) {
     const q = question.toLowerCase();
+    if (/(product|products|instrument|instruments|asset class|option|options)/.test(q)) {
+      return answer(
+        "Bursa products span securities, derivatives and specialist markets",
+        `<p>The high-level product map includes <strong>securities</strong> such as shares, structured products, ETFs, REITs, bonds and sukuk, plus <strong>commodity, equity and financial derivatives</strong> such as futures and options.</p>
+         <p>It also covers Shariah-compliant participation through Bursa Malaysia-i and Bursa Suq Al-Sila', together with indices, the Labuan International Financial Exchange and Bursa Gold Dinar.</p>
+         <p><strong>Important:</strong> this is an introductory map, not investment advice. Current eligibility, risks, fees and contract specifications should be checked on the relevant official product page.</p>`,
+        {
+          sources: [source("product-overview", "Product map at a glance and product-market categories")],
+          method: [
+            ["1", "Classify", "Recognise a product-discovery question and route it to Learn Bursa."],
+            ["2", "Retrieve", "Open the approved local Bursa Products Overview."],
+            ["3", "Group", "Present the retrieved categories without asking the language model to rebuild the catalogue."],
+            ["4", "Cite", "Attach the source and remind the reader to confirm current specifications."]
+          ],
+          formula: "No calculation. Categories are retrieved from the approved learning source.",
+          context: { "Audience mode": "New joiner", "Scope": "High-level product categories", "Advice status": "Not investment advice", "Freshness check": "Confirm current specifications on official pages" },
+          followups: ["Which securities products are listed?", "What derivatives are available?", "Explain Bursa Malaysia-i"]
+        }
+      );
+    }
     let item = data.glossary.find((entry) => q.includes(entry.term.toLowerCase()) || q.includes(entry.expansion.toLowerCase()));
     if (!item && (q.includes("volume") || q.includes("trading value"))) item = data.glossary[0];
     if (!item) item = data.glossary[1];
@@ -190,7 +210,7 @@
         ? "At RM3.42bn ADV, 252 days and RM2,148.6bn market capitalisation, annualised velocity is about 40.1%."
         : "A company with 1 billion issued shares priced at RM4 has RM4 billion in market capitalisation.";
     return answer(
-      `${item.term}, explained without the market shorthand`,
+      `${item.term} explained`,
       `<p><strong>${item.expansion}</strong> — ${item.explanation}</p>
        <p><strong>Simple example:</strong> ${example}</p>
        <p><strong>Why colleagues use it:</strong> it creates a consistent basis for comparing activity or market size across periods. Always check the measurement window and scope before comparing two figures.</p>`,

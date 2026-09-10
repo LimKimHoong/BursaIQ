@@ -7,9 +7,11 @@ Every included figure, applicant and document is synthetic. Nothing in this repo
 ## What is implemented
 
 - **Quiet conversational home:** the first screen contains only the BursaIQ conversation. Workspaces, evidence and workflow details are disclosed only when requested.
-- **Market Intelligence:** market performance, 30-day ADV, market capitalisation, trading velocity, sector/constituent drivers, investor participation and selected international comparisons.
+- **Market Intelligence:** a ready-to-present Market Pulse plus governed market performance, 30-day ADV, market capitalisation, trading velocity, sector/constituent drivers, investor participation and selected international comparisons.
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
-- **Learn Bursa:** plain-language explanations grounded in the local market primer and new-joiner conduct guide.
+- **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
+- **Local preferences:** Settings controls response detail, Ollama wording, automatic analysis, chart motion and the default workspace without changing access policy.
+- **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
 - **People Services:** hiring procedure plus fictional application-status retrieval, available only to the HR demo identity.
 - **Real local ingestion:** structured data is loaded from Excel and document text is extracted from PDF files under `Input/`.
 - **Human verification:** a local SQLite review queue records submission, approval or changes requested, with an audit history.
@@ -46,11 +48,11 @@ The script leaves roughly 45 seconds for transitions and judge reaction. All thr
 | Identity | Department | Demonstrated access |
 |---|---|---|
 | Nadia Karim | GCMC | Market Intelligence, Learn Bursa |
-| Arif Rahman | Securities Market | Market Intelligence, Learn Bursa |
-| Farah Lee | HR | People Services, Learn Bursa |
-| Mei Tan | Finance | Learn Bursa |
+| Arif Rahman | Securities Market | Market Intelligence, Learn Bursa, Market Intelligence review queue |
+| Farah Lee | HR | Market Intelligence, People Services, Learn Bursa, HR Policy review queue |
+| Mei Tan | Finance | Market Intelligence, Learn Bursa |
 
-These are UI and API demo controls, not production authentication. A production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
+Verification cases are filtered and update-protected by reviewer assignment in both the UI and API. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
 
 ## Replacing the synthetic files later
 
@@ -98,7 +100,14 @@ The default is the deterministic demo engine, which is the safest configuration 
 BURSAIQ_MODEL_PROVIDER=ollama BURSAIQ_OLLAMA_MODEL=qwen2.5:1.5b ./myenv/bin/python server.py
 ```
 
-The optional model is used only for narrative wording. Local retrieval, metrics, access decisions and verification remain authoritative.
+When enabled, the visible conversation uses Ollama in four bounded ways:
+
+- **BursaIQ Assistant:** Ollama proposes a workspace label and writes the response. Deterministic guardrails reserve People Services for explicit HR intent, while server-side role checks still decide whether retrieval is allowed.
+- **Market Intelligence:** deterministic metric tools calculate the result, then Ollama explains the supplied facts without owning the numbers.
+- **Learn Bursa:** local retrieval supplies relevant approved PDF/Excel excerpts before Ollama writes explanatory answers. Product catalogues use a deterministic four-group summary so a small model cannot omit or rearrange categories.
+- **People Services:** access-controlled local retrieval supplies the permitted procedure or fictional status before Ollama rewrites it clearly.
+
+Answers display an `Ollama · model-name` badge when model wording succeeds. If Ollama is disabled or unreachable, the interface automatically uses the deterministic/retrieval fallback. Local retrieval, metrics, access decisions and verification remain authoritative.
 
 ## Project layout
 
