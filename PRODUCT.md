@@ -39,6 +39,7 @@ BursaIQ separates language from evidence. The model interprets and explains; gov
 - Use local synthetic files now; allow sanitized representative files to replace them later through the `Input/` folder.
 - Prioritize GCMC market intelligence: market value, ADV, market performance, market drivers, investor participation, and selected international comparisons.
 - Include a Learn Bursa workspace where new joiners can read source material, request summaries, and ask grounded follow-up questions.
+- Include permissioned Ask Reg and Ask HR workspaces, with visible information boundaries and access-request controls for every identity.
 - Include a small HR scenario using fictional applicants only.
 - Simulate departmental identities and access boundaries visibly.
 - Generate downloadable PDF briefings and support a human-verification workflow.

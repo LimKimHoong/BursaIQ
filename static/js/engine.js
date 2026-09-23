@@ -263,10 +263,39 @@
     );
   }
 
+  function regAnswer(question) {
+    const q = question.toLowerCase();
+    const topics = data.regulation?.topics || [];
+    let topic = topics.find((item) => item.id === "listing-obligations") || topics[0];
+    if (/(continuous|material information|disclosure)/.test(q)) topic = topics.find((item) => item.id === "continuous-disclosure") || topic;
+    else if (/(unusual|uma|market activity query)/.test(q)) topic = topics.find((item) => item.id === "unusual-market-activity") || topic;
+    else if (/(misconduct|manipulation|insider|suspicious|surveillance)/.test(q)) topic = topics.find((item) => item.id === "market-misconduct") || topic;
+    return answer(
+      `${topic.title}: a controlled first view`,
+      `<p>${topic.summary}</p>
+       <ul>${topic.actions.map((action) => `<li>${action}</li>`).join("")}</ul>
+       <p><strong>Boundary:</strong> ${data.regulation.disclaimer} Confirm the current official rule text and seek the accountable Data Owner’s interpretation before acting.</p>`,
+      {
+        sources: [source("regulatory-demo-guide", `${topic.title} · synthetic workflow guidance`)],
+        method: [
+          ["1", "Classify", "Identify the regulation topic and the decision the user is trying to make."],
+          ["2", "Retrieve", "Read only the permitted Ask Reg demo source."],
+          ["3", "Bound", "Separate general workflow guidance from an official rule interpretation."],
+          ["4", "Escalate", "Direct the user to the current rule text and accountable regulatory owner."]
+        ],
+        formula: "No calculation. Guidance is retrieved from the controlled synthetic regulation source.",
+        context: { "Information class": "Synthetic demo guidance", "Authority": "Not an official rule interpretation", "Owner": "Regulatory Policy & Advisory", "Action boundary": "Confirm before acting" },
+        status: "Controlled guidance",
+        followups: ["What is continuous disclosure?", "How should suspected market misconduct be escalated?", "What should happen after an unusual market activity query?"]
+      }
+    );
+  }
+
   function respond(workspace, question) {
     const q = question.toLowerCase();
     if (workspace === "learn") return learnAnswer(question);
     if (workspace === "hr") return hrAnswer(question);
+    if (workspace === "reg") return regAnswer(question);
     if (q.includes("adv") || q.includes("daily value") || q.includes("trading activity")) return advPerformance();
     if (q.includes("sector") || q.includes("driver") || q.includes("stock") || q.includes("counter") || q.includes("attribution")) return marketDrivers();
     if (q.includes("regional") || q.includes("international") || q.includes("peer") || q.includes("singapore") || q.includes("thailand") || q.includes("indonesia") || q.includes("s&p")) return regionalComparison();
@@ -275,5 +304,5 @@
     return marketPerformance();
   }
 
-  window.BursaIQEngine = { respond, format, marketPerformance, advPerformance, marketDrivers, regionalComparison, marketSizeAndVelocity, participation, learnAnswer, hrAnswer };
+  window.BursaIQEngine = { respond, format, marketPerformance, advPerformance, marketDrivers, regionalComparison, marketSizeAndVelocity, participation, learnAnswer, hrAnswer, regAnswer };
 })();

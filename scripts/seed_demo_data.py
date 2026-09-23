@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -114,6 +115,44 @@ def create_hr_workbook() -> None:
     book.save(path)
 
 
+def create_regulation_guide() -> None:
+    path = INPUT / "Regulatory" / "Market_Regulation_Guide_Demo.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "classification": "SYNTHETIC_DEMO_ONLY",
+        "title": "Market Regulation Guide — Demo",
+        "owner": "Regulatory Policy & Advisory",
+        "topics": [
+            {
+                "id": "continuous-disclosure",
+                "title": "Continuous disclosure",
+                "summary": "An issuer should assess whether information is material and follow the approved disclosure process without avoidable delay. Confidentiality must be protected while the assessment is underway.",
+                "actions": ["Escalate potentially material information to the authorised disclosure owner.", "Document the materiality assessment and decision.", "Use the approved announcement and review process before publication."],
+            },
+            {
+                "id": "unusual-market-activity",
+                "title": "Unusual market activity query",
+                "summary": "A designated issuer contact should coordinate a prompt fact check, confirm whether undisclosed material information exists and prepare a reviewed response through the approved channel.",
+                "actions": ["Notify the company secretary or designated disclosure owner.", "Check for undisclosed material developments with accountable business owners.", "Preserve the review record and obtain approval before responding."],
+            },
+            {
+                "id": "market-misconduct",
+                "title": "Suspected market misconduct",
+                "summary": "Potential manipulation, insider dealing or other suspicious conduct should be escalated through the approved surveillance or compliance channel. Staff should preserve information and avoid conducting an unauthorised investigation.",
+                "actions": ["Record the observation without altering source material.", "Escalate to Market Surveillance or Compliance.", "Restrict discussion to authorised personnel and follow the case owner's instructions."],
+            },
+            {
+                "id": "listing-obligations",
+                "title": "Continuing listing obligations",
+                "summary": "Listed issuers have ongoing obligations that may include announcements, periodic reporting, governance and transaction-related requirements. The current official rulebook and accountable regulatory owner remain authoritative.",
+                "actions": ["Identify the relevant obligation and effective rule version.", "Check current official guidance and any applicable practice note.", "Escalate interpretation questions to Regulatory Policy & Advisory."],
+            },
+        ],
+        "disclaimer": "Synthetic competition guidance only. It is not legal advice or an official interpretation of Bursa Malaysia rules.",
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def pdf_styles():
     styles = getSampleStyleSheet()
     return {
@@ -216,6 +255,7 @@ def create_source_pdfs() -> None:
 def main() -> None:
     create_market_workbook()
     create_hr_workbook()
+    create_regulation_guide()
     create_source_pdfs()
     print(f"Synthetic demo pack created under {INPUT}")
 

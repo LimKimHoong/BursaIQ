@@ -73,6 +73,18 @@
       "updated": "30 Jul 2026 · 17:40 MYT",
       "status": "Restricted",
       "excerpt": "Fictional applicant records created solely to demonstrate role-based access and status retrieval."
+    },
+    {
+      "id": "regulatory-demo-guide",
+      "workspace": "reg",
+      "title": "Market Regulation Guide — Demo",
+      "filename": "Regulatory/Market_Regulation_Guide_Demo.json",
+      "displayFilename": "Market_Regulation_Guide_Demo.json",
+      "format": "JSON",
+      "owner": "Regulatory Policy & Advisory",
+      "updated": "15 Sep 2026 · 10:00 MYT",
+      "status": "Restricted",
+      "excerpt": "Synthetic guidance covering continuous disclosure, unusual market activity queries, suspected market misconduct escalation and continuing listing obligations."
     }
   ]
 }

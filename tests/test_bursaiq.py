@@ -26,7 +26,7 @@ class IngestionTests(unittest.TestCase):
 
     def test_source_pack_loads_without_errors(self) -> None:
         self.assertEqual(self.loaded["meta"]["ingestionErrors"], [])
-        self.assertEqual(len(self.loaded["documents"]), 6)
+        self.assertEqual(len(self.loaded["documents"]), 7)
         self.assertEqual(self.loaded["market"]["headline"]["fbmKLCI"], 1638.2)
 
     def test_search_obeys_workspace_access(self) -> None:
@@ -34,6 +34,8 @@ class IngestionTests(unittest.TestCase):
         self.assertIn("Average Daily Value", adv_results[0].excerpt)
         self.assertEqual(self.repository.search("Alya", "hr", "gcmc"), [])
         self.assertTrue(self.repository.search("Alya", "hr", "hr"))
+        self.assertEqual(self.repository.search("continuous disclosure", "reg", "gcmc"), [])
+        self.assertTrue(self.repository.search("continuous disclosure", "reg", "securities"))
 
     def test_product_discovery_retrieves_the_learning_catalogue(self) -> None:
         results = self.repository.search("What are the product options available in Bursa?", "learn", "gcmc")
@@ -78,6 +80,10 @@ class WorkflowTests(unittest.TestCase):
         provider.generate("How did the market perform?", "FORMULA: governed", "market", "detailed")
         self.assertEqual(captured["num_predict"], 360)
         self.assertIn("four to six sentences", str(captured["prompt"]))
+
+        provider.generate("What is continuous disclosure?", "CONTROLLED SOURCE", "reg")
+        self.assertIn("not legal advice", str(captured["prompt"]))
+        self.assertIn("CONTROLLED SOURCE", str(captured["prompt"]))
 
     def test_verification_records_audit_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -148,6 +154,48 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["narrativeMode"], "deterministic")
         generate.assert_not_called()
+
+    def test_ask_reg_is_restricted_to_approved_role(self) -> None:
+        from server import app
+
+        with app.test_client() as client:
+            approved = client.post("/api/chat", json={
+                "question": "What is continuous disclosure?",
+                "workspace": "reg",
+                "role": "securities",
+                "useModel": False,
+            })
+            blocked = client.post("/api/chat", json={
+                "question": "What is continuous disclosure?",
+                "workspace": "reg",
+                "role": "gcmc",
+                "useModel": False,
+            })
+        self.assertEqual(approved.status_code, 200)
+        self.assertEqual(approved.get_json()["workspace"], "reg")
+        self.assertEqual(approved.get_json()["sources"][0]["documentId"], "regulatory-demo-guide")
+        self.assertEqual(blocked.status_code, 403)
+
+    def test_ask_hr_is_restricted_to_approved_role(self) -> None:
+        from server import app
+
+        with app.test_client() as client:
+            approved = client.post("/api/chat", json={
+                "question": "What is the hiring procedure?",
+                "workspace": "hr",
+                "role": "hr",
+                "useModel": False,
+            })
+            blocked = client.post("/api/chat", json={
+                "question": "What is the hiring procedure?",
+                "workspace": "hr",
+                "role": "finance",
+                "useModel": False,
+            })
+        self.assertEqual(approved.status_code, 200)
+        self.assertEqual(approved.get_json()["workspace"], "hr")
+        self.assertTrue(approved.get_json()["sources"])
+        self.assertEqual(blocked.status_code, 403)
 
     def test_market_intelligence_is_available_to_every_demo_role(self) -> None:
         from server import app

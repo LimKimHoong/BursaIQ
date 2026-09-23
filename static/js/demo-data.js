@@ -8,7 +8,7 @@ window.BURSAIQ_DEMO = {
   identities: {
     gcmc: { initials: "NK", name: "Nadia Karim", role: "GCMC · Analyst", access: ["market", "learn", "reports", "sources"], reviewerFor: [] },
     hr: { initials: "FL", name: "Farah Lee", role: "HR · People Partner & Reviewer", access: ["market", "hr", "learn", "reports", "verification", "sources"], reviewerFor: ["HR Policy Owner"] },
-    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Market Reviewer", access: ["market", "learn", "reports", "verification", "sources"], reviewerFor: ["Market Intelligence Lead"] },
+    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Market Reviewer", access: ["market", "learn", "reg", "reports", "verification", "sources"], reviewerFor: ["Market Intelligence Lead"] },
     finance: { initials: "MT", name: "Mei Tan", role: "Finance · Business Partner", access: ["market", "learn", "reports", "sources"], reviewerFor: [] }
   },
   market: {
@@ -133,6 +133,18 @@ window.BURSAIQ_DEMO = {
       pages: "5 pages",
       status: "Loaded",
       excerpt: "Practical guidance on confidentiality, responsible data handling and escalation for new joiners."
+    },
+    {
+      id: "regulatory-demo-guide",
+      workspace: "reg",
+      title: "Market Regulation Guide — Demo",
+      filename: "Market_Regulation_Guide_Demo.json",
+      format: "JSON",
+      owner: "Regulatory Policy & Advisory",
+      updated: "15 Sep 2026 · 10:00 MYT",
+      pages: "4 demo topics",
+      status: "Restricted",
+      excerpt: "Synthetic guidance covering continuous disclosure, unusual market activity queries, suspected market misconduct escalation and continuing listing obligations."
     }
   ],
   glossary: [
@@ -156,6 +168,35 @@ window.BURSAIQ_DEMO = {
       { applicant: "Siti Hajar", ref: "DEM-26018", position: "People Analytics Executive", stage: "Pre-employment checks", nextAction: "Reference check in progress", owner: "F. Lee" },
       { applicant: "Kavin Raj", ref: "DEM-26011", position: "Cybersecurity Specialist", stage: "Offer approval and issue", nextAction: "Approval due · 1 Aug 2026", owner: "M. Wong" }
     ]
+  },
+  regulation: {
+    topics: [
+      {
+        id: "continuous-disclosure",
+        title: "Continuous disclosure",
+        summary: "An issuer should assess whether information is material and follow the approved disclosure process without avoidable delay. Confidentiality must be protected while the assessment is underway.",
+        actions: ["Escalate potentially material information to the authorised disclosure owner.", "Document the materiality assessment and decision.", "Use the approved announcement and review process before publication."]
+      },
+      {
+        id: "unusual-market-activity",
+        title: "Unusual market activity query",
+        summary: "A designated issuer contact should coordinate a prompt fact check, confirm whether undisclosed material information exists and prepare a reviewed response through the approved channel.",
+        actions: ["Notify the company secretary or designated disclosure owner.", "Check for undisclosed material developments with accountable business owners.", "Preserve the review record and obtain approval before responding."]
+      },
+      {
+        id: "market-misconduct",
+        title: "Suspected market misconduct",
+        summary: "Potential manipulation, insider dealing or other suspicious conduct should be escalated through the approved surveillance or compliance channel. Staff should preserve information and avoid conducting an unauthorised investigation.",
+        actions: ["Record the observation without altering source material.", "Escalate to Market Surveillance or Compliance.", "Restrict discussion to authorised personnel and follow the case owner's instructions."]
+      },
+      {
+        id: "listing-obligations",
+        title: "Continuing listing obligations",
+        summary: "Listed issuers have ongoing obligations that may include announcements, periodic reporting, governance and transaction-related requirements. The current official rulebook and accountable regulatory owner remain authoritative.",
+        actions: ["Identify the relevant obligation and effective rule version.", "Check current official guidance and any applicable practice note.", "Escalate interpretation questions to Regulatory Policy & Advisory."]
+      }
+    ],
+    disclaimer: "Synthetic competition guidance only. It is not legal advice or an official interpretation of Bursa Malaysia rules."
   },
   verification: [
     {

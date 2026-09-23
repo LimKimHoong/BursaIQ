@@ -25,17 +25,17 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z"/></svg>
           <span class="nav-copy"><strong>BursaIQ Assistant</strong><small>Ask across workspaces</small></span>
         </button>
-        <button class="nav-item" data-workspace="market" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>
-          <span class="nav-copy"><strong>Market Intelligence</strong><small>Market analysis</small></span>
-        </button>
         <button class="nav-item" data-workspace="learn" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
           <span class="nav-copy"><strong>Learn Bursa</strong><small>Learning &amp; onboarding</small></span><em>New</em>
         </button>
-        <button class="nav-item" data-workspace="hr" id="people-nav" type="button" hidden>
+        <button class="nav-item" data-workspace="reg" id="ask-reg-nav" type="button" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>
+          <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em>Pilot</em>
+        </button>
+        <button class="nav-item" data-workspace="hr" id="ask-hr-nav" type="button" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3h6m-3-3v6"/></svg>
-          <span class="nav-copy"><strong>People Services</strong><small>HR-only guidance</small></span>
+          <span class="nav-copy"><strong>Ask HR</strong><small>People guidance</small></span><em>Pilot</em>
         </button>
 
         <p class="nav-label nav-label-spaced">Workflow</p>
@@ -90,8 +90,8 @@
       <main id="main-content" tabindex="-1">
         <section class="workspace-heading" id="workspace-heading" hidden>
           <div>
-            <h1 id="workspace-title">Market Intelligence</h1>
-            <p id="workspace-description">Ask about market performance, participation and the forces moving the market.</p>
+            <h1 id="workspace-title">Learn Bursa</h1>
+            <p id="workspace-description">Explore approved material and build Bursa knowledge.</p>
           </div>
           <div class="heading-actions">
             <span class="asof-chip" id="asof-chip"><span></span> As at 31 Jul 2026</span>
@@ -134,6 +134,33 @@
       </div>
       <div id="verification-detail-content"></div>
     </div>
+  </dialog>
+
+  <dialog class="app-dialog verification-flow-dialog" id="verification-flow-dialog" aria-labelledby="verification-flow-dialog-title">
+    <div class="dialog-shell">
+      <div class="dialog-header">
+        <div><h2 id="verification-flow-dialog-title">Verification request submitted</h2></div>
+        <button class="icon-button" aria-label="Close verification workflow" type="button" data-close-verification-flow><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <p class="dialog-intro">Your review package is ready for the assigned Data Owner. This shows how the Stage 02 demo maps to the target Microsoft 365 workflow.</p>
+      <div id="verification-flow-content"></div>
+      <div class="dialog-actions"><button class="button primary" type="button" data-close-verification-flow>Done</button></div>
+    </div>
+  </dialog>
+
+  <dialog class="app-dialog access-request-dialog" id="access-request-dialog" aria-labelledby="access-request-dialog-title" aria-describedby="access-request-dialog-intro">
+    <form class="dialog-shell" id="access-request-form">
+      <div class="dialog-header">
+        <div><h2 id="access-request-dialog-title">Request panel access</h2></div>
+        <button class="icon-button" aria-label="Close access request" type="button" data-close-access-request><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </div>
+      <p class="dialog-intro" id="access-request-dialog-intro">Tell the panel owner why you need <strong id="access-request-panel-name">this panel</strong>. This Stage 02 request will remain pending until it is reviewed.</p>
+      <label for="access-request-reason">Reason for access</label>
+      <textarea id="access-request-reason" name="reason" rows="5" minlength="10" maxlength="400" required aria-describedby="access-request-reason-hint access-request-error" placeholder="For example: I support market conduct reporting and need to research disclosure workflows."></textarea>
+      <div class="field-support" id="access-request-reason-hint"><span>Explain the work you need to complete. Minimum 10 characters.</span><span id="access-request-reason-count">0 / 400</span></div>
+      <p class="field-error" id="access-request-error" role="alert" hidden>Please provide at least 10 characters so the panel owner can assess the request.</p>
+      <div class="dialog-actions"><button class="button ghost" type="button" data-close-access-request>Cancel</button><button class="button primary" id="submit-access-request" type="submit" disabled>Submit request</button></div>
+    </form>
   </dialog>
 
   <div class="toast-region" id="toast-region" aria-live="polite"></div>

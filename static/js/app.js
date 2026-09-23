@@ -8,6 +8,7 @@
     home: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z"/></svg>`,
     market: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>`,
     learn: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>`,
+    reg: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>`,
     hr: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3h6m-3-3v6"/></svg>`,
     check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`,
     shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>`,
@@ -18,7 +19,11 @@
     pulse: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.5-6 5 12 2.5-6h4"/></svg>`,
     arrow: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg>`,
     web: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>`,
-    table: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>`
+    table: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 4v16"/></svg>`,
+    list: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 1 1 2-2m2 1h5m-10 6 1 1 2-2m2 1h5"/></svg>`,
+    mail: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>`,
+    person: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`,
+    refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10.1 0A7 7 0 0 0 6.4 7.7L4 12m16 0-2.4 4.3A7 7 0 0 1 4.9 12"/></svg>`
   };
 
   const defaultPreferences = {
@@ -33,9 +38,20 @@
   function loadPreferences() {
     try {
       const saved = JSON.parse(localStorage.getItem("bursaiq_preferences") || "{}");
-      return { ...defaultPreferences, ...saved, plugins: { ...defaultPreferences.plugins, ...(saved.plugins || {}) } };
+      const preferences = { ...defaultPreferences, ...saved, plugins: { ...defaultPreferences.plugins, ...(saved.plugins || {}) } };
+      if (!["home", "learn"].includes(preferences.defaultWorkspace)) preferences.defaultWorkspace = "home";
+      return preferences;
     } catch (_error) {
       return { ...defaultPreferences, plugins: { ...defaultPreferences.plugins } };
+    }
+  }
+
+  function loadAccessRequests() {
+    try {
+      const saved = JSON.parse(localStorage.getItem("bursaiq_access_requests") || "{}");
+      return saved && typeof saved === "object" ? saved : {};
+    } catch (_error) {
+      return {};
     }
   }
 
@@ -79,13 +95,22 @@
       emptyText: "Ask for a summary, definition or beginner-friendly explanation.",
       suggestions: ["Explain ADV in plain language", "What is trading velocity?", "What does index attribution mean?"]
     },
+    reg: {
+      title: "Ask Reg",
+      description: "Controlled regulatory guidance with clear escalation and authority boundaries.",
+      placeholder: "Ask about disclosure, listing obligations or escalation…",
+      access: "Approved users",
+      emptyTitle: "Ask a regulation question",
+      emptyText: "Responses use a restricted synthetic guide and always point back to the accountable regulatory owner.",
+      suggestions: ["What is continuous disclosure?", "What should happen after an unusual market activity query?", "How should suspected market misconduct be escalated?"]
+    },
     hr: {
-      title: "People Services",
-      description: "Hiring guidance and permitted fictional application statuses.",
+      title: "Ask HR",
+      description: "Controlled hiring guidance and permitted fictional application statuses.",
       placeholder: "Ask about the hiring procedure or a demo application…",
-      access: "HR restricted",
-      emptyTitle: "Ask People Services",
-      emptyText: "Procedure guidance is separated from restricted fictional records.",
+      access: "Approved users",
+      emptyTitle: "Ask an HR question",
+      emptyText: "Responses use approved HR demo sources. Applicant records remain restricted and fictional.",
       suggestions: ["What is the hiring procedure?", "Show Alya Rahman's application status", "What happens after panel assessment?"]
     }
   };
@@ -103,13 +128,15 @@
     pending: false,
     requestId: 0,
     model: { enabled: false, provider: "disabled", model: "deterministic-demo-engine" },
-    preferences: loadPreferences()
+    preferences: loadPreferences(),
+    accessRequests: loadAccessRequests(),
+    accessRequestPanel: ""
   };
 
   const dom = {};
 
   function bindDom() {
-    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "report-count", "verification-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "people-nav", "verification-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
+    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "report-count", "verification-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "ask-hr-nav", "verification-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
       dom[id.replaceAll("-", "_")] = document.getElementById(id);
     });
   }
@@ -450,10 +477,10 @@
     const cleanQuestion = question.trim();
     if (!cleanQuestion || !dom.chat_thread || state.pending) return;
     const selectedWorkspace = state.workspace;
+    const localWorkspace = selectedWorkspace === "home" ? routeQuestion(cleanQuestion) : selectedWorkspace;
     const requestRole = state.role;
     const requestThread = dom.chat_thread;
     const requestId = ++state.requestId;
-    const localWorkspace = selectedWorkspace === "home" ? routeQuestion(cleanQuestion) : selectedWorkspace;
     state.answerWorkspace = localWorkspace;
     state.currentQuestion = cleanQuestion;
     state.pending = true;
@@ -493,7 +520,8 @@
     updateSystemIndicator(result.narrativeMode);
     const defaultInsightTab = targetWorkspace === "market" ? "plot" : "analysis";
     const narrative = (result.modelNarrative || result.groundedNarrative) ? narrativeMarkup(result.modelNarrative || result.groundedNarrative) : firstParagraph(result.html);
-    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>BursaIQ · ${workspaceConfig[targetWorkspace].title}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">Synthetic output · ${demo.meta.asOf}</div></div></article>`);
+    const answerLabel = selectedWorkspace === "home" ? "BursaIQ Assistant" : `BursaIQ · ${workspaceConfig[targetWorkspace].title}`;
+    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">Synthetic output · ${demo.meta.asOf}</div></div></article>`);
     renderSuggestions(result.followups.slice(0, 3));
     if (state.preferences.autoOpenInsights && targetWorkspace === "market") showEvidence("plot", false);
     else if (state.preferences.autoOpenInsights && document.getElementById("evidence-panel")) showEvidence("analysis", false);
@@ -650,6 +678,85 @@
     return `<div class="plugin-row"><span class="plugin-icon">${icon}</span><span class="plugin-copy"><strong>${escapeHtml(title)}</strong><small>${escapeHtml(description)}</small></span><span class="plugin-status ${enabled ? "is-enabled" : ""}">${enabled ? "Enabled" : "Not enabled"}</span><button class="button ${enabled ? "ghost" : "secondary"}" type="button" data-plugin="${id}" aria-pressed="${enabled}">${enabled ? "Disable" : "Enable"}</button></div>`;
   }
 
+  const requestablePanels = {
+    reg: {
+      title: "Ask Reg",
+      description: "Regulatory guidance grounded in a controlled synthetic source, with escalation to the accountable owner.",
+      icon: icons.reg
+    },
+    hr: {
+      title: "Ask HR",
+      description: "Hiring guidance and fictional application statuses from restricted HR demo sources.",
+      icon: icons.hr
+    }
+  };
+
+  function panelAccessRow(panel) {
+    const config = requestablePanels[panel];
+    const granted = hasAccess(panel);
+    const requested = Boolean(state.accessRequests[state.role]?.[panel]);
+    const status = granted ? "Access granted" : requested ? "Pending approval" : "Not available";
+    const statusClass = granted ? "is-granted" : requested ? "is-pending" : "";
+    const buttonLabel = granted ? "Granted" : requested ? "Requested" : "Request access";
+    return `<div class="panel-access-row"><span class="panel-access-icon">${config.icon}</span><span class="panel-access-copy"><strong>${config.title}</strong><small>${config.description}</small></span><span class="panel-access-status ${statusClass}">${status}</span><button class="button ${granted || requested ? "ghost" : "secondary"}" type="button" data-request-panel="${panel}" ${granted || requested ? "disabled" : ""}>${buttonLabel}</button></div>`;
+  }
+
+  function openAccessRequestDialog(panel) {
+    const config = requestablePanels[panel];
+    if (!config || hasAccess(panel) || state.accessRequests[state.role]?.[panel]) return;
+    state.accessRequestPanel = panel;
+    dom.access_request_panel_name.textContent = config.title;
+    dom.access_request_reason.value = "";
+    dom.access_request_reason_count.textContent = "0 / 400";
+    dom.access_request_reason.removeAttribute("aria-invalid");
+    dom.access_request_error.hidden = true;
+    dom.submit_access_request.disabled = true;
+    dom.access_request_dialog.showModal();
+    window.setTimeout(() => dom.access_request_reason.focus(), 0);
+  }
+
+  function validateAccessRequestReason(showError = false) {
+    const reason = dom.access_request_reason.value.trim();
+    const valid = reason.length >= 10;
+    dom.access_request_reason_count.textContent = `${dom.access_request_reason.value.length} / 400`;
+    dom.submit_access_request.disabled = !valid;
+    if (showError || dom.access_request_reason.hasAttribute("aria-invalid")) {
+      dom.access_request_reason.setAttribute("aria-invalid", String(!valid));
+      dom.access_request_error.hidden = valid;
+    }
+    return valid;
+  }
+
+  function closeAccessRequestDialog() {
+    if (dom.access_request_dialog.open) dom.access_request_dialog.close();
+    state.accessRequestPanel = "";
+  }
+
+  function submitAccessRequest(event) {
+    event.preventDefault();
+    const panel = state.accessRequestPanel;
+    if (!requestablePanels[panel] || hasAccess(panel) || state.accessRequests[state.role]?.[panel]) {
+      closeAccessRequestDialog();
+      return;
+    }
+    if (!validateAccessRequestReason(true)) {
+      dom.access_request_reason.focus();
+      return;
+    }
+    const reason = dom.access_request_reason.value.trim();
+    state.accessRequests = {
+      ...state.accessRequests,
+      [state.role]: {
+        ...(state.accessRequests[state.role] || {}),
+        [panel]: { status: "Pending approval", requestedAt: new Date().toISOString(), reason }
+      }
+    };
+    localStorage.setItem("bursaiq_access_requests", JSON.stringify(state.accessRequests));
+    closeAccessRequestDialog();
+    renderPage("settings");
+    toast("Access request submitted", `${requestablePanels[panel].title} access was requested for ${demo.identities[state.role].name}.`);
+  }
+
   function settingsPage() {
     const preferences = state.preferences;
     const modelAvailable = state.model.enabled;
@@ -665,8 +772,9 @@
           ${pluginRow("spreadsheetTools", "Spreadsheet Tools", "Inspect approved Excel tables used by market calculations.", icons.table)}
           <p class="plugin-boundary">Stage 02 demo controls. Enabling Web Search does not send data externally until an approved endpoint and credentials are configured.</p>
         </div></section>
+        <section class="settings-section panel-access-section"><h3>Panel access</h3><p>Request a restricted workspace when it is relevant to your role. Requests require the panel owner’s approval.</p><div class="panel-access-list">${Object.keys(requestablePanels).map(panelAccessRow).join("")}<p class="panel-access-note">Stage 02 simulation: requests are stored on this device and do not change access automatically.</p></div></section>
         <section class="settings-section"><h3>Workspace behaviour</h3><p>Choose what opens first and how supporting analysis appears.</p>
-          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="market" ${preferences.defaultWorkspace === "market" ? "selected" : ""}>Market Intelligence</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
+          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
           ${settingSwitch("autoOpenInsights", "Open analysis automatically", "Show the right-side plot or evidence panel after an answer.", preferences.autoOpenInsights)}
           ${settingSwitch("chartMotion", "Animate market charts", "Draw chart lines and bars when the analysis panel opens.", preferences.chartMotion)}
         </section>
@@ -681,12 +789,45 @@
     return `<div class="page-hero"><div><h2>Generated briefings</h2><p>PDFs include the answer, method, sources and verification state.</p></div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Briefing</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody>${state.reports.map((report) => `<tr><td><strong>${escapeHtml(report.title)}</strong><br><small>${escapeHtml(report.question)}</small></td><td>${report.created}</td><td><span class="status-pill">${report.status}</span></td><td>${report.url ? `<a class="button ghost" href="${report.url}" download>Download</a>` : "Service required"}</td></tr>`).join("")}</tbody></table></div>`;
   }
 
+  function verificationFlowMarkup(item = null) {
+    const reviewer = item?.reviewer || "Assigned Data Owner";
+    const submittedClass = item ? " is-submitted" : "";
+    const receipt = item ? `<div class="workflow-receipt"><span>${icons.check}</span><div><strong>${escapeHtml(item.id)}</strong><small>Review package assigned to ${escapeHtml(reviewer)} · Pending review</small></div></div>` : "";
+    return `<section class="verification-flow${submittedClass}" aria-label="Verification process flow">
+      <div class="verification-flow-head"><div><span class="flow-eyebrow">Human-in-the-loop control</span><h3>From answer to approved output</h3><p>One governed review path connects the requester, Microsoft 365 and the responsible Data Owner.</p></div><span class="architecture-chip">Target Microsoft 365 workflow</span></div>
+      ${receipt}
+      <ol class="workflow-track">
+        <li class="${item ? "is-complete" : ""}"><span class="workflow-node">${icons.check}</span><div><em>01</em><strong>User clicks Verify</strong><small>BursaIQ packages the question, answer, calculations and cited evidence.</small></div></li>
+        <li class="${item ? "is-current" : ""}"><span class="workflow-node">${icons.list}</span><div><em>02</em><strong>List item created</strong><small>A review record is created in Microsoft Lists with its owner and status.</small></div></li>
+        <li><span class="workflow-node">${icons.mail}</span><div><em>03</em><strong>Power Automate notifies</strong><small>The flow emails the assigned Data Owner with a link to the review package.</small></div></li>
+        <li><span class="workflow-node">${icons.person}</span><div><em>04</em><strong>Data Owner reviews</strong><small>The verifier checks the narrative, governed calculation and supporting sources.</small></div></li>
+        <li><span class="workflow-node">${icons.shield}</span><div><em>05</em><strong>Decision recorded</strong><small>The Data Owner approves the item or returns it with actionable feedback.</small></div></li>
+      </ol>
+      <div class="workflow-decision">
+        <div class="decision-label"><span>${icons.shield}</span><div><strong>Data Owner decision</strong><small>Microsoft Lists remains the system of record.</small></div></div>
+        <div class="decision-branches">
+          <div class="decision-branch is-approved"><span>${icons.check}</span><div><strong>Approved</strong><p>Update the List item and audit trail → Power Automate emails the requester → the verified PDF or briefing is ready to publish.</p></div></div>
+          <div class="decision-branch is-returned"><span>${icons.refresh}</span><div><strong>Changes requested</strong><p>Record feedback in the List → Power Automate emails the requester → revise the answer and submit it through Verify again.</p></div></div>
+        </div>
+      </div>
+      <p class="workflow-boundary"><strong>Stage 02 boundary:</strong> the current prototype creates the review item in local SQLite and shows an in-app confirmation. Microsoft Lists, Power Automate and email are the proposed pilot integration.</p>
+    </section>`;
+  }
+
+  function showVerificationFlow(item) {
+    if (!dom.verification_flow_dialog || !dom.verification_flow_content) return;
+    dom.verification_flow_dialog_title.textContent = "Verification request submitted";
+    dom.verification_flow_content.innerHTML = verificationFlowMarkup(item);
+    dom.verification_flow_dialog.showModal();
+  }
+
   function verificationPage() {
     const cases = reviewerCases();
+    const flow = verificationFlowMarkup();
     if (!cases.length) {
-      return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill approved">0 assigned</span></div><div class="empty-state reviewer-empty"><div>${icons.shield}<h2>You’re all caught up</h2><p>No pending or completed cases are assigned to this reviewer account.</p></div></div>`;
+      return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill approved">0 assigned</span></div>${flow}<div class="empty-state reviewer-empty"><div>${icons.shield}<h2>You’re all caught up</h2><p>No pending or completed cases are assigned to this reviewer account.</p></div></div>`;
     }
-    return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
+    return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div>${flow}<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
   }
 
   function sourcesPage() {
@@ -697,9 +838,12 @@
   }
 
   function updateNavigationVisibility() {
-    const peopleAllowed = state.role === "hr";
-    dom.people_nav.hidden = !peopleAllowed;
-    dom.people_nav.setAttribute("aria-hidden", String(!peopleAllowed));
+    const regAllowed = hasAccess("reg");
+    dom.ask_reg_nav.hidden = !regAllowed;
+    dom.ask_reg_nav.setAttribute("aria-hidden", String(!regAllowed));
+    const hrAllowed = hasAccess("hr");
+    dom.ask_hr_nav.hidden = !hrAllowed;
+    dom.ask_hr_nav.setAttribute("aria-hidden", String(!hrAllowed));
     const reviewerAllowed = isReviewer();
     dom.verification_nav.hidden = !reviewerAllowed;
     dom.verification_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
@@ -754,10 +898,35 @@
     window.setTimeout(() => { window.location.href = record.url; }, 300);
   }
 
-  async function submitVerification() {
-    if (!state.currentAnswer) return;
+  function setVerificationButtonState(button, mode) {
+    if (!button) return;
+    button.classList.toggle("is-submitting", mode === "submitting");
+    button.classList.toggle("is-submitted", mode === "submitted");
+    button.dataset.verificationState = mode;
+    if (mode === "submitting") {
+      button.disabled = true;
+      button.setAttribute("aria-busy", "true");
+      button.setAttribute("aria-label", "Submitting this answer for verification");
+      button.innerHTML = `${icons.shield}Submitting…`;
+    } else if (mode === "submitted") {
+      button.disabled = true;
+      button.removeAttribute("aria-busy");
+      button.setAttribute("aria-label", "This answer has been submitted for verification");
+      button.innerHTML = `${icons.check}Submitted`;
+    } else {
+      button.disabled = false;
+      button.removeAttribute("aria-busy");
+      button.setAttribute("aria-label", "Submit this answer for verification");
+      button.innerHTML = `${icons.shield}Verify`;
+    }
+  }
+
+  async function submitVerification(button) {
+    if (!state.currentAnswer || !button || button.dataset.verificationState === "submitting" || button.dataset.verificationState === "submitted") return;
+    setVerificationButtonState(button, "submitting");
     const existing = state.verification.find((item) => item.title === state.currentAnswer.title && item.status === "Pending review");
     if (existing) {
+      setVerificationButtonState(button, "submitted");
       toast("Already in review", `${existing.id} is waiting for ${existing.reviewer}.`);
       return;
     }
@@ -769,13 +938,16 @@
         if (!response.ok) throw new Error("Review service failed");
         item = await response.json();
       } catch (_error) {
+        setVerificationButtonState(button, "idle");
         toast("Review service unavailable", "Check the local server and try again.");
         return;
       }
     }
     if (reviewerCases([item]).length) state.verification.unshift(item);
+    setVerificationButtonState(button, "submitted");
     updateCounts();
     toast("Sent for verification", `${item.id} was assigned to ${item.reviewer}.`);
+    showVerificationFlow(item);
   }
 
   function verificationDetailsPayload() {
@@ -876,6 +1048,12 @@
       toast("Defaults restored", "Your local BursaIQ preferences were reset.");
       return;
     }
+    const panelRequest = event.target.closest("[data-request-panel]");
+    if (panelRequest) {
+      const panel = panelRequest.dataset.requestPanel;
+      openAccessRequestDialog(panel);
+      return;
+    }
     const plugin = event.target.closest("[data-plugin]");
     if (plugin) {
       const id = plugin.dataset.plugin;
@@ -903,7 +1081,7 @@
     if (event.target.closest("[data-close-insight]")) return closeEvidence();
     const action = event.target.closest("[data-answer-action]")?.dataset.answerAction;
     if (action === "insight") showEvidence(event.target.closest("[data-answer-action]")?.dataset.insightTab);
-    if (action === "verify") submitVerification();
+    if (action === "verify") submitVerification(event.target.closest('[data-answer-action="verify"]'));
     if (action === "report") openReportDialog();
     const verificationDetails = event.target.closest("[data-verification-details]");
     if (verificationDetails) showVerificationDetails(verificationDetails.dataset.verificationDetails);
@@ -933,11 +1111,23 @@
     dom.workspace_grid.addEventListener("change", updateSetting);
     dom.workspace_grid.addEventListener("keydown", (event) => { if (event.target.id === "question-input" && event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.target.form.requestSubmit(); } });
     document.getElementById("report-form").addEventListener("submit", createReport);
+    dom.access_request_form.addEventListener("submit", submitAccessRequest);
+    dom.access_request_reason.addEventListener("input", () => validateAccessRequestReason(false));
+    dom.access_request_reason.addEventListener("blur", () => {
+      if (dom.access_request_reason.value.length) validateAccessRequestReason(true);
+    });
+    dom.access_request_dialog.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close-access-request]")) closeAccessRequestDialog();
+    });
+    dom.access_request_dialog.addEventListener("close", () => { state.accessRequestPanel = ""; });
     dom.report_dialog.addEventListener("click", (event) => { if (event.target.closest("[data-close-dialog]")) dom.report_dialog.close(); });
     dom.verification_dialog.addEventListener("click", (event) => {
       if (event.target.closest("[data-close-verification]")) dom.verification_dialog.close();
       const verify = event.target.closest("[data-verify]");
       if (verify) reviewItem(verify.dataset.verify, verify.dataset.status);
+    });
+    dom.verification_flow_dialog.addEventListener("click", (event) => {
+      if (event.target.closest("[data-close-verification-flow]")) dom.verification_flow_dialog.close();
     });
   }
 

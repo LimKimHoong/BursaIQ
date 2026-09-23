@@ -1,4 +1,4 @@
-"""Validated local Excel/PDF ingestion for the BursaIQ Stage 02 demo."""
+"""Validated local Excel/PDF/JSON ingestion for the BursaIQ Stage 02 demo."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ QUERY_STOPWORDS = {
 }
 ROLE_WORKSPACES = {
     "gcmc": {"market", "learn"},
-    "securities": {"market", "learn"},
+    "securities": {"market", "learn", "reg"},
     "hr": {"market", "hr", "learn"},
     "finance": {"market", "learn"},
 }
@@ -198,6 +198,19 @@ class LocalDataRepository:
                     text_parts.append(" | ".join("" if value is None else str(value) for value in row))
             document["_text"] = "\n".join(text_parts)
             book.close()
+        elif path.suffix.lower() == ".json":
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            topics = payload.get("topics", []) if isinstance(payload, dict) else []
+            text_parts = [str(payload.get("title", document["title"]))] if isinstance(payload, dict) else []
+            for topic in topics:
+                if not isinstance(topic, dict):
+                    continue
+                text_parts.extend([str(topic.get("title", "")), str(topic.get("summary", ""))])
+                text_parts.extend(str(action) for action in topic.get("actions", []))
+            if isinstance(payload, dict):
+                text_parts.append(str(payload.get("disclaimer", "")))
+            document["pages"] = f"{len(topics)} demo topics"
+            document["_text"] = "\n".join(part for part in text_parts if part)
         return document
 
     @staticmethod

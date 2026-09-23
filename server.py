@@ -233,8 +233,8 @@ def chat():
     else:
         workspace = requested_workspace
 
-    if workspace not in {"market", "learn", "hr"}:
-        raise ValueError("workspace must be assistant, market, learn or hr.")
+    if workspace not in {"market", "learn", "hr", "reg"}:
+        raise ValueError("workspace must be assistant, market, learn, hr or reg.")
     if workspace not in ROLE_WORKSPACES.get(role, set()):
         return jsonify({
             "error": "The active demo identity cannot retrieve this workspace.",
