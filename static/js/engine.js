@@ -226,43 +226,6 @@
     );
   }
 
-  function hrAnswer(question) {
-    const q = question.toLowerCase();
-    const applicant = data.hr.applications.find((item) => q.includes(item.applicant.toLowerCase()) || q.includes(item.ref.toLowerCase()));
-    if (applicant || q.includes("application") || q.includes("candidate") || q.includes("status")) {
-      const person = applicant || data.hr.applications[0];
-      return answer(
-        `${person.applicant} is at ${person.stage.toLowerCase()}`,
-        `<p>Application <strong>${person.ref}</strong> for <strong>${person.position}</strong> is currently at <strong>${person.stage}</strong>.</p>
-         <div class="answer-callout">
-           <div class="answer-stat"><small>Reference</small><strong>${person.ref}</strong></div>
-           <div class="answer-stat"><small>Current stage</small><strong>${person.stage}</strong></div>
-           <div class="answer-stat"><small>Case owner</small><strong>${person.owner}</strong></div>
-         </div>
-         <p><strong>Next action:</strong> ${person.nextAction}. This fictional record is visible because the active demo identity belongs to HR.</p>`,
-        {
-          sources: [source("hr-applications", `Applicant reference ${person.ref}`), source("hr-procedure", `Procedure stage · ${person.stage}`)],
-          formula: "Exact reference/name match → retrieve permitted row → join with procedure stage.",
-          context: { "Record class": "Fictional applicant", "Workspace": "HR restricted", "Data minimisation": "Only status fields shown", "Purpose": "Competition demonstration" },
-          followups: ["What is the hiring procedure?", "What happens after panel assessment?", "Create a status briefing"]
-        }
-      );
-    }
-    const totalDays = data.hr.procedure.reduce((sum, item) => sum + item.targetDays, 0);
-    return answer(
-      "The demo hiring procedure has five governed stages",
-      `<p>The standard path runs from requisition approval to offer issue, with a combined service target of <strong>${totalDays} working days</strong> when stages proceed sequentially.</p>
-       <ul>${data.hr.procedure.map((item) => `<li><strong>${item.step}. ${item.name}</strong> — ${item.owner}; target ${item.targetDays} working day${item.targetDays === 1 ? "" : "s"}.</li>`).join("")}</ul>
-       <p>Exceptions and overdue actions should be escalated to the named stage owner. The exact clock may pause when candidate action is pending.</p>`,
-      {
-        sources: [source("hr-procedure", "Sections 2–4 · workflow, owners and service targets")],
-        formula: `Sequential target = ${data.hr.procedure.map((item) => item.targetDays).join(" + ")} = ${totalDays} working days`,
-        context: { "Document status": "Demo procedure", "Calendar": "Working days", "Candidate wait time": "Excluded", "Records": "No personal data used" },
-        followups: ["What happens after panel assessment?", "Show Alya Rahman's application", "Summarise the procedure"]
-      }
-    );
-  }
-
   function regAnswer(question) {
     const q = question.toLowerCase();
     const topics = data.regulation?.topics || [];
@@ -294,7 +257,6 @@
   function respond(workspace, question) {
     const q = question.toLowerCase();
     if (workspace === "learn") return learnAnswer(question);
-    if (workspace === "hr") return hrAnswer(question);
     if (workspace === "reg") return regAnswer(question);
     if (q.includes("adv") || q.includes("daily value") || q.includes("trading activity")) return advPerformance();
     if (q.includes("sector") || q.includes("driver") || q.includes("stock") || q.includes("counter") || q.includes("attribution")) return marketDrivers();
@@ -304,5 +266,5 @@
     return marketPerformance();
   }
 
-  window.BursaIQEngine = { respond, format, marketPerformance, advPerformance, marketDrivers, regionalComparison, marketSizeAndVelocity, participation, learnAnswer, hrAnswer, regAnswer };
+  window.BursaIQEngine = { respond, format, marketPerformance, advPerformance, marketDrivers, regionalComparison, marketSizeAndVelocity, participation, learnAnswer, regAnswer };
 })();

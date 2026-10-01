@@ -1,0 +1,429 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-01T08:12:20Z",
+  "title": "Design System: BursaIQ",
+  "extensions": {
+    "colorMeta": {
+      "ink-primary": {
+        "role": "neutral",
+        "displayName": "Primary Ink",
+        "canonical": "#f7f8fc",
+        "description": "Decisive content, active labels, and high-contrast control text.",
+        "tonalRamp": ["oklch(15% 0.010 263)", "oklch(28% 0.010 263)", "oklch(42% 0.010 263)", "oklch(56% 0.010 263)", "oklch(70% 0.010 263)", "oklch(82% 0.010 263)", "oklch(90% 0.010 263)", "oklch(98% 0.010 263)"]
+      },
+      "ink-secondary": {
+        "role": "neutral",
+        "displayName": "Secondary Ink",
+        "canonical": "#c7cede",
+        "description": "Body copy, supporting controls, and readable secondary information.",
+        "tonalRamp": ["oklch(15% 0.020 263)", "oklch(28% 0.020 263)", "oklch(42% 0.020 263)", "oklch(56% 0.020 263)", "oklch(70% 0.020 263)", "oklch(82% 0.020 263)", "oklch(90% 0.020 263)", "oklch(95% 0.020 263)"]
+      },
+      "ink-tertiary": {
+        "role": "neutral",
+        "displayName": "Tertiary Ink",
+        "canonical": "#909bb1",
+        "description": "Metadata, inactive navigation, timestamps, and quiet labels.",
+        "tonalRamp": ["oklch(15% 0.025 263)", "oklch(28% 0.025 263)", "oklch(42% 0.025 263)", "oklch(56% 0.025 263)", "oklch(70% 0.025 263)", "oklch(82% 0.025 263)", "oklch(90% 0.025 263)", "oklch(95% 0.025 263)"]
+      },
+      "midnight-ground": {
+        "role": "neutral",
+        "displayName": "Midnight Ground",
+        "canonical": "#070b16",
+        "description": "Page-level ground beneath every translucent material.",
+        "tonalRamp": ["oklch(15% 0.035 264)", "oklch(28% 0.035 264)", "oklch(42% 0.035 264)", "oklch(56% 0.035 264)", "oklch(70% 0.035 264)", "oklch(82% 0.035 264)", "oklch(90% 0.035 264)", "oklch(95% 0.035 264)"]
+      },
+      "indigo-base": {
+        "role": "neutral",
+        "displayName": "Indigo Base",
+        "canonical": "#0b1120",
+        "description": "Deep structural surface and fallback background.",
+        "tonalRamp": ["oklch(15% 0.040 264)", "oklch(28% 0.040 264)", "oklch(42% 0.040 264)", "oklch(56% 0.040 264)", "oklch(70% 0.040 264)", "oklch(82% 0.040 264)", "oklch(90% 0.040 264)", "oklch(95% 0.040 264)"]
+      },
+      "indigo-glass": {
+        "role": "neutral",
+        "displayName": "Indigo Glass",
+        "canonical": "#111a2d",
+        "description": "Material tint for primary workspace surfaces.",
+        "tonalRamp": ["oklch(15% 0.045 264)", "oklch(28% 0.045 264)", "oklch(42% 0.045 264)", "oklch(56% 0.045 264)", "oklch(70% 0.045 264)", "oklch(82% 0.045 264)", "oklch(90% 0.045 264)", "oklch(95% 0.045 264)"]
+      },
+      "indigo-raised": {
+        "role": "neutral",
+        "displayName": "Raised Indigo",
+        "canonical": "#172238",
+        "description": "Focused and raised control surface within the midnight field.",
+        "tonalRamp": ["oklch(15% 0.050 264)", "oklch(28% 0.050 264)", "oklch(42% 0.050 264)", "oklch(56% 0.050 264)", "oklch(70% 0.050 264)", "oklch(82% 0.050 264)", "oklch(90% 0.050 264)", "oklch(95% 0.050 264)"]
+      },
+      "indigo-muted": {
+        "role": "neutral",
+        "displayName": "Muted Indigo",
+        "canonical": "#1d2a43",
+        "description": "Upper tonal step for muted controls and restrained depth.",
+        "tonalRamp": ["oklch(15% 0.055 264)", "oklch(28% 0.055 264)", "oklch(42% 0.055 264)", "oklch(56% 0.055 264)", "oklch(70% 0.055 264)", "oklch(82% 0.055 264)", "oklch(90% 0.055 264)", "oklch(95% 0.055 264)"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Cool Hairline",
+        "canonical": "rgba(213, 224, 255, 0.10)",
+        "description": "Quiet row, source, and structural separation when tone alone is insufficient.",
+        "tonalRamp": ["oklch(15% 0.025 255)", "oklch(28% 0.025 255)", "oklch(42% 0.025 255)", "oklch(56% 0.025 255)", "oklch(70% 0.025 255)", "oklch(82% 0.025 255)", "oklch(90% 0.025 255)", "oklch(95% 0.025 255)"]
+      },
+      "hairline-strong": {
+        "role": "neutral",
+        "displayName": "Strong Cool Hairline",
+        "canonical": "rgba(220, 230, 255, 0.17)",
+        "description": "Higher-contrast boundary for focus and accessibility fallbacks.",
+        "tonalRamp": ["oklch(15% 0.030 255)", "oklch(28% 0.030 255)", "oklch(42% 0.030 255)", "oklch(56% 0.030 255)", "oklch(70% 0.030 255)", "oklch(82% 0.030 255)", "oklch(90% 0.030 255)", "oklch(95% 0.030 255)"]
+      },
+      "panel-glass": {
+        "role": "neutral",
+        "displayName": "Panel Glass",
+        "canonical": "rgba(17, 25, 43, 0.72)",
+        "description": "Primary translucent material for workspace and evidence panels.",
+        "tonalRamp": ["oklch(15% 0.045 264)", "oklch(28% 0.045 264)", "oklch(42% 0.045 264)", "oklch(56% 0.045 264)", "oklch(70% 0.045 264)", "oklch(82% 0.045 264)", "oklch(90% 0.045 264)", "oklch(95% 0.045 264)"]
+      },
+      "control-glass": {
+        "role": "neutral",
+        "displayName": "Control Glass",
+        "canonical": "rgba(255, 255, 255, 0.065)",
+        "description": "Light translucent fill for chips, ghost actions, and nested cards.",
+        "tonalRamp": ["oklch(15% 0.008 263)", "oklch(28% 0.008 263)", "oklch(42% 0.008 263)", "oklch(56% 0.008 263)", "oklch(70% 0.008 263)", "oklch(82% 0.008 263)", "oklch(90% 0.008 263)", "oklch(98% 0.008 263)"]
+      },
+      "composer-glass": {
+        "role": "neutral",
+        "displayName": "Composer Glass",
+        "canonical": "rgba(24, 34, 57, 0.82)",
+        "description": "Deep focused material for the signature assistant composer.",
+        "tonalRamp": ["oklch(15% 0.050 264)", "oklch(28% 0.050 264)", "oklch(42% 0.050 264)", "oklch(56% 0.050 264)", "oklch(70% 0.050 264)", "oklch(82% 0.050 264)", "oklch(90% 0.050 264)", "oklch(95% 0.050 264)"]
+      },
+      "luminous-blue": {
+        "role": "primary",
+        "displayName": "Luminous Exchange Blue",
+        "canonical": "#4d9cff",
+        "description": "Active navigation, chart emphasis, and available agency.",
+        "tonalRamp": ["oklch(15% 0.170 254)", "oklch(28% 0.170 254)", "oklch(42% 0.170 254)", "oklch(56% 0.170 254)", "oklch(70% 0.170 254)", "oklch(82% 0.170 254)", "oklch(90% 0.170 254)", "oklch(95% 0.170 254)"]
+      },
+      "luminous-blue-bright": {
+        "role": "primary",
+        "displayName": "Bright Luminous Blue",
+        "canonical": "#7bb8ff",
+        "description": "Readable active detail, focus-adjacent emphasis, and chart points.",
+        "tonalRamp": ["oklch(15% 0.140 254)", "oklch(28% 0.140 254)", "oklch(42% 0.140 254)", "oklch(56% 0.140 254)", "oklch(70% 0.140 254)", "oklch(82% 0.140 254)", "oklch(90% 0.140 254)", "oklch(95% 0.140 254)"]
+      },
+      "luminous-blue-deep": {
+        "role": "primary",
+        "displayName": "Deep Action Blue",
+        "canonical": "#286bd6",
+        "description": "Depth beneath luminous elements and supporting gradients.",
+        "tonalRamp": ["oklch(15% 0.190 254)", "oklch(28% 0.190 254)", "oklch(42% 0.190 254)", "oklch(56% 0.190 254)", "oklch(70% 0.190 254)", "oklch(82% 0.190 254)", "oklch(90% 0.190 254)", "oklch(95% 0.190 254)"]
+      },
+      "action-blue": {
+        "role": "primary",
+        "displayName": "Action Blue",
+        "canonical": "#3388f3",
+        "description": "Submit, send, approve, and enabled-switch actions.",
+        "tonalRamp": ["oklch(15% 0.180 254)", "oklch(28% 0.180 254)", "oklch(42% 0.180 254)", "oklch(56% 0.180 254)", "oklch(70% 0.180 254)", "oklch(82% 0.180 254)", "oklch(90% 0.180 254)", "oklch(95% 0.180 254)"]
+      },
+      "action-blue-hover": {
+        "role": "primary",
+        "displayName": "Action Blue Hover",
+        "canonical": "#4798fb",
+        "description": "Brighter confirmation state for primary actions.",
+        "tonalRamp": ["oklch(15% 0.175 254)", "oklch(28% 0.175 254)", "oklch(42% 0.175 254)", "oklch(56% 0.175 254)", "oklch(70% 0.175 254)", "oklch(82% 0.175 254)", "oklch(90% 0.175 254)", "oklch(95% 0.175 254)"]
+      },
+      "action-blue-wash": {
+        "role": "primary",
+        "displayName": "Action Blue Wash",
+        "canonical": "rgba(77, 156, 255, 0.20)",
+        "description": "Secondary-action material that supports without outranking solid action blue.",
+        "tonalRamp": ["oklch(15% 0.150 254)", "oklch(28% 0.150 254)", "oklch(42% 0.150 254)", "oklch(56% 0.150 254)", "oklch(70% 0.150 254)", "oklch(82% 0.150 254)", "oklch(90% 0.150 254)", "oklch(95% 0.150 254)"]
+      },
+      "active-blue-glass": {
+        "role": "primary",
+        "displayName": "Active Blue Glass",
+        "canonical": "rgba(77, 156, 255, 0.18)",
+        "description": "Active-navigation and suggestion-hover material.",
+        "tonalRamp": ["oklch(15% 0.145 254)", "oklch(28% 0.145 254)", "oklch(42% 0.145 254)", "oklch(56% 0.145 254)", "oklch(70% 0.145 254)", "oklch(82% 0.145 254)", "oklch(90% 0.145 254)", "oklch(95% 0.145 254)"]
+      },
+      "exchange-gold": {
+        "role": "secondary",
+        "displayName": "Exchange Gold",
+        "canonical": "#f3c969",
+        "description": "Prototype, as-of, pending-review, and caution state.",
+        "tonalRamp": ["oklch(15% 0.120 82)", "oklch(28% 0.120 82)", "oklch(42% 0.120 82)", "oklch(56% 0.120 82)", "oklch(70% 0.120 82)", "oklch(82% 0.120 82)", "oklch(90% 0.120 82)", "oklch(95% 0.120 82)"]
+      },
+      "exchange-gold-soft": {
+        "role": "secondary",
+        "displayName": "Soft Exchange Gold",
+        "canonical": "#f8dda0",
+        "description": "Readable stewardship and caution text on dark materials.",
+        "tonalRamp": ["oklch(15% 0.090 82)", "oklch(28% 0.090 82)", "oklch(42% 0.090 82)", "oklch(56% 0.090 82)", "oklch(70% 0.090 82)", "oklch(82% 0.090 82)", "oklch(90% 0.090 82)", "oklch(95% 0.090 82)"]
+      },
+      "critical-red": {
+        "role": "tertiary",
+        "displayName": "Critical Red",
+        "canonical": "#ff7d86",
+        "description": "Destructive review actions, denied states, and negative values.",
+        "tonalRamp": ["oklch(15% 0.160 20)", "oklch(28% 0.160 20)", "oklch(42% 0.160 20)", "oklch(56% 0.160 20)", "oklch(70% 0.160 20)", "oklch(82% 0.160 20)", "oklch(90% 0.160 20)", "oklch(95% 0.160 20)"]
+      },
+      "success-green": {
+        "role": "tertiary",
+        "displayName": "Success Green",
+        "canonical": "#67d89a",
+        "description": "Ready, granted, completed, and positive market states.",
+        "tonalRamp": ["oklch(15% 0.120 151)", "oklch(28% 0.120 151)", "oklch(42% 0.120 151)", "oklch(56% 0.120 151)", "oklch(70% 0.120 151)", "oklch(82% 0.120 151)", "oklch(90% 0.120 151)", "oklch(95% 0.120 151)"]
+      },
+      "information-blue": {
+        "role": "tertiary",
+        "displayName": "Information Blue",
+        "canonical": "#91b9ff",
+        "description": "Plot annotation and informational file treatment without action semantics.",
+        "tonalRamp": ["oklch(15% 0.110 254)", "oklch(28% 0.110 254)", "oklch(42% 0.110 254)", "oklch(56% 0.110 254)", "oklch(70% 0.110 254)", "oklch(82% 0.110 254)", "oklch(90% 0.110 254)", "oklch(95% 0.110 254)"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Assistant Display",
+        "purpose": "The centered first-viewport invitation only."
+      },
+      "headline": {
+        "displayName": "Workspace Headline",
+        "purpose": "Workspace titles and high-level page headings."
+      },
+      "title": {
+        "displayName": "Operational Title",
+        "purpose": "Answer, sheet, and modal hierarchy."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Default application copy and analytical explanation."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Navigation metadata, compact controls, and governance state."
+      },
+      "metric": {
+        "displayName": "Market Metric",
+        "purpose": "High-salience market figures using tabular numerals."
+      }
+    },
+    "shadows": [
+      {
+        "name": "navigation-material",
+        "value": "0 22px 70px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.08)",
+        "purpose": "Heavy floating material for the persistent navigation surface."
+      },
+      {
+        "name": "top-material",
+        "value": "0 13px 38px rgba(0, 0, 0, 0.20), inset 0 1px rgba(255, 255, 255, 0.07)",
+        "purpose": "Keeps the sticky top material present without creating a hard bar."
+      },
+      {
+        "name": "panel-material",
+        "value": "0 26px 72px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.06)",
+        "purpose": "Ambient depth for workspace, answer, and evidence surfaces."
+      },
+      {
+        "name": "action-lift",
+        "value": "0 8px 22px rgba(31, 108, 210, 0.30)",
+        "purpose": "Compact blue-tinted lift beneath primary and send actions."
+      },
+      {
+        "name": "composer-material",
+        "value": "0 25px 70px rgba(0, 0, 0, 0.30), inset 0 1px rgba(255, 255, 255, 0.095)",
+        "purpose": "Deep ambient material for the signature assistant composer."
+      },
+      {
+        "name": "composer-focus",
+        "value": "0 28px 74px rgba(0, 0, 0, 0.34), 0 0 0 3px rgba(77, 156, 255, 0.20), inset 0 1px rgba(255, 255, 255, 0.10)",
+        "purpose": "Raises the composer and adds a restrained focus halo."
+      },
+      {
+        "name": "dialog-material",
+        "value": "0 38px 110px rgba(0, 0, 0, 0.55), inset 0 1px rgba(255, 255, 255, 0.09)",
+        "purpose": "Strongest depth level for governed modal decisions."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-material",
+        "value": "cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Standard settling curve for materials and state changes."
+      },
+      {
+        "name": "press-feedback",
+        "value": "90ms ease-out",
+        "purpose": "Immediate 0.97-scale confirmation on press."
+      },
+      {
+        "name": "state-transition",
+        "value": "150ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Hover, active, focus, and control-state changes."
+      },
+      {
+        "name": "sheet-materialize",
+        "value": "360ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Right-side evidence sheet entrance with small translation and blur."
+      },
+      {
+        "name": "dialog-materialize",
+        "value": "280ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "Governed dialog entrance with restrained scale and blur."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "evidence-compact",
+        "value": "1170px"
+      },
+      {
+        "name": "single-column",
+        "value": "900px"
+      },
+      {
+        "name": "mobile",
+        "value": "620px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The decisive submit, send, approve, or generate action.",
+      "html": "<div class=\"ds-demo-surface\"><button class=\"ds-button ds-button-primary\" type=\"button\">Approve case</button></div>",
+      "css": ".ds-demo-surface{padding:18px;border-radius:18px;background:#070b16}.ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px;padding:0 15px;font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;font-size:12px;font-weight:650;letter-spacing:0;cursor:pointer;transition:transform 90ms ease-out,background 150ms cubic-bezier(.22,1,.36,1),box-shadow 150ms cubic-bezier(.22,1,.36,1)}.ds-button-primary{color:#fff;background:#3388f3;box-shadow:0 8px 22px rgba(31,108,210,.3)}.ds-button-primary:hover{background:#4798fb}.ds-button-primary:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-button-primary:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "An available action that supports rather than outranks the primary decision.",
+      "html": "<div class=\"ds-demo-surface\"><button class=\"ds-button ds-button-secondary\" type=\"button\">Open report</button></div>",
+      "css": ".ds-demo-surface{padding:18px;border-radius:18px;background:#070b16}.ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px;padding:0 15px;font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;font-size:12px;font-weight:650;cursor:pointer;transition:transform 90ms ease-out,background 150ms cubic-bezier(.22,1,.36,1)}.ds-button-secondary{color:#fff;background:rgba(77,156,255,.2)}.ds-button-secondary:hover{background:rgba(77,156,255,.3)}.ds-button-secondary:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-button-secondary:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A neutral cancel, navigation, or tertiary action on dark materials.",
+      "html": "<div class=\"ds-demo-surface\"><button class=\"ds-button ds-button-ghost\" type=\"button\">Cancel</button></div>",
+      "css": ".ds-demo-surface{padding:18px;border-radius:18px;background:#070b16}.ds-button{display:inline-flex;min-height:44px;align-items:center;justify-content:center;border:0;border-radius:12px;padding:0 15px;font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;font-size:12px;font-weight:650;cursor:pointer;transition:transform 90ms ease-out,background 150ms cubic-bezier(.22,1,.36,1),color 150ms cubic-bezier(.22,1,.36,1)}.ds-button-ghost{color:#d5dae6;background:rgba(255,255,255,.065)}.ds-button-ghost:hover{color:#fff;background:rgba(255,255,255,.11)}.ds-button-ghost:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-button-ghost:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Active Workspace Navigation",
+      "kind": "nav",
+      "refersTo": "navigation-active",
+      "description": "The two-line active workspace row inside the floating sidebar material.",
+      "html": "<div class=\"ds-nav-surface\"><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z\"/></svg><span><strong>BursaIQ Assistant</strong><small>Ask across workspaces</small></span></button></div>",
+      "css": ".ds-nav-surface{padding:10px;border-radius:22px;background:rgba(16,23,40,.96);box-shadow:0 22px 70px rgba(0,0,0,.24)}.ds-nav-item{display:grid;width:258px;max-width:100%;min-height:50px;grid-template-columns:22px 1fr;align-items:center;gap:11px;border:0;border-radius:13px;padding:0 12px;color:#fff;background:rgba(77,156,255,.18);box-shadow:inset 0 1px rgba(255,255,255,.06);font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;text-align:left;cursor:pointer;transition:background 160ms cubic-bezier(.22,1,.36,1),transform 90ms ease-out}.ds-nav-item svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.ds-nav-item strong,.ds-nav-item small{display:block}.ds-nav-item strong{font-size:13px;font-weight:620;line-height:1.25}.ds-nav-item small{margin-top:3px;color:#b6d7ff;font-size:11px;line-height:1.25}.ds-nav-item:hover{background:rgba(77,156,255,.25)}.ds-nav-item:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-nav-item:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Suggestion Chip",
+      "kind": "chip",
+      "refersTo": "chip-suggestion",
+      "description": "A quiet conversational shortcut that gains blue only on intent.",
+      "html": "<div class=\"ds-chip-surface\"><button class=\"ds-chip\" type=\"button\">How did the market perform?</button></div>",
+      "css": ".ds-chip-surface{padding:18px;border-radius:18px;background:#070b16}.ds-chip{display:inline-flex;min-height:44px;align-items:center;border:0;border-radius:999px;padding:8px 13px;color:#c2cada;background:rgba(255,255,255,.065);font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;font-size:11px;font-weight:650;cursor:pointer;transition:color 150ms cubic-bezier(.22,1,.36,1),background 150ms cubic-bezier(.22,1,.36,1),transform 90ms ease-out}.ds-chip:hover{color:#fff;background:rgba(77,156,255,.18)}.ds-chip:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-chip:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Assistant Composer",
+      "kind": "input",
+      "refersTo": "composer-input",
+      "description": "The signature ask-first control with grounded status and a decisive send action.",
+      "html": "<div class=\"ds-composer\"><textarea rows=\"2\" aria-label=\"Ask BursaIQ\" placeholder=\"Ask BursaIQ about the market…\"></textarea><div class=\"ds-composer-footer\"><span class=\"ds-grounding\"><i></i>Grounded in approved demo data</span><button class=\"ds-send\" type=\"button\" aria-label=\"Send question\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m5 12 14-7-4 14-3-6-7-1z\"/></svg></button></div></div>",
+      "css": ".ds-composer{width:min(100%,640px);border:0;border-radius:20px;background:rgba(24,34,57,.82);box-shadow:0 25px 70px rgba(0,0,0,.3),inset 0 1px rgba(255,255,255,.095);font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;backdrop-filter:blur(30px) saturate(150%);transition:box-shadow 160ms cubic-bezier(.22,1,.36,1),background 160ms cubic-bezier(.22,1,.36,1)}.ds-composer:focus-within{background:rgba(29,42,70,.92);box-shadow:0 28px 74px rgba(0,0,0,.34),0 0 0 3px rgba(77,156,255,.2),inset 0 1px rgba(255,255,255,.1)}.ds-composer textarea{display:block;width:100%;resize:none;border:0;outline:0;padding:17px 18px 7px;color:#f7f9ff;background:transparent;caret-color:#77b6ff;font:400 16px/1.5 -apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif}.ds-composer textarea::placeholder{color:#9ba6ba}.ds-composer-footer{display:flex;align-items:center;justify-content:space-between;padding:7px 9px 10px 18px}.ds-grounding{display:flex;align-items:center;gap:6px;color:#b7c1d3;font-size:12px;line-height:1.35}.ds-grounding i{width:6px;height:6px;border-radius:50%;background:#65d195}.ds-send{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:14px;color:#fff;background:#3388f3;box-shadow:0 8px 22px rgba(31,108,210,.3);cursor:pointer;transition:transform 90ms ease-out,background 150ms cubic-bezier(.22,1,.36,1)}.ds-send svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.ds-send:hover{background:#4b99f6}.ds-send:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-send:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Governed Answer Card",
+      "kind": "card",
+      "refersTo": "card-answer",
+      "description": "A readable answer surface with provenance, evidence access, and review actions kept together.",
+      "html": "<div class=\"ds-answer-surface\"><article class=\"ds-answer\"><div class=\"ds-answer-meta\"><span>IQ</span>BursaIQ Assistant <em>Grounded</em></div><h3>Market activity remained resilient</h3><p>The answer keeps its narrative, governed calculation, and source path together so the reader can inspect before acting.</p><button type=\"button\">Explore governed analysis</button></article></div>",
+      "css": ".ds-answer-surface{padding:18px;border-radius:22px;background:#070b16}.ds-answer{max-width:620px;border-radius:20px;padding:20px;color:#d6dbe7;background:rgba(255,255,255,.055);box-shadow:inset 0 1px rgba(255,255,255,.055);font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif}.ds-answer-meta{display:flex;align-items:center;gap:8px;margin-bottom:13px;color:#96a3ba;font-size:10px;font-weight:650;letter-spacing:.03em}.ds-answer-meta>span{display:grid;width:27px;height:27px;place-items:center;border-radius:9px;color:#eff6ff;background:rgba(77,156,255,.24);font-size:9px}.ds-answer-meta em{border-radius:999px;padding:3px 8px;color:#aeb8ca;background:rgba(255,255,255,.06);font-size:9px;font-style:normal;letter-spacing:0}.ds-answer h3{margin:0 0 9px;color:#f7f8fc;font-size:20px;font-weight:680;letter-spacing:-.025em;line-height:1.25}.ds-answer p{max-width:72ch;margin:0 0 12px;font-size:14px;line-height:1.68}.ds-answer button{display:inline-flex;min-height:44px;align-items:center;border:0;padding:0;color:#86beff;background:transparent;font-family:inherit;font-size:12px;font-weight:650;line-height:1.25;cursor:pointer}.ds-answer button:hover{color:#afd5ff}.ds-answer button:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-answer button:active{transform:scale(.97)}"
+    },
+    {
+      "name": "Evidence Sheet",
+      "kind": "custom",
+      "refersTo": "sheet-evidence",
+      "description": "The stable right-side home for plots, governed method, full analysis, and sources.",
+      "html": "<div class=\"ds-sheet-surface\"><aside class=\"ds-sheet\"><header><div><span>Evidence</span><strong>Governed analysis</strong></div><button type=\"button\" aria-label=\"Close evidence\">×</button></header><nav aria-label=\"Evidence views\"><button type=\"button\" class=\"is-active\">Plot</button><button type=\"button\">Analysis</button><button type=\"button\">Sources <i>3</i></button></nav><section><h2>Market performance</h2><p>Governed figures, method, and source context stay in one consistent material.</p><article><span class=\"ds-file\">XLSX</span><div><strong>Market performance mock data</strong><small>Approved synthetic source · Jul 2026</small></div><em>1</em></article></section></aside></div>",
+      "css": ".ds-sheet-surface{padding:18px;border-radius:24px;background:#070b16}.ds-sheet{width:min(100%,438px);overflow:hidden;border-radius:22px;color:#f7f8fc;background:rgba(17,25,43,.72);box-shadow:0 26px 72px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.06);font-family:-apple-system,BlinkMacSystemFont,\"SF Pro Text\",\"Helvetica Neue\",Arial,sans-serif;backdrop-filter:blur(30px) saturate(140%)}.ds-sheet header{display:flex;height:66px;align-items:center;justify-content:space-between;padding:0 15px 0 20px;background:rgba(255,255,255,.025);box-shadow:inset 0 -1px rgba(213,224,255,.08)}.ds-sheet header span,.ds-sheet header strong{display:block}.ds-sheet header span{color:#8f9bb1;font-size:10px;letter-spacing:.02em}.ds-sheet header strong{margin-top:2px;font-size:13px}.ds-sheet header button{display:grid;width:44px;height:44px;place-items:center;border:0;border-radius:13px;color:#b6bfd1;background:rgba(255,255,255,.065);font-size:22px;cursor:pointer}.ds-sheet header button:hover{color:#fff;background:rgba(255,255,255,.11)}.ds-sheet header button:focus-visible,.ds-sheet nav button:focus-visible{outline:2px solid #8fc5ff;outline-offset:3px}.ds-sheet nav{display:grid;grid-template-columns:repeat(3,1fr);height:48px;margin:8px 10px 0;border-radius:13px;padding:4px;background:rgba(255,255,255,.055)}.ds-sheet nav button{border:0;border-radius:10px;color:#99a4b7;background:transparent;font-family:inherit;font-size:11px;font-weight:650;line-height:1.25;cursor:pointer}.ds-sheet nav button:hover{color:#fff}.ds-sheet nav button.is-active{color:#fff;background:rgba(255,255,255,.11);box-shadow:0 5px 16px rgba(0,0,0,.16)}.ds-sheet nav i{margin-left:4px;border-radius:999px;padding:2px 5px;color:#cce3ff;background:rgba(77,156,255,.18);font-size:9px;font-style:normal}.ds-sheet section{padding:22px}.ds-sheet h2{margin:0 0 7px;font-size:19px;font-weight:680;letter-spacing:-.025em}.ds-sheet section>p{margin:0 0 18px;color:#b0b9ca;font-size:12px;line-height:1.55}.ds-sheet article{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;border-radius:15px;padding:14px;background:rgba(255,255,255,.055)}.ds-file{display:grid;width:34px;height:34px;place-items:center;border-radius:9px;color:#dcebff;background:rgba(77,156,255,.14);font-size:8px;font-weight:800}.ds-sheet article strong,.ds-sheet article small{display:block}.ds-sheet article strong{font-size:12px}.ds-sheet article small{margin-top:3px;color:#9ea9bd;font-size:10px}.ds-sheet article em{display:grid;width:20px;height:20px;place-items:center;border-radius:6px;color:#dcebff;background:rgba(77,156,255,.2);font-size:9px;font-style:normal}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Luminous Exchange Desk",
+    "overview": "BursaIQ is an exchange command surface, not a dashboard of competing cards. The experience should feel like a composed decision desk after dark: precise, accountable, and spacious enough for one clear question to lead. A midnight-indigo field recedes while luminous blue reveals the next useful action.\n\nThe interface borrows Apple's restraint rather than its ornament. Deep translucent materials establish hierarchy, SF Pro system typography stays quiet and legible, and generous separation makes dense market intelligence feel manageable. Users ask first, inspect evidence only when needed, then move governed answers into review without leaving the conversation.",
+    "keyCharacteristics": [
+      "Midnight-indigo atmosphere with luminous blue agency.",
+      "One conversational focal point before advanced controls.",
+      "Deep, sparse materials with soft inset highlights rather than visible card borders.",
+      "Evidence and analysis arrive as a spatially consistent right-side sheet.",
+      "Governed status, synthetic-data labels, and review state remain visible at decision points.",
+      "Tactile but restrained motion with immediate press feedback and no gratuitous bounce."
+    ],
+    "rules": [
+      {
+        "name": "The Luminous Priority Rule",
+        "body": "Blue belongs to action, focus, active navigation, and governed visualization; body copy and passive decoration stay neutral so the command path remains obvious.",
+        "section": "colors"
+      },
+      {
+        "name": "The Optical Restraint Rule",
+        "body": "Use negative tracking only for display, headline, title, and major metric roles; body and small labels stay at natural spacing and avoid all-caps except unavoidable source abbreviations.",
+        "section": "typography"
+      },
+      {
+        "name": "The Conversation First Rule",
+        "body": "In an empty command surface, center one prompt and keep advanced analysis absent until a question creates a reason for it.",
+        "section": "layout"
+      },
+      {
+        "name": "The Right-Side Evidence Rule",
+        "body": "On wide screens, sources, governed method, plots, and full analysis use the same right-side sheet so opening evidence never changes the user's spatial model.",
+        "section": "layout"
+      },
+      {
+        "name": "The Material Hierarchy Rule",
+        "body": "Use heavier translucency for navigation and governed sheets, lighter translucency for interactive surfaces, and never stack ornamental glass layers without a functional hierarchy change.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Grounded Motion Rule",
+        "body": "Press feedback is immediate and small, state transitions settle in roughly 150–160ms, sheets materialize from the right, and dialogs scale gently; reduced-motion mode removes these spatial effects.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Soft Precision Rule",
+        "body": "Rounded forms should feel engineered and grounded, never bubbly: keep curves consistent with component scale and preserve straight alignment across adjacent analytical content.",
+        "section": "shapes"
+      },
+      {
+        "name": "The 44-Point Rule",
+        "body": "Every primary, icon, navigation, chip, send, and reviewer action must preserve at least a 44px interaction target at shipped breakpoints.",
+        "section": "components"
+      },
+      {
+        "name": "The Governed Handoff Rule",
+        "body": "Evidence, synthetic-data status, and verification state stay visible wherever an answer can be exported, approved, or acted upon.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do let one centered assistant prompt own the quiet first viewport.",
+      "Do use luminous blue for agency, focus, active navigation, and governed visualization.",
+      "Do reveal analysis in the consistent right-side evidence sheet when the user asks for depth.",
+      "Do preserve visible provenance, synthetic-data labels, access state, and human-review status at decision points.",
+      "Do use generous separation and a 44px minimum interaction target across desktop and mobile.",
+      "Do honor reduced motion, reduced transparency, increased contrast, keyboard focus, and Escape dismissal."
+    ],
+    "donts": [
+      "Don't turn BursaIQ into a dashboard of equal-weight cards, KPIs, and permanent analysis panels.",
+      "Don't stack glass for decoration or place translucent surfaces where no hierarchy changes.",
+      "Don't spend action blue on passive ornament, long-form copy, or every icon.",
+      "Don't use display tracking, all-caps metadata, or tiny dense labels as a substitute for hierarchy.",
+      "Don't introduce bounce, overshoot, or motion that delays the user's next action.",
+      "Don't hide evidence, review state, access boundaries, or synthetic-data disclosure behind a separate workflow."
+    ]
+  }
+}

@@ -51,20 +51,19 @@ class OptionalModelProvider:
     def route(self, question: str) -> str | None:
         """Ask Ollama for a constrained workspace label; the server still enforces access."""
         response = self._request(
-            "You route BursaIQ questions. Return exactly one lowercase label and nothing else: market, learn, or hr.\n"
+            "You route BursaIQ questions. Return exactly one lowercase label and nothing else: market or learn.\n"
             "market = market performance, ADV, value, velocity, sectors, investors, regional markets.\n"
-            "learn = Bursa concepts, definitions, products, investment instruments, product options, onboarding, conduct, general learning.\n"
-            "hr = only explicit employment matters such as hiring procedures, applicants, interviews, recruitment or job-application status.\n\n"
-            "Never classify a question as hr merely because it contains the word option, product, available or application in a non-employment sense. "
+            "learn = Bursa concepts, definitions, products, investment instruments, product options, onboarding, conduct, general learning.\n\n"
             "Questions asking what products, instruments or options Bursa offers are learn. "
-            "Priority: explicit hiring/applicant questions are hr. Explicit explain/define/what-is questions are learn, even when they mention a market term. "
+            "People, employee, candidate and recruitment requests are blocked before model routing and must never be answered. "
+            "Priority: explicit explain/define/what-is questions are learn, even when they mention a market term. "
             "Questions asking for a market measure, change, comparison or performance are market.\n\n"
             f"QUESTION\n{question}\n\nLABEL",
             num_predict=8,
         )
         if not response:
             return None
-        match = re.search(r"\b(market|learn|hr)\b", response.lower())
+        match = re.search(r"\b(market|learn)\b", response.lower())
         return match.group(1) if match else None
 
     def generate(self, prompt: str, context: str, workspace: str, response_style: str = "balanced") -> str | None:
@@ -86,10 +85,6 @@ class OptionalModelProvider:
                 "Answer as a patient onboarding guide using only the retrieved learning excerpts. Define unfamiliar terms plainly. "
                 "Start with a direct answer, use compact bullets when listing categories, and do not repeat the same list. "
                 "Keep the answer concise and end with one useful follow-up question."
-            ),
-            "hr": (
-                "Use only the retrieved permitted HR excerpt. Reword it clearly, but never infer a status, person, date or next step that is not present. "
-                "Keep the answer concise and professional."
             ),
             "reg": (
                 "Use only the retrieved permitted regulation excerpt. Present it as general workflow guidance, not legal advice or an official rule interpretation. "

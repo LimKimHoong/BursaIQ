@@ -3,13 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07161c">
+  <meta name="theme-color" content="#070b16">
   <meta name="description" content="BursaIQ — evidence-grounded market intelligence for Bursa Malaysia teams.">
   <title>BursaIQ — Decision intelligence, with evidence</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
 <body>
+  <!--
+  THESIS: BursaIQ is an exchange command surface, not a dashboard of competing cards.
+  OWN-WORLD: Midnight indigo, luminous blue actions, deep translucent materials, SF Pro typography and generous spatial separation.
+  STORY: Ask first; inspect evidence when needed; move governed answers into review without leaving the conversation.
+  FIRST VIEWPORT: A floating navigation material frames one centered assistant prompt; status stays quiet above, and analysis arrives as a right-side sheet.
+  FORM: Apple-style Exchange Command Center, fifth grounded direction, seed 342aab3f.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
   <a class="skip-link" href="#main-content">Skip to workspace</a>
   <div class="app-shell" id="app">
     <aside class="primary-sidebar" id="primary-sidebar" aria-label="BursaIQ navigation">
@@ -33,23 +41,10 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>
           <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em>Pilot</em>
         </button>
-        <button class="nav-item" data-workspace="hr" id="ask-hr-nav" type="button" hidden aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3h6m-3-3v6"/></svg>
-          <span class="nav-copy"><strong>Ask HR</strong><small>People guidance</small></span><em>Pilot</em>
-        </button>
-
-        <p class="nav-label nav-label-spaced">Workflow</p>
-        <button class="nav-item" data-workspace="reports" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8m-8 4h6"/></svg>
-          <span>Briefings</span><b id="report-count">0</b>
-        </button>
+        <p class="nav-label nav-label-spaced" id="workflow-nav-label" hidden>Workflow</p>
         <button class="nav-item" data-workspace="verification" id="verification-nav" type="button" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
           <span>Verification Centre</span><b id="verification-count">0</b>
-        </button>
-        <button class="nav-item" data-workspace="sources" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a4 4 0 0 0-4 4v12a4 4 0 0 0 8 0V6a4 4 0 0 0-4-4zM8 7H5a3 3 0 0 0-3 3v7a3 3 0 0 0 3 3h3m8-13h3a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3h-3"/></svg>
-          <span>Data Sources</span>
         </button>
       </nav>
 
@@ -65,7 +60,7 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
           <select id="role-select" aria-label="Switch demo identity">
             <option value="gcmc">Nadia Karim — GCMC</option>
-            <option value="hr">Farah Lee — HR Reviewer</option>
+            <option value="hr">Farah Lee — HR</option>
             <option value="securities">Arif Rahman — Market Reviewer</option>
             <option value="finance">Mei Tan — Finance</option>
           </select>
@@ -75,12 +70,12 @@
 
     <div class="main-shell">
       <header class="topbar">
-        <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false">
+        <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-sidebar">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
         <div class="breadcrumb"><span>BursaIQ</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><strong id="breadcrumb-label">BursaIQ Assistant</strong></div>
         <div class="topbar-actions">
-          <div class="system-state" title="All demo services available"><span></span><strong>Local demo ready</strong></div>
+          <div class="system-state" title="All demo services available" role="status" aria-live="polite" aria-atomic="true"><span></span><strong>Local demo ready</strong><em class="mobile-status-label" aria-hidden="true">Ready</em></div>
           <button class="icon-button" id="new-thread-button" type="button" aria-label="Start a new conversation">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
           </button>

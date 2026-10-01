@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 
 
-HR_INTENT = re.compile(
+SENSITIVE_PEOPLE_INTENT = re.compile(
     r"\b(?:hire|hiring|recruit(?:ment|er|ing)?|applicant|candidate|interview|"
     r"job application|application status|talent acquisition|vacanc(?:y|ies)|"
     r"offer approval|pre-employment|people services|payroll|leave policy|headcount|workforce)\b",
@@ -21,9 +21,9 @@ PRODUCT_DISCOVERY = re.compile(
 )
 
 
-def is_explicit_hr_question(question: str) -> bool:
-    """Return true only when the wording contains an unmistakable people-services intent."""
-    return bool(HR_INTENT.search(question))
+def is_sensitive_people_question(question: str) -> bool:
+    """Return true when a question could involve people, candidate or employment information."""
+    return bool(SENSITIVE_PEOPLE_INTENT.search(question))
 
 
 def is_product_learning_question(question: str) -> bool:
@@ -34,8 +34,8 @@ def is_product_learning_question(question: str) -> bool:
 def route_question_locally(question: str) -> str:
     """Reliable fallback when Ollama routing is disabled or unavailable."""
     value = question.lower()
-    if is_explicit_hr_question(value):
-        return "hr"
+    if is_sensitive_people_question(value):
+        return "blocked"
     if is_product_learning_question(value):
         return "learn"
     if any(term in value for term in ("explain", "define", "meaning", "what is", "what does", "new joiner", "learn", "glossary")):
@@ -47,8 +47,8 @@ def route_question_locally(question: str) -> str:
 
 def policy_workspace(question: str) -> str | None:
     """Resolve routes whose security or information architecture must not be probabilistic."""
-    if is_explicit_hr_question(question):
-        return "hr"
+    if is_sensitive_people_question(question):
+        return "blocked"
     if is_product_learning_question(question):
         return "learn"
     return None
@@ -59,8 +59,6 @@ def choose_workspace(question: str, model_route: str | None) -> tuple[str, str]:
     governed_route = policy_workspace(question)
     if governed_route:
         return governed_route, "policy-router"
-    if model_route == "hr":
-        return route_question_locally(question), "deterministic-guardrail"
     if model_route in {"market", "learn"}:
         return model_route, "ollama"
     return route_question_locally(question), "deterministic-router"

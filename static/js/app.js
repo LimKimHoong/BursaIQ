@@ -9,7 +9,6 @@
     market: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>`,
     learn: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>`,
     reg: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>`,
-    hr: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zm7-3h6m-3-3v6"/></svg>`,
     check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>`,
     shield: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>`,
     chart: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5m0 14h16M7 15l4-5 3 2 5-7"/></svg>`,
@@ -103,15 +102,6 @@
       emptyTitle: "Ask a regulation question",
       emptyText: "Responses use a restricted synthetic guide and always point back to the accountable regulatory owner.",
       suggestions: ["What is continuous disclosure?", "What should happen after an unusual market activity query?", "How should suspected market misconduct be escalated?"]
-    },
-    hr: {
-      title: "Ask HR",
-      description: "Controlled hiring guidance and permitted fictional application statuses.",
-      placeholder: "Ask about the hiring procedure or a demo application…",
-      access: "Approved users",
-      emptyTitle: "Ask an HR question",
-      emptyText: "Responses use approved HR demo sources. Applicant records remain restricted and fictional.",
-      suggestions: ["What is the hiring procedure?", "Show Alya Rahman's application status", "What happens after panel assessment?"]
     }
   };
 
@@ -122,7 +112,6 @@
     currentAnswer: null,
     currentQuestion: "",
     insightTab: "plot",
-    reports: JSON.parse(localStorage.getItem("bursaiq_reports") || "[]"),
     verification: [],
     backend: false,
     pending: false,
@@ -136,7 +125,7 @@
   const dom = {};
 
   function bindDom() {
-    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "report-count", "verification-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "ask-hr-nav", "verification-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
+    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "workflow-nav-label", "verification-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
       dom[id.replaceAll("-", "_")] = document.getElementById(id);
     });
   }
@@ -154,7 +143,6 @@
         if (Array.isArray(payload.market[key]) && payload.market[key].length) demo.market[key] = payload.market[key];
       });
     }
-    if (payload.hr) Object.assign(demo.hr, payload.hr);
     if (Array.isArray(payload.documents) && payload.documents.length) demo.documents.splice(0, demo.documents.length, ...payload.documents);
   }
 
@@ -249,7 +237,7 @@
   function conversationMarkup(workspace, isHome = false) {
     const config = workspaceConfig[workspace];
     const empty = isHome
-      ? `<div class="home-empty"><div class="home-brand" aria-hidden="true"><span></span><span></span><span></span></div><h1>How can I help?</h1><p>Ask a question, or open a workspace from the navigation.</p></div>`
+      ? `<div class="home-empty"><div class="home-brand" aria-hidden="true">IQ</div><h1>Ask BursaIQ</h1><p>Market intelligence and Bursa knowledge, grounded in approved sources.</p></div>`
       : workspace === "market"
         ? `<div class="workspace-empty workspace-entry"><div class="entry-icon">${icons.market}</div><h2>${config.emptyTitle}</h2><p>${config.emptyText}</p><button class="feature-entry" type="button" data-open-pulse><span>${icons.pulse}</span><span><strong>Open Market Pulse</strong><small>A ready-to-present view of July performance, activity and drivers</small></span>${icons.arrow}</button></div>`
         : workspace === "learn"
@@ -292,7 +280,7 @@
 
   function evidenceMarkup() {
     return `<aside class="evidence-panel insight-panel" id="evidence-panel" aria-label="Full answer analysis">
-      <div class="insight-header"><div><span>Full answer</span><strong>Analysis panel</strong></div><button class="icon-button" type="button" data-close-insight aria-label="Close analysis panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+      <div class="insight-header"><div><span>Answer details</span><strong>Evidence &amp; analysis</strong></div><button class="icon-button" type="button" data-close-insight aria-label="Close analysis panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
       <div class="evidence-tabs" role="tablist" aria-label="Analysis views">
         <button class="evidence-tab is-active" data-tab="plot" role="tab" type="button">Plot</button>
         <button class="evidence-tab" data-tab="analysis" role="tab" type="button">Analysis</button>
@@ -357,7 +345,7 @@
 
   function routeQuestion(question) {
     const value = question.toLowerCase();
-    if (/(hiring|recruit|applicant|application status|candidate|interview)/.test(value)) return "hr";
+    if (/(hiring|recruit|applicant|application status|candidate|interview|payroll|leave policy|headcount|workforce)/.test(value)) return "blocked";
     if (/(explain|define|meaning|what is|what does|new joiner|learn|glossary)/.test(value)) return "learn";
     if (/(market|fbm|klci|adv|daily value|sector|market driver|regional|international|investor|fund flow|market cap|market value|velocity)/.test(value)) return "market";
     return "learn";
@@ -416,6 +404,9 @@
   }
 
   function accessDeniedMarkup(workspace) {
+    if (workspace === "blocked") {
+      return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Privacy boundary</div><div class="answer-body"><h3>People-related requests are outside this prototype</h3><p>BursaIQ does not store or retrieve employee, candidate or application information. Please use the approved HR channel for this request.</p></div></article>`;
+    }
     const config = workspaceConfig[workspace] || workspaceConfig.learn;
     return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Access decision</div><div class="answer-body"><h3>I can’t open that workspace for this identity</h3><p>${escapeHtml(demo.identities[state.role].name)} does not have ${escapeHtml(config.title)} access. No restricted source or record was retrieved.</p></div></article>`;
   }
@@ -653,18 +644,16 @@
     state.pending = false;
     state.workspace = page;
     state.currentAnswer = null;
-    const labels = { reports: "Briefings", verification: "Verification Centre", sources: "Data Sources", settings: "Settings" };
+    const labels = { verification: "Verification Centre", settings: "Settings" };
     const descriptions = {
-      reports: "Downloadable outputs created from BursaIQ conversations.",
       verification: "Human review for answers that may inform decisions.",
-      sources: "Local files available to this demo identity.",
       settings: "Choose how BursaIQ responds and behaves on this device."
     };
     setHeading({ title: labels[page], description: descriptions[page] });
-    dom.asof_chip.style.display = page === "sources" ? "flex" : "none";
+    dom.asof_chip.style.display = "none";
     selectNavigation(page);
     dom.workspace_grid.className = "workspace-grid";
-    const content = page === "reports" ? reportsPage() : page === "verification" ? verificationPage() : page === "sources" ? sourcesPage() : settingsPage();
+    const content = page === "verification" ? verificationPage() : settingsPage();
     dom.workspace_grid.innerHTML = `<section class="page-panel">${content}</section>`;
     closeNavigation();
   }
@@ -683,11 +672,6 @@
       title: "Ask Reg",
       description: "Regulatory guidance grounded in a controlled synthetic source, with escalation to the accountable owner.",
       icon: icons.reg
-    },
-    hr: {
-      title: "Ask HR",
-      description: "Hiring guidance and fictional application statuses from restricted HR demo sources.",
-      icon: icons.hr
     }
   };
 
@@ -782,19 +766,12 @@
       </div>`;
   }
 
-  function reportsPage() {
-    if (!state.reports.length) {
-      return `<div class="empty-state"><div>${icons.file}<h2>No briefings yet</h2><p>Create a PDF from any grounded answer.</p><button class="button secondary" type="button" data-go="home">Start a conversation</button></div></div>`;
-    }
-    return `<div class="page-hero"><div><h2>Generated briefings</h2><p>PDFs include the answer, method, sources and verification state.</p></div></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Briefing</th><th>Created</th><th>Status</th><th></th></tr></thead><tbody>${state.reports.map((report) => `<tr><td><strong>${escapeHtml(report.title)}</strong><br><small>${escapeHtml(report.question)}</small></td><td>${report.created}</td><td><span class="status-pill">${report.status}</span></td><td>${report.url ? `<a class="button ghost" href="${report.url}" download>Download</a>` : "Service required"}</td></tr>`).join("")}</tbody></table></div>`;
-  }
-
   function verificationFlowMarkup(item = null) {
     const reviewer = item?.reviewer || "Assigned Data Owner";
     const submittedClass = item ? " is-submitted" : "";
     const receipt = item ? `<div class="workflow-receipt"><span>${icons.check}</span><div><strong>${escapeHtml(item.id)}</strong><small>Review package assigned to ${escapeHtml(reviewer)} · Pending review</small></div></div>` : "";
     return `<section class="verification-flow${submittedClass}" aria-label="Verification process flow">
-      <div class="verification-flow-head"><div><span class="flow-eyebrow">Human-in-the-loop control</span><h3>From answer to approved output</h3><p>One governed review path connects the requester, Microsoft 365 and the responsible Data Owner.</p></div><span class="architecture-chip">Target Microsoft 365 workflow</span></div>
+      <div class="verification-flow-head"><div><h3>From answer to approved output</h3><p>One governed review path connects the requester, Microsoft 365 and the responsible Data Owner.</p></div><span class="architecture-chip">Target Microsoft 365 workflow</span></div>
       ${receipt}
       <ol class="workflow-track">
         <li class="${item ? "is-complete" : ""}"><span class="workflow-node">${icons.check}</span><div><em>01</em><strong>User clicks Verify</strong><small>BursaIQ packages the question, answer, calculations and cited evidence.</small></div></li>
@@ -823,28 +800,18 @@
 
   function verificationPage() {
     const cases = reviewerCases();
-    const flow = verificationFlowMarkup();
     if (!cases.length) {
-      return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill approved">0 assigned</span></div>${flow}<div class="empty-state reviewer-empty"><div>${icons.shield}<h2>You’re all caught up</h2><p>No pending or completed cases are assigned to this reviewer account.</p></div></div>`;
+      return `<div class="page-hero"><div><h2>Cases to verify</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill approved">0 assigned</span></div><div class="empty-state reviewer-empty"><div>${icons.shield}<h2>You’re all caught up</h2><p>No pending or completed cases are assigned to this reviewer account.</p></div></div>`;
     }
-    return `<div class="page-hero"><div><h2>Your review queue</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div>${flow}<div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
-  }
-
-  function sourcesPage() {
-    const permittedWorkspaces = demo.identities[state.role].access;
-    const canSee = (doc) => permittedWorkspaces.includes(doc.workspace);
-    const available = demo.documents.filter(canSee);
-    return `<div class="page-hero"><div><h2>Available sources</h2><p>Only files this demo identity can retrieve are shown.</p></div><span class="status-pill approved">${available.length} available</span></div><div class="library-grid">${available.map((doc) => `<article class="library-card"><span class="file-icon ${doc.format.toLowerCase()}">${doc.format}</span><h3>${escapeHtml(doc.title)}</h3><p>${escapeHtml(doc.excerpt)}</p>${state.backend ? `<a class="action-button" href="/api/sources/${encodeURIComponent(doc.id)}?role=${encodeURIComponent(state.role)}" target="_blank" rel="noopener">${icons.file}Open source</a>` : ""}<div class="library-meta"><span>${escapeHtml(doc.owner)}</span><span>${escapeHtml(doc.updated)}</span></div></article>`).join("")}</div><div class="warning-block">${escapeHtml(demo.meta.disclaimer)}</div>`;
+    return `<div class="page-hero"><div><h2>Cases to verify</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
   }
 
   function updateNavigationVisibility() {
     const regAllowed = hasAccess("reg");
     dom.ask_reg_nav.hidden = !regAllowed;
     dom.ask_reg_nav.setAttribute("aria-hidden", String(!regAllowed));
-    const hrAllowed = hasAccess("hr");
-    dom.ask_hr_nav.hidden = !hrAllowed;
-    dom.ask_hr_nav.setAttribute("aria-hidden", String(!hrAllowed));
     const reviewerAllowed = isReviewer();
+    dom.workflow_nav_label.hidden = !reviewerAllowed;
     dom.verification_nav.hidden = !reviewerAllowed;
     dom.verification_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
   }
@@ -859,7 +826,7 @@
     await refreshVerificationAccess();
     updateCounts();
     renderHome();
-    toast("Identity switched", `${identity.name} now has ${identity.role.split(" · ")[0]} demo permissions.`);
+    toast("Identity switched", `${identity.name} is now the active demo identity.`);
   }
 
   function openReportDialog() {
@@ -890,8 +857,6 @@
       toast("PDF service unavailable", "Check the local server and try again.");
       return;
     }
-    state.reports.unshift(record);
-    localStorage.setItem("bursaiq_reports", JSON.stringify(state.reports));
     updateCounts();
     dom.report_dialog.close();
     toast("Briefing created", mode === "review" ? "PDF created and sent for review." : "Draft PDF is ready.");
@@ -931,7 +896,7 @@
       return;
     }
     const details = verificationDetailsPayload();
-    let item = { id: `VER-${Date.now().toString().slice(-8)}`, title: state.currentAnswer.title, workspace: workspaceConfig[state.answerWorkspace].title, requestedBy: demo.identities[state.role].name, reviewer: state.answerWorkspace === "hr" ? "HR Policy Owner" : "Market Intelligence Lead", status: "Pending review", created: new Date().toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" }), scope: "Answer narrative, calculations and source citations", details };
+    let item = { id: `VER-${Date.now().toString().slice(-8)}`, title: state.currentAnswer.title, workspace: workspaceConfig[state.answerWorkspace].title, requestedBy: demo.identities[state.role].name, reviewer: "Market Intelligence Lead", status: "Pending review", created: new Date().toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" }), scope: "Answer narrative, calculations and source citations", details };
     if (state.backend) {
       try {
         const response = await fetch("/api/verification", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: item.title, workspace: item.workspace, requestedBy: item.requestedBy, role: state.role, details }) });
@@ -999,8 +964,7 @@
   }
 
   function updateCounts() {
-    dom.report_count.textContent = state.reports.length;
-    dom.verification_count.textContent = reviewerCases().filter((item) => item.status === "Pending review").length;
+    if (dom.verification_count) dom.verification_count.textContent = reviewerCases().filter((item) => item.status === "Pending review").length;
   }
 
   function toast(title, message) {
@@ -1019,9 +983,46 @@
     dom.question_input.style.height = `${Math.min(dom.question_input.scrollHeight, 130)}px`;
   }
 
-  function closeNavigation() {
+  let navigationReturnFocus = null;
+
+  function isMobileNavigation() {
+    return window.matchMedia("(max-width: 900px)").matches;
+  }
+
+  function syncNavigationAccessibility() {
+    const sidebar = document.getElementById("primary-sidebar");
+    const mainShell = document.querySelector(".main-shell");
+    if (!sidebar || !mainShell) return;
+    const open = document.body.classList.contains("nav-open");
+    const mobile = isMobileNavigation();
+    sidebar.inert = mobile && !open;
+    if (mobile && !open) sidebar.setAttribute("aria-hidden", "true");
+    else sidebar.removeAttribute("aria-hidden");
+    mainShell.inert = mobile && open;
+  }
+
+  function openNavigation() {
+    if (!isMobileNavigation()) return;
+    const sidebar = document.getElementById("primary-sidebar");
+    navigationReturnFocus = document.activeElement;
+    document.body.classList.add("nav-open");
+    dom.menu_button?.setAttribute("aria-expanded", "true");
+    syncNavigationAccessibility();
+    window.requestAnimationFrame(() => sidebar?.querySelector("button:not([hidden]), select")?.focus());
+  }
+
+  function closeNavigation({ restoreFocus = true } = {}) {
+    const wasOpen = document.body.classList.contains("nav-open");
     document.body.classList.remove("nav-open");
     dom.menu_button?.setAttribute("aria-expanded", "false");
+    syncNavigationAccessibility();
+    if (wasOpen && restoreFocus && navigationReturnFocus instanceof HTMLElement) navigationReturnFocus.focus();
+    if (wasOpen) navigationReturnFocus = null;
+  }
+
+  function toggleNavigation() {
+    if (document.body.classList.contains("nav-open")) closeNavigation({ restoreFocus: true });
+    else openNavigation();
   }
 
   function handleWorkspaceClick(event) {
@@ -1103,8 +1104,12 @@
     dom.role_select.addEventListener("change", updateIdentity);
     dom.open_report_button.addEventListener("click", openReportDialog);
     dom.new_thread_button.addEventListener("click", () => switchWorkspace(workspaceConfig[state.workspace] ? state.workspace : "home"));
-    dom.menu_button.addEventListener("click", () => { const open = document.body.classList.toggle("nav-open"); dom.menu_button.setAttribute("aria-expanded", String(open)); });
-    dom.mobile_scrim.addEventListener("click", closeNavigation);
+    dom.menu_button.addEventListener("click", toggleNavigation);
+    dom.mobile_scrim.addEventListener("click", () => closeNavigation({ restoreFocus: true }));
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && document.body.classList.contains("nav-open")) closeNavigation({ restoreFocus: true });
+    });
+    window.addEventListener("resize", syncNavigationAccessibility);
     dom.workspace_grid.addEventListener("click", handleWorkspaceClick);
     dom.workspace_grid.addEventListener("submit", (event) => { if (event.target.id === "chat-form") { event.preventDefault(); ask(document.getElementById("question-input").value); } });
     dom.workspace_grid.addEventListener("input", (event) => { if (event.target.id === "question-input") resizeInput(); });
@@ -1138,6 +1143,7 @@
     applyPreferences();
     updateNavigationVisibility();
     updateCounts();
+    syncNavigationAccessibility();
     const initialWorkspace = state.preferences.defaultWorkspace;
     if (workspaceConfig[initialWorkspace] && hasAccess(initialWorkspace)) renderWorkspace(initialWorkspace);
     else renderHome();

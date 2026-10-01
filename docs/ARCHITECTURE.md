@@ -2,7 +2,7 @@
 
 ```text
 Controlled local files
-  Excel market / HR tables ─┐
+  Excel market tables ──────┐
   PDF learning / policy docs ├─> validated ingestion + local text index
                              │                 │
 Demo identity ─> workspace policy ────────────┤

@@ -2,7 +2,7 @@
 
 BursaIQ is an offline-first decision-intelligence prototype for the Bursa Prompt-a-thon final. It combines governed metric calculations, local Excel/PDF retrieval, visible evidence, simulated departmental access, human verification, and downloadable PDF briefings.
 
-Every included figure, applicant and document is synthetic. Nothing in this repository is official Bursa Malaysia information.
+Every included figure and document is synthetic. Nothing in this repository is official Bursa Malaysia information.
 
 ## What is implemented
 
@@ -10,12 +10,11 @@ Every included figure, applicant and document is synthetic. Nothing in this repo
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
-- **Ask HR:** a permissioned people-guidance workspace for the HR demo identity, grounded in synthetic hiring procedures and fictional application records.
-- **Local preferences:** Settings controls response detail, Ollama wording, automatic analysis, chart motion and the default workspace. A Panel access section lets all four identities request Ask Reg and Ask HR through a reason-capture dialog without granting access automatically.
+- **Local preferences:** Settings controls response detail, Ollama wording, automatic analysis, chart motion and the default workspace. A Panel access section lets identities request Ask Reg through a reason-capture dialog without granting access automatically.
 - **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
-- **Role-aware assistance:** HR procedure and fictional application-status questions can be handled inside BursaIQ Assistant only for the HR demo identity.
+- **People-data boundary:** employee, candidate, recruitment and application-status questions are declined without retrieving a source or invoking a model.
 - **Real local ingestion:** structured data is loaded from Excel and document text is extracted from PDF files under `Input/`.
-- **Human verification:** a reviewer-scoped flow shows the target Microsoft Lists → Power Automate email → Data Owner decision workflow. The Stage 02 demo persists submissions, approval or changes requested in a local SQLite audit queue.
+- **Human verification:** a reviewer-scoped case queue lets the assigned Data Owner inspect, approve or return answers. Submissions still show the proposed Microsoft Lists → Power Automate email handoff, while the Stage 02 demo persists decisions in a local SQLite audit queue.
 - **Real PDF export:** ReportLab generates a two-page executive briefing; pypdf verifies that it opens and contains the title, evidence register and synthetic-data label.
 - **Reliable model strategy:** the showcase works without a large model. An optional local Ollama adapter can provide narrative variation without owning facts or calculations.
 
@@ -38,7 +37,7 @@ The app is intentionally local and does not require internet access. If the serv
 2. **Ask the hero question (70 seconds).** From the clean Ask BursaIQ home, ask: `How did the market perform in July?` Show the management read, then open Evidence and Method. Emphasise that the calculation—not the language model—owns the number.
 3. **Follow the story (40 seconds).** Ask: `Which sectors drove the market?` or `How did 30-day ADV change?`
 4. **Close the workflow (45 seconds).** Create a PDF, select “Submit with review request,” download it, then show the item in Verification Centre.
-5. **Show personalisation and responsibility (45 seconds).** Ask an HR question as Nadia to demonstrate denial. Switch the demo identity to Farah Lee and retrieve Alya Rahman’s fictional status in BursaIQ Assistant.
+5. **Show personalisation and responsibility (45 seconds).** Open Settings as Nadia and request Ask Reg with a business reason. Switch to Arif Rahman to show that the approved role can open the controlled regulatory workspace.
 6. **Show adoption value (35 seconds).** Open Learn Bursa and ask: `Explain ADV in plain language.` Point to the raw-source evidence.
 7. **Close (30 seconds).** “BursaIQ turns a question into a traceable, reviewable decision artifact—across workspaces, without moving sensitive data into the prototype.”
 
@@ -50,7 +49,7 @@ The script leaves roughly 45 seconds for transitions and judge reaction. All thr
 |---|---|---|
 | Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa |
 | Arif Rahman | Securities Market | BursaIQ Assistant, Learn Bursa, Ask Reg, market review queue |
-| Farah Lee | HR | BursaIQ Assistant, Learn Bursa, Ask HR, HR Policy review queue |
+| Farah Lee | HR | BursaIQ Assistant, Learn Bursa |
 | Mei Tan | Finance | BursaIQ Assistant, Learn Bursa |
 
 Verification cases are filtered and update-protected by reviewer assignment in both the UI and API. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
@@ -75,10 +74,6 @@ Verification cases are filtered and update-protected by reviewer assignment in b
 | Counters | name, ticker, contributionPoints, pricePct |
 | Participation | group, netFlowMn, sharePct |
 | Regional | market, mtdPct, ytdPct, currency |
-
-### HR workbook contract
-
-`Input/HR/HR_Applications_Demo.xlsx` uses one `Applications` worksheet with `applicant`, `ref`, `position`, `stage`, `nextAction`, `owner`, and `classification`. Keep every record fictional for the competition.
 
 ### Ask Reg source contract
 
@@ -107,7 +102,7 @@ BURSAIQ_MODEL_PROVIDER=ollama BURSAIQ_OLLAMA_MODEL=qwen2.5:1.5b ./myenv/bin/pyth
 
 When enabled, the visible workspaces use Ollama in bounded ways:
 
-- **BursaIQ Assistant:** Ollama routes and words the response. Deterministic tools still calculate market results, while guardrails and server-side role checks govern HR retrieval.
+- **BursaIQ Assistant:** Ollama routes and words permitted responses. Deterministic tools calculate market results, while a pre-model privacy guard declines people-related questions.
 - **Learn Bursa:** local retrieval supplies relevant approved PDF/Excel excerpts before Ollama writes explanatory answers. Product catalogues use a deterministic four-group summary so a small model cannot omit or rearrange categories.
 - **Ask Reg:** restricted local retrieval supplies the permitted regulatory excerpt; Ollama may clarify the wording but must preserve the legal-advice and authority boundaries.
 

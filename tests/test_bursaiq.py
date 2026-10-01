@@ -26,14 +26,14 @@ class IngestionTests(unittest.TestCase):
 
     def test_source_pack_loads_without_errors(self) -> None:
         self.assertEqual(self.loaded["meta"]["ingestionErrors"], [])
-        self.assertEqual(len(self.loaded["documents"]), 7)
+        self.assertEqual(len(self.loaded["documents"]), 5)
         self.assertEqual(self.loaded["market"]["headline"]["fbmKLCI"], 1638.2)
 
     def test_search_obeys_workspace_access(self) -> None:
         adv_results = self.repository.search("Explain ADV in plain language", "learn", "gcmc")
         self.assertIn("Average Daily Value", adv_results[0].excerpt)
-        self.assertEqual(self.repository.search("Alya", "hr", "gcmc"), [])
-        self.assertTrue(self.repository.search("Alya", "hr", "hr"))
+        self.assertEqual(self.repository.search("candidate status", "hr", "gcmc"), [])
+        self.assertEqual(self.repository.search("candidate status", "hr", "hr"), [])
         self.assertEqual(self.repository.search("continuous disclosure", "reg", "gcmc"), [])
         self.assertTrue(self.repository.search("continuous disclosure", "reg", "securities"))
 
@@ -50,9 +50,9 @@ class IngestionTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
-    def test_routing_guardrail_keeps_product_questions_out_of_hr(self) -> None:
-        self.assertEqual(choose_workspace("What are the product options available in Bursa?", "hr"), ("learn", "policy-router"))
-        self.assertEqual(choose_workspace("What is Alya's application status?", "learn"), ("hr", "policy-router"))
+    def test_routing_guardrail_blocks_people_questions(self) -> None:
+        self.assertEqual(choose_workspace("What are the product options available in Bursa?", "market"), ("learn", "policy-router"))
+        self.assertEqual(choose_workspace("What is a candidate's application status?", "learn"), ("blocked", "policy-router"))
 
     def test_ollama_router_accepts_only_known_workspace_labels(self) -> None:
         provider = OptionalModelProvider()
@@ -176,26 +176,25 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(approved.get_json()["sources"][0]["documentId"], "regulatory-demo-guide")
         self.assertEqual(blocked.status_code, 403)
 
-    def test_ask_hr_is_restricted_to_approved_role(self) -> None:
+    def test_people_questions_are_outside_the_prototype(self) -> None:
         from server import app
 
         with app.test_client() as client:
-            approved = client.post("/api/chat", json={
-                "question": "What is the hiring procedure?",
+            blocked = client.post("/api/chat", json={
+                "question": "What is a candidate's application status?",
+                "workspace": "assistant",
+                "role": "hr",
+                "useModel": False,
+            })
+            removed_workspace = client.post("/api/chat", json={
+                "question": "Hello",
                 "workspace": "hr",
                 "role": "hr",
                 "useModel": False,
             })
-            blocked = client.post("/api/chat", json={
-                "question": "What is the hiring procedure?",
-                "workspace": "hr",
-                "role": "finance",
-                "useModel": False,
-            })
-        self.assertEqual(approved.status_code, 200)
-        self.assertEqual(approved.get_json()["workspace"], "hr")
-        self.assertTrue(approved.get_json()["sources"])
         self.assertEqual(blocked.status_code, 403)
+        self.assertEqual(blocked.get_json()["workspace"], "blocked")
+        self.assertEqual(removed_workspace.status_code, 400)
 
     def test_market_intelligence_is_available_to_every_demo_role(self) -> None:
         from server import app

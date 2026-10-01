@@ -41,7 +41,6 @@ DEMO_IDENTITIES = {
     "finance": "Mei Tan",
 }
 REVIEWER_ASSIGNMENTS = {
-    "hr": {"HR Policy Owner"},
     "securities": {"Market Intelligence Lead"},
 }
 
@@ -233,8 +232,15 @@ def chat():
     else:
         workspace = requested_workspace
 
-    if workspace not in {"market", "learn", "hr", "reg"}:
-        raise ValueError("workspace must be assistant, market, learn, hr or reg.")
+    if workspace == "blocked":
+        return jsonify({
+            "error": "People-related questions are outside the BursaIQ prototype. Use the approved HR channel.",
+            "workspace": "blocked",
+            "routedBy": routed_by,
+            "model": model_provider.status(),
+        }), 403
+    if workspace not in {"market", "learn", "reg"}:
+        raise ValueError("workspace must be assistant, market, learn or reg.")
     if workspace not in ROLE_WORKSPACES.get(role, set()):
         return jsonify({
             "error": "The active demo identity cannot retrieve this workspace.",

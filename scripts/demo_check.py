@@ -24,7 +24,7 @@ def main() -> None:
     require(client.get("/api/health").status_code == 200, "Health API failed.")
     require(client.post("/api/metrics/query", json={"question": "How did ADV change?", "role": "gcmc"}).status_code == 200, "Metric API failed.")
     require(client.post("/api/search", json={"query": "ADV", "workspace": "learn", "role": "gcmc"}).json["results"], "Learn Bursa retrieval found no result.")
-    require(client.post("/api/search", json={"query": "Alya", "workspace": "hr", "role": "gcmc"}).status_code == 403, "HR access boundary failed.")
+    require(client.post("/api/chat", json={"question": "What is a candidate's application status?", "workspace": "assistant", "role": "gcmc"}).status_code == 403, "People-data privacy boundary failed.")
     report = client.post("/api/report", json={
         "title": "BursaIQ pre-show check",
         "question": "How did ADV change?",

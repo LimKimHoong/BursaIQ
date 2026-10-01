@@ -22,7 +22,7 @@ QUERY_STOPWORDS = {
 ROLE_WORKSPACES = {
     "gcmc": {"market", "learn"},
     "securities": {"market", "learn", "reg"},
-    "hr": {"market", "hr", "learn"},
+    "hr": {"market", "learn"},
     "finance": {"market", "learn"},
 }
 
@@ -96,7 +96,6 @@ class LocalDataRepository:
 
         documents: list[dict[str, Any]] = []
         market: dict[str, Any] = {}
-        hr: dict[str, Any] = {"procedure": [], "applications": []}
         errors: list[dict[str, str]] = []
 
         for item in manifest.get("documents", []):
@@ -105,18 +104,11 @@ class LocalDataRepository:
                 documents.append(document)
                 if item.get("id") == "gcmc-pulse":
                     market = self._load_market_workbook(self._safe_path(item["filename"]))
-                elif item.get("id") == "hr-applications":
-                    hr["applications"] = self._read_table(self._safe_path(item["filename"]), "Applications")
-                elif item.get("id") == "hr-procedure":
-                    hr["procedure"] = self._parse_hr_procedure(document.get("_text", ""))
             except Exception as exc:  # keep the demo available while surfacing a specific source failure
                 errors.append({"source": str(item.get("filename", "unknown")), "error": str(exc)})
 
         if not market:
             raise IngestionError("The GCMC market workbook could not be loaded.")
-        if not hr["procedure"]:
-            hr["procedure"] = self._default_hr_procedure()
-
         self._cache = {
             "meta": {
                 "asOf": "31 Jul 2026",
@@ -127,7 +119,6 @@ class LocalDataRepository:
                 "ingestionErrors": errors,
             },
             "market": market,
-            "hr": hr,
             "documents": documents,
         }
         self._fingerprint = fingerprint
@@ -138,7 +129,6 @@ class LocalDataRepository:
         return {
             "meta": loaded["meta"],
             "market": loaded["market"],
-            "hr": loaded["hr"],
             "documents": [{key: value for key, value in doc.items() if not key.startswith("_")} for doc in loaded["documents"]],
         }
 
@@ -247,28 +237,6 @@ class LocalDataRepository:
             "participation": self._read_table(path, "Participation"),
             "regional": self._read_table(path, "Regional"),
         }
-
-    @staticmethod
-    def _parse_hr_procedure(text: str) -> list[dict[str, Any]]:
-        stages: list[dict[str, Any]] = []
-        blocks = re.split(r"(?=\d+\.\s+(?:Requisition|Sourcing|Panel|Pre-employment|Offer))", text)
-        for block in blocks:
-            heading = re.search(r"^(\d+)\.\s+([^\n]+)", block.strip())
-            owner = re.search(r"Owner:\s*([^\.]+)", block)
-            target = re.search(r"Target:\s*(\d+)\s+working", block)
-            if heading and owner and target:
-                stages.append({"step": int(heading.group(1)), "name": heading.group(2).strip(), "owner": owner.group(1).strip(), "targetDays": int(target.group(1))})
-        return stages
-
-    @staticmethod
-    def _default_hr_procedure() -> list[dict[str, Any]]:
-        return [
-            {"step": 1, "name": "Requisition approval", "owner": "Hiring manager & Finance", "targetDays": 2},
-            {"step": 2, "name": "Sourcing and screening", "owner": "Talent Acquisition", "targetDays": 8},
-            {"step": 3, "name": "Panel assessment", "owner": "Hiring panel", "targetDays": 5},
-            {"step": 4, "name": "Pre-employment checks", "owner": "Talent Acquisition", "targetDays": 4},
-            {"step": 5, "name": "Offer approval and issue", "owner": "HR approver", "targetDays": 3},
-        ]
 
     @staticmethod
     def _best_excerpt(text: str, tokens: set[str], length: int = 900) -> str:

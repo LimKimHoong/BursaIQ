@@ -104,7 +104,7 @@ class VerificationStore:
 
     def create_case(self, title: str, workspace: str, requested_by: str, report_filename: str | None = None, details: dict[str, Any] | None = None) -> dict[str, Any]:
         case_id = f"VER-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:4].upper()}"
-        reviewer = "HR Policy Owner" if workspace.lower().startswith("people") or workspace.lower() == "hr" else "Market Intelligence Lead"
+        reviewer = "Market Intelligence Lead"
         created = utc_now()
         with self._connect() as connection:
             connection.execute(

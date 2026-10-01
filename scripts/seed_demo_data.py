@@ -94,27 +94,6 @@ def create_market_workbook() -> None:
     book.save(path)
 
 
-def create_hr_workbook() -> None:
-    path = INPUT / "HR" / "HR_Applications_Demo.xlsx"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    book = Workbook()
-    sheet = book.active
-    sheet.title = "Applications"
-    sheet.append(["applicant", "ref", "position", "stage", "nextAction", "owner", "classification"])
-    rows = [
-        ["Alya Rahman", "DEM-26031", "Market Insights Analyst", "Panel assessment", "Second interview · 5 Aug 2026", "N. Hassan", "FICTIONAL"],
-        ["Daniel Lim", "DEM-26032", "Market Insights Analyst", "Sourcing and screening", "Hiring manager review · 2 Aug 2026", "N. Hassan", "FICTIONAL"],
-        ["Siti Hajar", "DEM-26018", "People Analytics Executive", "Pre-employment checks", "Reference check in progress", "F. Lee", "FICTIONAL"],
-        ["Kavin Raj", "DEM-26011", "Cybersecurity Specialist", "Offer approval and issue", "Approval due · 1 Aug 2026", "M. Wong", "FICTIONAL"]
-    ]
-    for row in rows:
-        sheet.append(row)
-    style_sheet(sheet, [21, 15, 28, 25, 34, 16, 18])
-    book.properties.title = "BursaIQ Fictional Applicant Tracker"
-    book.properties.description = "Fictional records for a competition demonstration."
-    book.save(path)
-
-
 def create_regulation_guide() -> None:
     path = INPUT / "Regulatory" / "Market_Regulation_Guide_Demo.json"
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -243,18 +222,10 @@ def create_source_pdfs() -> None:
         ("3. Escalate uncertainty", ["Send a result to Verification Centre when it may inform a management decision, external statement or people decision."]),
         ("4. Communicate honestly", ["Label synthetic and illustrative figures. Do not present prototype access controls as production security."])
     ])
-    create_pdf(INPUT / "HR" / "Hiring_Procedure_Demo.pdf", "Talent Acquisition Procedure — Demo", "Fictional procedure used to demonstrate the HR workspace", [
-        ("1. Requisition approval", ["Owner: Hiring manager and Finance. Target: 2 working days. Confirm the business need, approved headcount and role profile."]),
-        ("2. Sourcing and screening", ["Owner: Talent Acquisition. Target: 8 working days. Apply the approved selection criteria consistently and document the shortlist."]),
-        ("3. Panel assessment", ["Owner: Hiring panel. Target: 5 working days. Use the agreed scorecard and record panel feedback. The next stage is pre-employment checks."]),
-        ("4. Pre-employment checks", ["Owner: Talent Acquisition. Target: 4 working days. Candidate action time may pause the service clock."]),
-        ("5. Offer approval and issue", ["Owner: HR approver. Target: 3 working days. Confirm approval before issuing the offer. Escalate overdue action to the named stage owner."])
-    ])
 
 
 def main() -> None:
     create_market_workbook()
-    create_hr_workbook()
     create_regulation_guide()
     create_source_pdfs()
     print(f"Synthetic demo pack created under {INPUT}")

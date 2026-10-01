@@ -6,10 +6,10 @@ window.BURSAIQ_DEMO = {
     disclaimer: "All names, values and records in this prototype are invented for the Stage 02 demonstration."
   },
   identities: {
-    gcmc: { initials: "NK", name: "Nadia Karim", role: "GCMC · Analyst", access: ["market", "learn", "reports", "sources"], reviewerFor: [] },
-    hr: { initials: "FL", name: "Farah Lee", role: "HR · People Partner & Reviewer", access: ["market", "hr", "learn", "reports", "verification", "sources"], reviewerFor: ["HR Policy Owner"] },
-    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Market Reviewer", access: ["market", "learn", "reg", "reports", "verification", "sources"], reviewerFor: ["Market Intelligence Lead"] },
-    finance: { initials: "MT", name: "Mei Tan", role: "Finance · Business Partner", access: ["market", "learn", "reports", "sources"], reviewerFor: [] }
+    gcmc: { initials: "NK", name: "Nadia Karim", role: "GCMC · Analyst", access: ["market", "learn"], reviewerFor: [] },
+    hr: { initials: "FL", name: "Farah Lee", role: "HR · People Partner", access: ["market", "learn"], reviewerFor: [] },
+    securities: { initials: "AR", name: "Arif Rahman", role: "Securities Market · Market Reviewer", access: ["market", "learn", "reg", "verification"], reviewerFor: ["Market Intelligence Lead"] },
+    finance: { initials: "MT", name: "Mei Tan", role: "Finance · Business Partner", access: ["market", "learn"], reviewerFor: [] }
   },
   market: {
     headline: {
@@ -99,30 +99,6 @@ window.BURSAIQ_DEMO = {
       excerpt: "A high-level guide to Bursa securities, derivatives, Islamic-market products, indices, LFX and Bursa Gold Dinar."
     },
     {
-      id: "hr-procedure",
-      workspace: "hr",
-      title: "Talent Acquisition Procedure — Demo",
-      filename: "Hiring_Procedure_Demo.pdf",
-      format: "PDF",
-      owner: "Human Resources",
-      updated: "24 Jul 2026 · 15:10 MYT",
-      pages: "4 pages",
-      status: "Restricted",
-      excerpt: "Synthetic hiring stages, service-level targets and escalation rules used for the People Services scenario."
-    },
-    {
-      id: "hr-applications",
-      workspace: "hr",
-      title: "Applicant Tracker — Demo",
-      filename: "HR_Applications_Demo.xlsx",
-      format: "XLSX",
-      owner: "Human Resources",
-      updated: "30 Jul 2026 · 17:40 MYT",
-      pages: "12 fictional records",
-      status: "Restricted",
-      excerpt: "Fictional applicant records created solely to demonstrate role-based access and status retrieval."
-    },
-    {
       id: "conduct-guide",
       workspace: "learn",
       title: "New Joiner Conduct Guide — Demo",
@@ -154,21 +130,6 @@ window.BURSAIQ_DEMO = {
     { term: "Index attribution", expansion: "Index contribution", explanation: "An estimate of how much each constituent or sector added to or detracted from an index move." },
     { term: "Net flow", expansion: "Purchases less sales", explanation: "The net amount bought or sold by an investor group over a period." }
   ],
-  hr: {
-    procedure: [
-      { step: 1, name: "Requisition approval", owner: "Hiring manager & Finance", targetDays: 2 },
-      { step: 2, name: "Sourcing and screening", owner: "Talent Acquisition", targetDays: 8 },
-      { step: 3, name: "Panel assessment", owner: "Hiring panel", targetDays: 5 },
-      { step: 4, name: "Pre-employment checks", owner: "Talent Acquisition", targetDays: 4 },
-      { step: 5, name: "Offer approval and issue", owner: "HR approver", targetDays: 3 }
-    ],
-    applications: [
-      { applicant: "Alya Rahman", ref: "DEM-26031", position: "Market Insights Analyst", stage: "Panel assessment", nextAction: "Second interview · 5 Aug 2026", owner: "N. Hassan" },
-      { applicant: "Daniel Lim", ref: "DEM-26032", position: "Market Insights Analyst", stage: "Sourcing and screening", nextAction: "Hiring manager review · 2 Aug 2026", owner: "N. Hassan" },
-      { applicant: "Siti Hajar", ref: "DEM-26018", position: "People Analytics Executive", stage: "Pre-employment checks", nextAction: "Reference check in progress", owner: "F. Lee" },
-      { applicant: "Kavin Raj", ref: "DEM-26011", position: "Cybersecurity Specialist", stage: "Offer approval and issue", nextAction: "Approval due · 1 Aug 2026", owner: "M. Wong" }
-    ]
-  },
   regulation: {
     topics: [
       {
