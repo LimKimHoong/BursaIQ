@@ -1,6 +1,6 @@
 # BursaIQ — Stage 02 Demo
 
-BursaIQ is an offline-first decision-intelligence prototype for the Bursa Prompt-a-thon final. It combines governed metric calculations, local Excel/PDF retrieval, visible evidence, simulated departmental access, human verification, and downloadable PDF briefings.
+BursaIQ is a decision-intelligence prototype for the Bursa Prompt-a-thon final. Its conversational front end is connected to a Microsoft Copilot Studio agent through a small Python gateway, alongside governed metric calculations, visible evidence, simulated departmental access, human verification, and downloadable PDF briefings.
 
 Every included figure and document is synthetic. Nothing in this repository is official Bursa Malaysia information.
 
@@ -10,13 +10,14 @@ Every included figure and document is synthetic. Nothing in this repository is o
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
-- **Local preferences:** Settings controls response detail, Ollama wording, automatic analysis, chart motion and the default workspace. A Panel access section lets identities request Ask Reg through a reason-capture dialog without granting access automatically.
+- **Copilot Studio conversations:** the Flask gateway owns delegated Entra authentication, server-side tokens and Copilot conversation IDs; no credential is exposed to browser JavaScript.
+- **Local preferences:** Settings shows the Copilot connection, automatic analysis, chart motion and the default workspace. A Panel access section lets identities request Ask Reg through a reason-capture dialog without granting access automatically.
 - **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
-- **People-data boundary:** employee, candidate, recruitment and application-status questions are declined without retrieving a source or invoking a model.
+- **People-data boundary:** employee, candidate, recruitment and application-status questions are declined before invoking the hosted agent.
 - **Real local ingestion:** structured data is loaded from Excel and document text is extracted from PDF files under `Input/`.
 - **Human verification:** a reviewer-scoped case queue lets the assigned Data Owner inspect, approve or return answers. Submissions still show the proposed Microsoft Lists → Power Automate email handoff, while the Stage 02 demo persists decisions in a local SQLite audit queue.
 - **Real PDF export:** ReportLab generates a two-page executive briefing; pypdf verifies that it opens and contains the title, evidence register and synthetic-data label.
-- **Reliable model strategy:** the showcase works without a large model. An optional local Ollama adapter can provide narrative variation without owning facts or calculations.
+- **No local inference stack:** Ollama, Transformers and downloadable model weights are not used by BursaIQ.
 
 ## Run the demo
 
@@ -24,17 +25,19 @@ Every included figure and document is synthetic. Nothing in this repository is o
 cd /Users/kimhoong0324/Desktop/BursaIQ-main
 ./myenv/bin/pip install -r requirements.txt
 ./myenv/bin/python scripts/seed_demo_data.py
+cp .env.example .env
+# Fill in the four COPILOTSTUDIOAGENT values in .env
 ./myenv/bin/python server.py
 ```
 
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
 
-The app is intentionally local and does not require internet access. If the service is not running, the HTML still opens as a visual preview, but ingestion, persisted verification and PDF generation will be unavailable.
+Open Settings and choose **Sign in with Microsoft**. The delegated sign-in account must be able to invoke the published Copilot Studio agent. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
 
 ## Suggested five-minute showcase
 
 1. **Frame the problem (35 seconds).** “Colleagues spend time gathering figures, interpreting them, checking sources and turning the result into a reusable briefing.”
-2. **Ask the hero question (70 seconds).** From the clean Ask BursaIQ home, ask: `How did the market perform in July?` Show the management read, then open Evidence and Method. Emphasise that the calculation—not the language model—owns the number.
+2. **Ask the hero question (70 seconds).** From the clean Ask BursaIQ home, ask: `How did the market perform in July?` Show the Copilot Studio response, then open Evidence and Method.
 3. **Follow the story (40 seconds).** Ask: `Which sectors drove the market?` or `How did 30-day ADV change?`
 4. **Close the workflow (45 seconds).** Create a PDF, select “Submit with review request,” download it, then show the item in Verification Centre.
 5. **Show personalisation and responsibility (45 seconds).** Open Settings as Nadia and request Ask Reg with a business reason. Switch to Arif Rahman to show that the approved role can open the controlled regulatory workspace.
@@ -79,34 +82,17 @@ Verification cases are filtered and update-protected by reviewer assignment in b
 
 `Input/Regulatory/Market_Regulation_Guide_Demo.json` contains controlled synthetic topics with an `id`, `title`, `summary` and `actions`. It is demonstration guidance rather than legal advice or an official interpretation of Bursa Malaysia rules.
 
-## Retrieval rather than training
+## Microsoft Copilot Studio setup
 
-For the next sanitized-data step, do **not** train a model on the Excel/PDF pack. Training is slower, makes updates difficult, can memorise sensitive text, and does not guarantee correct figures. BursaIQ uses retrieval-augmented generation instead:
+This integration follows Microsoft's Python `copilotstudio-client` sample and uses a delegated user token.
 
-1. ingest an approved file;
-2. parse tables and document text;
-3. retrieve only relevant content within the user’s workspace;
-4. calculate metrics in deterministic functions;
-5. let an optional model explain the retrieved evidence;
-6. attach sources and route higher-stakes outputs to human review.
+1. Publish the Copilot Studio agent. Under **Settings → Advanced → Metadata**, copy its environment ID and schema name.
+2. Create a single-tenant Microsoft Entra **public client/native** app registration with `http://localhost` as its redirect URI.
+3. Add delegated `Power Platform API / CopilotStudio.Copilots.Invoke` and `Microsoft Graph / User.Read` permissions. Grant tenant consent if your policy requires it.
+4. Copy `.env.example` to `.env` and fill in the environment ID, schema name, tenant ID and application (client) ID.
+5. Start BursaIQ, open Settings, and select **Sign in with Microsoft**. The MSAL token cache is written to `runtime/.copilot_token_cache.json` with user-only permissions and is ignored by Git.
 
-This lets a corrected file take effect immediately and makes data provenance demonstrable to judges.
-
-## Optional local model
-
-The default is the deterministic demo engine, which is the safest configuration for an 8 GB MacBook Air. If desired, install Ollama separately, pull a small quantised model, then start BursaIQ with:
-
-```bash
-BURSAIQ_MODEL_PROVIDER=ollama BURSAIQ_OLLAMA_MODEL=qwen2.5:1.5b ./myenv/bin/python server.py
-```
-
-When enabled, the visible workspaces use Ollama in bounded ways:
-
-- **BursaIQ Assistant:** Ollama routes and words permitted responses. Deterministic tools calculate market results, while a pre-model privacy guard declines people-related questions.
-- **Learn Bursa:** local retrieval supplies relevant approved PDF/Excel excerpts before Ollama writes explanatory answers. Product catalogues use a deterministic four-group summary so a small model cannot omit or rearrange categories.
-- **Ask Reg:** restricted local retrieval supplies the permitted regulatory excerpt; Ollama may clarify the wording but must preserve the legal-advice and authority boundaries.
-
-Answers display an `Ollama · model-name` badge when model wording succeeds. If Ollama is disabled or unreachable, the interface automatically uses the deterministic/retrieval fallback. Local retrieval, metrics, access decisions and verification remain authoritative.
+Copilot Studio's client flow is user-delegated. Do not add a client secret to this application or commit `.env`/token-cache files.
 
 ## Project layout
 
@@ -120,7 +106,7 @@ bursaiq/data_loader.py     Excel/PDF/JSON ingestion and local retrieval
 bursaiq/metrics.py         Governed GCMC calculation tools
 bursaiq/store.py           SQLite verification/audit queue
 bursaiq/reporting.py       PDF generation and validation
-bursaiq/model_provider.py  Optional lazy Ollama adapter
+bursaiq/copilot_studio.py  Entra authentication and Copilot Studio gateway
 Input/                     Controlled synthetic source pack
 output/pdf/                Generated briefings
 runtime/                   Local demo database
@@ -129,7 +115,7 @@ runtime/                   Local demo database
 ## Honest Stage 02 boundaries
 
 - Business-impact numbers from the pitch should be labelled **illustrative estimates** until a measured pilot validates them. Keep them in the presentation as the hypothesis and label them; do not present them as measured product results.
-- Authentication, role groups, source approvals and review ownership are simulated or local in this build.
+- BursaIQ's demo identities, role groups, source approvals and review ownership are simulated or local. Copilot Studio authentication is real delegated Entra sign-in.
 - Microsoft Lists, Power Automate and notification email are presented as the proposed pilot architecture; the competition demo does not call a live Microsoft 365 tenant.
 - Current regional data is a controlled local comparison, not live market data.
 - English should remain the authoritative demo language. Bahasa Malaysia is a worthwhile stretch only after the five-minute English journey is stable; Chinese should be deferred.

@@ -1,4 +1,4 @@
-"""Deterministic routing guardrails for the conversational assistant."""
+"""Deterministic access and workspace guardrails for the assistant."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def is_product_learning_question(question: str) -> bool:
 
 
 def route_question_locally(question: str) -> str:
-    """Reliable fallback when Ollama routing is disabled or unavailable."""
+    """Route a question without delegating access decisions to an agent."""
     value = question.lower()
     if is_sensitive_people_question(value):
         return "blocked"
@@ -54,11 +54,11 @@ def policy_workspace(question: str) -> str | None:
     return None
 
 
-def choose_workspace(question: str, model_route: str | None) -> tuple[str, str]:
-    """Apply deterministic policy guardrails around an optional model route."""
+def choose_workspace(question: str, agent_route: str | None = None) -> tuple[str, str]:
+    """Apply deterministic policy guardrails before contacting Copilot Studio."""
     governed_route = policy_workspace(question)
     if governed_route:
         return governed_route, "policy-router"
-    if model_route in {"market", "learn"}:
-        return model_route, "ollama"
+    if agent_route in {"market", "learn"}:
+        return agent_route, "agent-route"
     return route_question_locally(question), "deterministic-router"

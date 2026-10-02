@@ -23,7 +23,7 @@ BursaIQ gives Bursa employees one conversational interface for asking questions 
 
 ## Positioning
 
-BursaIQ separates language from evidence. The model interprets and explains; governed functions calculate figures; document retrieval supplies context; permissions constrain access; every answer exposes its source and can enter human review.
+BursaIQ connects a Microsoft Copilot Studio agent to a governed evidence and workflow shell. Deterministic functions calculate figures; permissions constrain access; every answer can expose supporting context and enter human review.
 
 ## Operating Context
 
@@ -43,7 +43,7 @@ BursaIQ separates language from evidence. The model interprets and explains; gov
 - Keep employee, candidate, recruitment and other people-related information outside the prototype; direct those questions to the approved HR channel.
 - Simulate departmental identities and access boundaries visibly.
 - Generate downloadable PDF briefings and support a human-verification workflow.
-- Keep any local language model optional and swappable. The live demo must not rely on heavy model inference.
+- Use the published Microsoft Copilot Studio agent for conversations; do not ship local inference packages or model weights.
 - English is the authoritative default. Bahasa Melayu is a possible controlled stretch feature; Chinese is undecided.
 
 ## Brand Commitments
@@ -56,7 +56,7 @@ BursaIQ separates language from evidence. The model interprets and explains; gov
 ## Evidence on Hand
 
 - Existing interactive prototype: `/Users/kimhoong0324/Desktop/BursaIQ-main/index.html`.
-- Existing experimental local-model service: `/Users/kimhoong0324/Desktop/BursaIQ-main/server.py`.
+- Copilot Studio gateway: `/Users/kimhoong0324/Desktop/BursaIQ-main/bursaiq/copilot_studio.py`.
 - BursaIQ pitch deck and PDF under `/Users/kimhoong0324/Desktop/BursaIQ-main/Reference/`.
 - Competition launch deck at `/Users/kimhoong0324/Downloads/Bursa_Prompt-a-thon Launch Deck 15072026.pptx`.
 - No approved production infrastructure or production data is available for Stage 02.
@@ -65,7 +65,7 @@ BursaIQ separates language from evidence. The model interprets and explains; gov
 ## Product Principles
 
 1. Evidence remains visible at the moment of decision.
-2. Calculations stay governed outside the language model.
+2. Calculations and access decisions stay governed outside the hosted agent.
 3. The demo works offline and recovers gracefully.
 4. Access boundaries are demonstrated through user experience, not presentation claims alone.
 5. A focused end-to-end story matters more than broad but shallow feature coverage.

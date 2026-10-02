@@ -9,7 +9,7 @@ from pypdf import PdfReader
 
 from bursaiq.data_loader import LocalDataRepository
 from bursaiq.metrics import MetricEngine
-from bursaiq.model_provider import OptionalModelProvider
+from bursaiq.copilot_studio import CopilotReply, CopilotStudioService
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
@@ -54,36 +54,15 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(choose_workspace("What are the product options available in Bursa?", "market"), ("learn", "policy-router"))
         self.assertEqual(choose_workspace("What is a candidate's application status?", "learn"), ("blocked", "policy-router"))
 
-    def test_ollama_router_accepts_only_known_workspace_labels(self) -> None:
-        provider = OptionalModelProvider()
-        provider.provider = "ollama"
-        provider._request = lambda _prompt, num_predict: "market" if num_predict == 8 else "unused"  # type: ignore[method-assign]
-        self.assertEqual(provider.route("How did ADV change?"), "market")
-        provider._request = lambda _prompt, num_predict: "somewhere else"  # type: ignore[method-assign]
-        self.assertIsNone(provider.route("Hello"))
-
-    def test_ollama_workspace_prompt_preserves_authority_boundary(self) -> None:
-        provider = OptionalModelProvider()
-        provider.provider = "ollama"
-        captured: dict[str, str | int] = {}
-
-        def fake_request(prompt: str, num_predict: int) -> str:
-            captured.update(prompt=prompt, num_predict=num_predict)
-            return "Narrative response"
-
-        provider._request = fake_request  # type: ignore[method-assign]
-        response = provider.generate("How did the market perform?", "FORMULA: governed", "market")
-        self.assertEqual(response, "Narrative response")
-        self.assertIn("Do not recalculate", str(captured["prompt"]))
-        self.assertIn("FORMULA: governed", str(captured["prompt"]))
-
-        provider.generate("How did the market perform?", "FORMULA: governed", "market", "detailed")
-        self.assertEqual(captured["num_predict"], 360)
-        self.assertIn("four to six sentences", str(captured["prompt"]))
-
-        provider.generate("What is continuous disclosure?", "CONTROLLED SOURCE", "reg")
-        self.assertIn("not legal advice", str(captured["prompt"]))
-        self.assertIn("CONTROLLED SOURCE", str(captured["prompt"]))
+    def test_copilot_status_reports_missing_configuration_without_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            service = CopilotStudioService(Path(directory) / "token.json")
+            with patch.dict("os.environ", {}, clear=True):
+                status = service.status()
+        self.assertFalse(status["configured"])
+        self.assertFalse(status["available"])
+        self.assertEqual(status["provider"], "microsoft-copilot-studio")
+        self.assertEqual(len(status["missingSettings"]), 4)
 
     def test_verification_records_audit_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -109,7 +88,7 @@ class WorkflowTests(unittest.TestCase):
                 "verification": "Draft — not verified",
                 "answer": {
                     "html": "<p>The synthetic market advanced.</p>",
-                    "modelNarrative": "Ollama wording selected from governed facts.",
+                    "agentNarrative": "Copilot Studio answer selected from governed facts.",
                     "sources": [{"title": "GCMC Market Pulse", "filename": "demo.xlsx", "owner": "GCMC", "detail": "Headline worksheet"}],
                     "method": [["1", "Retrieve", "Read source"], ["2", "Calculate", "Run formula"]],
                     "formula": "latest / prior - 1",
@@ -120,60 +99,60 @@ class WorkflowTests(unittest.TestCase):
             self.assertTrue(result["validation"]["passed"])
             self.assertGreaterEqual(result["validation"]["pageCount"], 2)
             rendered_text = "\n".join(page.extract_text() or "" for page in PdfReader(result["path"]).pages)
-            self.assertIn("Ollama wording selected from governed facts.", rendered_text)
+            self.assertIn("Copilot Studio answer selected from governed facts.", rendered_text)
 
-    def test_product_question_is_answered_from_governed_learning_source(self) -> None:
+    def test_product_question_routes_to_learn_before_copilot(self) -> None:
         from server import app
 
-        with app.test_client() as client:
-            response = client.post("/api/chat", json={
-                "question": "What are the products option available in Bursa?",
-                "workspace": "assistant",
-                "role": "gcmc",
-            })
+        with patch("server.copilot.ask", return_value=CopilotReply("The agent product answer", "conv-1", ["Tell me more"])):
+            with app.test_client() as client:
+                response = client.post("/api/chat", json={
+                    "question": "What are the products option available in Bursa?",
+                    "workspace": "assistant",
+                    "role": "gcmc",
+                })
         payload = response.get_json()
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["workspace"], "learn")
-        self.assertEqual(payload["narrativeMode"], "governed-retrieval")
-        self.assertEqual(payload["sources"][0]["documentId"], "product-overview")
-        self.assertIn("Islamic market", payload["answer"])
+        self.assertEqual(payload["narrativeMode"], "copilot-studio")
+        self.assertEqual(payload["conversationId"], "conv-1")
+        self.assertEqual(payload["answer"], "The agent product answer")
+        self.assertEqual(payload["suggestedActions"], ["Tell me more"])
 
-    def test_user_can_pause_optional_model_wording(self) -> None:
+    def test_chat_continues_existing_copilot_conversation(self) -> None:
         from server import app
 
-        with patch("server.model_provider.generate", return_value="This should not be used") as generate:
+        with patch("server.copilot.ask", return_value=CopilotReply("Agent response", "conv-1", [])) as ask:
             with app.test_client() as client:
                 response = client.post("/api/chat", json={
                     "question": "How did ADV change?",
                     "workspace": "market",
                     "role": "gcmc",
-                    "useModel": False,
-                    "responseStyle": "concise",
+                    "conversationId": "conv-1",
                 })
         payload = response.get_json()
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(payload["narrativeMode"], "deterministic")
-        generate.assert_not_called()
+        self.assertEqual(payload["narrativeMode"], "copilot-studio")
+        ask.assert_called_once_with("How did ADV change?", "conv-1")
 
     def test_ask_reg_is_restricted_to_approved_role(self) -> None:
         from server import app
 
-        with app.test_client() as client:
-            approved = client.post("/api/chat", json={
-                "question": "What is continuous disclosure?",
-                "workspace": "reg",
-                "role": "securities",
-                "useModel": False,
-            })
-            blocked = client.post("/api/chat", json={
-                "question": "What is continuous disclosure?",
-                "workspace": "reg",
-                "role": "gcmc",
-                "useModel": False,
-            })
+        with patch("server.copilot.ask", return_value=CopilotReply("Regulatory agent answer", "conv-reg", [])):
+            with app.test_client() as client:
+                approved = client.post("/api/chat", json={
+                    "question": "What is continuous disclosure?",
+                    "workspace": "reg",
+                    "role": "securities",
+                })
+                blocked = client.post("/api/chat", json={
+                    "question": "What is continuous disclosure?",
+                    "workspace": "reg",
+                    "role": "gcmc",
+                })
         self.assertEqual(approved.status_code, 200)
         self.assertEqual(approved.get_json()["workspace"], "reg")
-        self.assertEqual(approved.get_json()["sources"][0]["documentId"], "regulatory-demo-guide")
+        self.assertEqual(approved.get_json()["answer"], "Regulatory agent answer")
         self.assertEqual(blocked.status_code, 403)
 
     def test_people_questions_are_outside_the_prototype(self) -> None:
@@ -184,13 +163,11 @@ class WorkflowTests(unittest.TestCase):
                 "question": "What is a candidate's application status?",
                 "workspace": "assistant",
                 "role": "hr",
-                "useModel": False,
             })
             removed_workspace = client.post("/api/chat", json={
                 "question": "Hello",
                 "workspace": "hr",
                 "role": "hr",
-                "useModel": False,
             })
         self.assertEqual(blocked.status_code, 403)
         self.assertEqual(blocked.get_json()["workspace"], "blocked")

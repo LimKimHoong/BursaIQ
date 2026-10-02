@@ -26,11 +26,9 @@
   };
 
   const defaultPreferences = {
-    responseStyle: "balanced",
     autoOpenInsights: true,
     chartMotion: true,
     defaultWorkspace: "home",
-    useLocalModel: true,
     plugins: { webSearch: false, pdfTools: true, spreadsheetTools: true }
   };
 
@@ -116,7 +114,8 @@
     backend: false,
     pending: false,
     requestId: 0,
-    model: { enabled: false, provider: "disabled", model: "deterministic-demo-engine" },
+    agent: { provider: "microsoft-copilot-studio", configured: false, authenticated: false, available: false },
+    conversationId: "",
     preferences: loadPreferences(),
     accessRequests: loadAccessRequests(),
     accessRequestPanel: ""
@@ -157,7 +156,7 @@
       const payload = await response.json();
       deepMergeDemo(payload);
       if (Array.isArray(payload.verification)) state.verification = payload.verification;
-      if (payload.model) state.model = payload.model;
+      if (payload.agent) state.agent = payload.agent;
       state.backend = true;
     } catch (_error) {
       state.backend = false;
@@ -296,6 +295,7 @@
     state.workspace = "home";
     state.currentAnswer = null;
     state.currentQuestion = "";
+    state.conversationId = "";
     state.insightTab = "plot";
     dom.workspace_heading.hidden = true;
     dom.breadcrumb_label.textContent = "BursaIQ Assistant";
@@ -318,6 +318,7 @@
     state.answerWorkspace = workspace;
     state.currentAnswer = null;
     state.currentQuestion = "";
+    state.conversationId = "";
     state.insightTab = "plot";
     setHeading(config);
     selectNavigation(workspace);
@@ -367,15 +368,13 @@
       .split(/\n\s*\n/)
       .map((paragraph) => paragraph.replace(/^#{1,6}\s*/gm, "").trim())
       .filter(Boolean);
-    return `<div class="model-narrative">${paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph).replaceAll("\n", "<br>")}</p>`).join("")}</div>`;
+    return `<div class="agent-narrative">${paragraphs.map((paragraph) => `<p>${escapeHtml(paragraph).replaceAll("\n", "<br>")}</p>`).join("")}</div>`;
   }
 
   function answerProvenance(result) {
-    if (result.narrativeMode === "ollama") return `<span class="model-chip ollama">Ollama · ${escapeHtml(result.model?.model || state.model.model)}</span>`;
-    if (result.narrativeMode === "governed-retrieval") return `<span class="model-chip grounded">Grounded catalogue</span>`;
-    if (state.model.enabled && !state.preferences.useLocalModel) return `<span class="model-chip">Deterministic mode</span>`;
-    if (state.model.enabled) return `<span class="model-chip fallback">Safe fallback</span>`;
-    return `<span class="model-chip">Deterministic demo</span>`;
+    if (result.narrativeMode === "copilot-studio") return `<span class="provenance-chip copilot">Microsoft Copilot Studio</span>`;
+    if (result.narrativeMode === "fallback") return `<span class="provenance-chip fallback">Offline preview</span>`;
+    return `<span class="provenance-chip">BursaIQ local preview</span>`;
   }
 
   function updateSystemIndicator(mode) {
@@ -385,21 +384,49 @@
     if (!state.backend) {
       label.textContent = "Offline preview";
       container.title = "Backend unavailable; browser fallback is active";
-    } else if (state.model.enabled && !state.preferences.useLocalModel) {
-      label.textContent = "Deterministic mode";
-      container.title = "Local Ollama wording is paused in Settings";
-    } else if (mode === "ollama") {
-      label.textContent = `Ollama · ${state.model.model}`;
-      container.title = "Local Ollama wording is active; calculations and access controls remain deterministic";
-    } else if (mode === "governed-retrieval") {
-      label.textContent = "Grounded catalogue";
-      container.title = "The answer is taken from the approved product catalogue with deterministic grouping";
-    } else if (state.model.enabled) {
-      label.textContent = "Ollama enabled · fallback ready";
-      container.title = "Ollama is configured; deterministic fallback remains available";
+    } else if (state.agent.available || mode === "copilot-studio") {
+      label.textContent = "Copilot Studio connected";
+      container.title = "BursaIQ is connected to the configured Microsoft Copilot Studio agent";
+    } else if (state.agent.configured) {
+      label.textContent = "Copilot sign-in required";
+      container.title = "Sign in with Microsoft Entra ID to use the configured Copilot Studio agent";
     } else {
-      label.textContent = "Deterministic demo";
-      container.title = "Ollama is optional and currently disabled";
+      label.textContent = "Copilot setup required";
+      container.title = "Add the Copilot Studio environment, schema, tenant and app registration settings";
+    }
+  }
+
+  function agentUnavailableMarkup(message, requiresAuthentication = false) {
+    const action = requiresAuthentication && state.agent.configured
+      ? `<button class="button primary" type="button" data-connect-copilot>Sign in with Microsoft</button>`
+      : `<button class="button ghost" type="button" data-go="settings">Open integration settings</button>`;
+    return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Copilot Studio connection</div><div class="answer-body"><h3>The BursaIQ agent is not connected</h3><p>${escapeHtml(message || "Configure and sign in to Microsoft Copilot Studio, then try again.")}</p>${action}</div></article>`;
+  }
+
+  async function connectCopilot(button) {
+    if (!state.backend || !state.agent.configured) {
+      toast("Copilot setup required", "Add the four Copilot Studio settings to .env and restart BursaIQ.");
+      return;
+    }
+    const original = button?.textContent || "Sign in with Microsoft";
+    if (button) {
+      button.disabled = true;
+      button.textContent = "Waiting for sign-in…";
+    }
+    try {
+      const response = await fetch("/api/copilot/connect", { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: "{}" });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Microsoft sign-in failed");
+      state.agent = payload;
+      updateSystemIndicator();
+      if (document.querySelector("[data-reset-preferences]")) renderPage("settings");
+      toast("Copilot Studio connected", "The BursaIQ front end can now start agent conversations.");
+    } catch (error) {
+      toast("Microsoft sign-in failed", error.message || "Check the server log and try again.");
+      if (button) {
+        button.disabled = false;
+        button.textContent = original;
+      }
     }
   }
 
@@ -423,15 +450,14 @@
           question,
           workspace: requestedWorkspace,
           role,
-          useModel: state.preferences.useLocalModel,
-          responseStyle: state.preferences.responseStyle,
+          conversationId: state.conversationId,
           plugins: Object.entries(state.preferences.plugins).filter(([, enabled]) => enabled).map(([id]) => id)
         }),
         signal: controller.signal
       });
       const payload = await response.json();
       if (response.status === 403) return { denied: true, workspace: payload.workspace || routeQuestion(question) };
-      if (!response.ok) throw new Error(payload.error || "Chat service failed");
+      if (!response.ok) return { agentError: true, message: payload.error || "The Copilot Studio agent is unavailable.", requiresAuthentication: Boolean(payload.requiresAuthentication), agent: payload.agent };
       return payload;
     } finally {
       window.clearTimeout(timeout);
@@ -446,21 +472,23 @@
     try {
       const payload = await requestBackendAnswer(question, selectedWorkspace === "home" ? "assistant" : selectedWorkspace, role);
       if (payload?.denied) return payload;
+      if (payload?.agentError) {
+        if (payload.agent) state.agent = payload.agent;
+        return payload;
+      }
       const workspace = workspaceConfig[payload.workspace] ? payload.workspace : localWorkspace;
       if (!hasAccess(workspace)) return { denied: true, workspace };
       const result = engine.respond(workspace, question);
       result.narrativeMode = payload.narrativeMode;
-      result.model = payload.model;
+      result.agent = payload.agent;
       result.routedBy = payload.routedBy;
-      result.modelNarrative = payload.narrativeMode === "ollama" ? String(payload.answer || "").trim() : "";
-      result.groundedNarrative = payload.narrativeMode === "governed-retrieval" ? String(payload.answer || "").trim() : "";
-      result.calculationMode = payload.result?.calculationMode || (workspace === "market" ? "deterministic" : "retrieval");
+      result.agentNarrative = String(payload.answer || "").trim();
+      if (Array.isArray(payload.suggestedActions) && payload.suggestedActions.length) result.followups = payload.suggestedActions;
+      state.conversationId = String(payload.conversationId || state.conversationId);
+      if (payload.agent) state.agent = payload.agent;
       return { workspace, result };
     } catch (_error) {
-      if (!hasAccess(localWorkspace)) return { denied: true, workspace: localWorkspace };
-      const result = engine.respond(localWorkspace, question);
-      result.narrativeMode = "fallback";
-      return { workspace: localWorkspace, result };
+      return { agentError: true, message: "BursaIQ could not reach the Copilot Studio service. Check the server connection and try again." };
     }
   }
 
@@ -488,10 +516,7 @@
       return;
     }
 
-    const productQuestion = /\b(product|products|instrument|instruments|asset class|option|options)\b/i.test(cleanQuestion);
-    const activity = productQuestion
-      ? "Checking the approved product catalogue…"
-      : state.model.enabled && state.preferences.useLocalModel ? "Routing and wording with local Ollama…" : "Checking the approved sources…";
+    const activity = "Asking your Microsoft Copilot Studio agent…";
     dom.chat_thread.insertAdjacentHTML("beforeend", `<div class="typing-indicator" id="typing"><div class="typing-dots"><i></i><i></i><i></i></div>${activity}</div>`);
     dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
     const [resolution] = await Promise.all([resolveAnswer(cleanQuestion, selectedWorkspace, requestRole), new Promise((resolve) => window.setTimeout(resolve, 360))]);
@@ -503,6 +528,12 @@
       dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
       return;
     }
+    if (resolution.agentError) {
+      dom.chat_thread.insertAdjacentHTML("beforeend", agentUnavailableMarkup(resolution.message, resolution.requiresAuthentication));
+      updateSystemIndicator();
+      dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
+      return;
+    }
 
     const targetWorkspace = resolution.workspace;
     state.answerWorkspace = targetWorkspace;
@@ -510,7 +541,7 @@
     const result = state.currentAnswer;
     updateSystemIndicator(result.narrativeMode);
     const defaultInsightTab = targetWorkspace === "market" ? "plot" : "analysis";
-    const narrative = (result.modelNarrative || result.groundedNarrative) ? narrativeMarkup(result.modelNarrative || result.groundedNarrative) : firstParagraph(result.html);
+    const narrative = result.agentNarrative ? narrativeMarkup(result.agentNarrative) : firstParagraph(result.html);
     const answerLabel = selectedWorkspace === "home" ? "BursaIQ Assistant" : `BursaIQ · ${workspaceConfig[targetWorkspace].title}`;
     dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">Synthetic output · ${demo.meta.asOf}</div></div></article>`);
     renderSuggestions(result.followups.slice(0, 3));
@@ -621,8 +652,8 @@
     });
     dom.evidence_badge.textContent = result.sources.length;
     if (state.insightTab === "analysis") {
-      const modelAnalysis = result.modelNarrative ? `<section class="model-analysis"><div><span class="model-chip ollama">Ollama narrative</span><small>Wording only</small></div>${narrativeMarkup(result.modelNarrative)}</section>` : "";
-      dom.evidence_content.innerHTML = `${modelAnalysis}<article class="full-analysis"><h2>${result.title}</h2>${result.html}</article><h2 class="section-title">How this was produced</h2>${result.method.map((item) => `<div class="method-step"><span>${item[0]}</span><div><strong>${item[1]}</strong><p>${item[2]}</p></div></div>`).join("")}<div class="formula-box">${result.formula}</div><ul class="context-list">${Object.entries(result.context).map(([key, value]) => `<li><span>${key}</span><strong>${value}</strong></li>`).join("")}</ul>`;
+      const agentAnalysis = result.agentNarrative ? `<section class="agent-analysis"><div><span class="provenance-chip copilot">Copilot Studio answer</span><small>Hosted agent response</small></div>${narrativeMarkup(result.agentNarrative)}</section>` : "";
+      dom.evidence_content.innerHTML = `${agentAnalysis}<article class="full-analysis"><h2>${result.title}</h2>${result.html}</article><h2 class="section-title">How this was produced</h2>${result.method.map((item) => `<div class="method-step"><span>${item[0]}</span><div><strong>${item[1]}</strong><p>${item[2]}</p></div></div>`).join("")}<div class="formula-box">${result.formula}</div><ul class="context-list">${Object.entries(result.context).map(([key, value]) => `<li><span>${key}</span><strong>${value}</strong></li>`).join("")}</ul>`;
     } else if (state.insightTab === "sources") {
       dom.evidence_content.innerHTML = `<h2>${result.sources.length} source reference${result.sources.length === 1 ? "" : "s"}</h2><p class="panel-intro">Open a source or inspect the exact location used.</p>${sourceCards(result.sources)}<div class="confidence-row"><span>Evidence coverage</span><strong>${result.confidence}%</strong></div><div class="confidence-track"><span style="width:${result.confidence}%"></span></div>`;
     } else {
@@ -743,14 +774,15 @@
 
   function settingsPage() {
     const preferences = state.preferences;
-    const modelAvailable = state.model.enabled;
+    const connectionLabel = state.agent.available ? "Connected" : state.agent.configured ? "Sign-in required" : "Configuration required";
+    const connectionDetail = state.agent.error || (state.agent.configured ? "Uses delegated Microsoft Entra ID authentication." : "Add the four COPILOTSTUDIOAGENT settings to .env.");
+    const connectionAction = state.agent.available ? "" : `<button class="button primary" type="button" data-connect-copilot ${state.agent.configured ? "" : "disabled"}>Sign in with Microsoft</button>`;
     return `<div class="page-hero settings-hero"><div><h2>Your BursaIQ experience</h2><p>Preferences are stored locally in this browser and can be reset at any time.</p></div><button class="button ghost" type="button" data-reset-preferences>Restore defaults</button></div>
       <div class="settings-layout">
-        <section class="settings-section"><h3>Answers</h3><p>Control the level of detail and whether the optional local model helps word answers.</p>
-          <label class="setting-row setting-select"><span><strong>Response detail</strong><small>Market figures and sources do not change.</small></span><select data-setting="responseStyle" aria-label="Response detail"><option value="concise" ${preferences.responseStyle === "concise" ? "selected" : ""}>Concise</option><option value="balanced" ${preferences.responseStyle === "balanced" ? "selected" : ""}>Balanced</option><option value="detailed" ${preferences.responseStyle === "detailed" ? "selected" : ""}>Detailed</option></select></label>
-          ${settingSwitch("useLocalModel", "Use local Ollama wording", modelAvailable ? `Available model: ${state.model.model}` : "Start BursaIQ with Ollama to enable this option.", preferences.useLocalModel && modelAvailable, !modelAvailable)}
+        <section class="settings-section"><h3>Microsoft Copilot Studio</h3><p>Your hosted agent powers BursaIQ conversations. Tokens stay in the local Python service and are never sent to browser code.</p>
+          <div class="setting-row"><span><strong>${connectionLabel}</strong><small>${escapeHtml(connectionDetail)}</small></span>${connectionAction}</div>
         </section>
-        <section class="settings-section plugins-section"><h3>Plugins</h3><p>Add optional tools BursaIQ may use alongside its governed data and model.</p><div class="plugin-list">
+        <section class="settings-section plugins-section"><h3>Plugins</h3><p>Add optional tools BursaIQ may use alongside its governed data and hosted agent.</p><div class="plugin-list">
           ${pluginRow("webSearch", "Web Search", "Discover current public information when an approved connection is available.", icons.web)}
           ${pluginRow("pdfTools", "PDF Tools", "Read, retrieve and summarise approved local PDF documents.", icons.file)}
           ${pluginRow("spreadsheetTools", "Spreadsheet Tools", "Inspect approved Excel tables used by market calculations.", icons.table)}
@@ -762,7 +794,7 @@
           ${settingSwitch("autoOpenInsights", "Open analysis automatically", "Show the right-side plot or evidence panel after an answer.", preferences.autoOpenInsights)}
           ${settingSwitch("chartMotion", "Animate market charts", "Draw chart lines and bars when the analysis panel opens.", preferences.chartMotion)}
         </section>
-        <section class="settings-section settings-note"><h3>Demo boundaries</h3><p>Identity permissions, source access and governed calculations cannot be changed here. These controls only affect presentation and the optional narrative layer.</p><div><span>${icons.shield}</span><strong>Access rules remain enforced</strong></div></section>
+        <section class="settings-section settings-note"><h3>Demo boundaries</h3><p>Identity permissions, source access and governed calculations cannot be changed here. Copilot Studio does not bypass BursaIQ’s server-side workspace policy.</p><div><span>${icons.shield}</span><strong>Access rules remain enforced</strong></div></section>
       </div>`;
   }
 
@@ -920,7 +952,7 @@
     return {
       question: state.currentQuestion,
       answerTitle: state.currentAnswer.title,
-      answerText: state.currentAnswer.modelNarrative || plainText(state.currentAnswer.html),
+      answerText: state.currentAnswer.agentNarrative || plainText(state.currentAnswer.html),
       formula: state.currentAnswer.formula,
       context: state.currentAnswer.context,
       sources: state.currentAnswer.sources.map((source) => ({ title: source.title, filename: source.filename, owner: source.owner, detail: source.detail || source.excerpt || "" }))
@@ -1026,6 +1058,11 @@
   }
 
   function handleWorkspaceClick(event) {
+    const connect = event.target.closest("[data-connect-copilot]");
+    if (connect) {
+      connectCopilot(connect);
+      return;
+    }
     if (event.target.closest("[data-open-pulse]")) {
       dom.chat_thread.innerHTML = marketPulseMarkup();
       dom.chat_thread.scrollTop = 0;

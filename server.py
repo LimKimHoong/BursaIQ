@@ -1,4 +1,4 @@
-"""BursaIQ Stage 02 local demo server.
+"""BursaIQ web backend with Microsoft Copilot Studio conversations.
 
 Run with: ./myenv/bin/python server.py
 Open:     http://127.0.0.1:5000
@@ -6,18 +6,28 @@ Open:     http://127.0.0.1:5000
 
 from __future__ import annotations
 
-import json
 import os
 from pathlib import Path
 from typing import Any
 
 from flask import Flask, jsonify, request, send_from_directory
 
+try:
+    from dotenv import load_dotenv
+except ModuleNotFoundError:  # Keeps non-agent tests runnable before new dependencies are installed.
+    def load_dotenv(*_args, **_kwargs):
+        return False
+
+from bursaiq.copilot_studio import (
+    CopilotAuthenticationError,
+    CopilotConfigurationError,
+    CopilotRequestError,
+    CopilotStudioService,
+)
 from bursaiq.data_loader import IngestionError, LocalDataRepository, ROLE_WORKSPACES
 from bursaiq.metrics import MetricEngine
-from bursaiq.model_provider import OptionalModelProvider
 from bursaiq.reporting import BriefingGenerator
-from bursaiq.routing import choose_workspace, is_product_learning_question, policy_workspace
+from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
 
 
@@ -25,6 +35,7 @@ BASE_DIR = Path(__file__).resolve().parent
 INPUT_DIR = BASE_DIR / "Input"
 OUTPUT_DIR = BASE_DIR / "output" / "pdf"
 RUNTIME_DIR = BASE_DIR / "runtime"
+load_dotenv(BASE_DIR / ".env")
 
 app = Flask(__name__, static_folder=str(BASE_DIR / "static"), static_url_path="/static")
 app.config.update(JSON_SORT_KEYS=False, MAX_CONTENT_LENGTH=2 * 1024 * 1024)
@@ -32,7 +43,7 @@ app.config.update(JSON_SORT_KEYS=False, MAX_CONTENT_LENGTH=2 * 1024 * 1024)
 repository = LocalDataRepository(INPUT_DIR)
 reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
-model_provider = OptionalModelProvider()
+copilot = CopilotStudioService(RUNTIME_DIR / ".copilot_token_cache.json")
 
 DEMO_IDENTITIES = {
     "gcmc": "Nadia Karim",
@@ -104,7 +115,7 @@ def review_details(payload: dict[str, Any]) -> dict[str, Any]:
     else:
         question = payload.get("question")
         answer_title = answer.get("title") or payload.get("title")
-        answer_text = answer.get("html")
+        answer_text = answer.get("agentNarrative") or answer.get("html")
         formula = answer.get("formula")
 
     return {
@@ -138,6 +149,22 @@ def ingestion_error(error):
     return jsonify({"error": str(error), "type": "ingestion_error"}), 500
 
 
+@app.errorhandler(CopilotConfigurationError)
+def copilot_configuration_error(error):
+    return jsonify({"error": str(error), "type": "copilot_configuration", "agent": copilot.status()}), 503
+
+
+@app.errorhandler(CopilotAuthenticationError)
+def copilot_authentication_error(error):
+    return jsonify({"error": str(error), "type": "copilot_authentication", "requiresAuthentication": True, "agent": copilot.status()}), 401
+
+
+@app.errorhandler(CopilotRequestError)
+def copilot_request_error(error):
+    app.logger.error("Copilot Studio request failed: %s", error)
+    return jsonify({"error": str(error), "type": "copilot_request", "agent": copilot.status()}), 502
+
+
 @app.get("/")
 def home():
     return send_from_directory(BASE_DIR, "index.html")
@@ -148,12 +175,12 @@ def health():
     loaded = repository.load()
     return jsonify({
         "status": "ok",
-        "version": "2.0.0-demo",
-        "mode": "offline-first",
+        "version": "3.0.0-copilot-studio",
+        "mode": "copilot-studio",
         "classification": "SYNTHETIC_DEMO_ONLY",
         "sources": len(loaded["documents"]),
         "ingestionErrors": loaded["meta"]["ingestionErrors"],
-        "model": model_provider.status(),
+        "agent": copilot.status(),
         "pdf": "reportlab",
         "verification": "sqlite",
     })
@@ -165,8 +192,21 @@ def bootstrap():
     payload = repository.public_bootstrap()
     payload["verification"] = verification.list_cases(reviewer_assignments(role))
     payload["reviewerAccess"] = bool(reviewer_assignments(role))
-    payload["model"] = model_provider.status()
+    payload["agent"] = copilot.status()
     return jsonify(payload)
+
+
+@app.get("/api/copilot/status")
+def copilot_status():
+    return jsonify(copilot.status())
+
+
+@app.post("/api/copilot/connect")
+def copilot_connect():
+    """Start Microsoft's interactive delegated sign-in on the local machine."""
+    if not request.is_json:
+        raise ValueError("A JSON request is required.")
+    return jsonify(copilot.connect())
 
 
 @app.post("/api/refresh")
@@ -214,21 +254,16 @@ def metric_query():
 
 @app.post("/api/chat")
 def chat():
-    """Access-controlled retrieval/calculation followed by optional Ollama wording."""
+    """Enforce BursaIQ workspace policy, then proxy a turn to Copilot Studio."""
     payload = body_json()
     question = bounded_text(payload, "question", 1000)
     requested_workspace = bounded_text(payload, "workspace", 30).lower()
     role = bounded_text(payload, "role", 30).lower()
-    use_model = payload.get("useModel", True) is not False
-    response_style = str(payload.get("responseStyle", "balanced")).lower()
-    if response_style not in {"concise", "balanced", "detailed"}:
-        response_style = "balanced"
+    conversation_id = bounded_text(payload, "conversationId", 200, required=False) or None
     routed_by = "selected-workspace"
 
     if requested_workspace == "assistant":
-        governed_route = policy_workspace(question)
-        model_route = None if governed_route or not use_model else model_provider.route(question)
-        workspace, routed_by = choose_workspace(question, model_route)
+        workspace, routed_by = choose_workspace(question)
     else:
         workspace = requested_workspace
 
@@ -237,7 +272,7 @@ def chat():
             "error": "People-related questions are outside the BursaIQ prototype. Use the approved HR channel.",
             "workspace": "blocked",
             "routedBy": routed_by,
-            "model": model_provider.status(),
+            "agent": copilot.status(),
         }), 403
     if workspace not in {"market", "learn", "reg"}:
         raise ValueError("workspace must be assistant, market, learn or reg.")
@@ -246,59 +281,18 @@ def chat():
             "error": "The active demo identity cannot retrieve this workspace.",
             "workspace": workspace,
             "routedBy": routed_by,
-            "model": model_provider.status(),
+            "agent": copilot.status(),
         }), 403
 
-    if workspace == "market":
-        result = MetricEngine(repository.load()["market"]).query(question)
-        result["calculationMode"] = "deterministic"
-        context = json.dumps({
-            "summary": result["summary"],
-            "facts": result["facts"],
-            "formula": result["formula"],
-            "sourceRefs": result["sourceRefs"],
-            "definitions": {"ADV": "Average Daily Value"},
-            "classification": "SYNTHETIC_DEMO_ONLY",
-        }, ensure_ascii=False, sort_keys=True)
-        optional = model_provider.generate(question, context, "market", response_style) if use_model else None
-        return jsonify({
-            "answer": optional or result["summary"],
-            "result": result,
-            "workspace": workspace,
-            "routedBy": routed_by,
-            "narrativeMode": "ollama" if optional else "deterministic",
-            "model": model_provider.status(),
-            "classification": "SYNTHETIC_DEMO_ONLY",
-        })
-
-    matches = repository.search(question, workspace, role, 3)
-    context = "\n\n".join(f"SOURCE: {item.title}\nEXCERPT: {item.excerpt}" for item in matches)
-    if workspace == "learn" and is_product_learning_question(question) and matches:
-        return jsonify({
-            "answer": (
-                "At a high level, Bursa products fall into four groups:\n\n"
-                "- Securities: shares, structured products such as warrants, ETFs, REITs, bonds and sukuk.\n"
-                "- Derivatives: commodity, equity and financial futures and options.\n"
-                "- Islamic market: Bursa Malaysia-i and Bursa Suq Al-Sila'.\n"
-                "- Other areas: indices, the Labuan International Financial Exchange (LFX) and Bursa Gold Dinar.\n\n"
-                "This is an introductory map, not investment advice. Would you like to explore one group in more detail?"
-            ),
-            "sources": [item.as_dict() for item in matches],
-            "workspace": workspace,
-            "routedBy": routed_by,
-            "narrativeMode": "governed-retrieval",
-            "model": model_provider.status(),
-            "classification": "SYNTHETIC_DEMO_ONLY",
-        })
-    optional = model_provider.generate(question, context, workspace, response_style) if matches and use_model else None
-    fallback = matches[0].excerpt if matches else "I could not find that in the approved local demo sources."
+    reply = copilot.ask(question, conversation_id)
     return jsonify({
-        "answer": optional or fallback,
-        "sources": [item.as_dict() for item in matches],
+        "answer": reply.answer,
+        "conversationId": reply.conversation_id,
+        "suggestedActions": reply.suggested_actions,
         "workspace": workspace,
         "routedBy": routed_by,
-        "narrativeMode": "ollama" if optional else "retrieval",
-        "model": model_provider.status(),
+        "narrativeMode": "copilot-studio",
+        "agent": copilot.status(),
         "classification": "SYNTHETIC_DEMO_ONLY",
     })
 
@@ -384,6 +378,6 @@ def verification_history(case_id: str):
 if __name__ == "__main__":
     host = os.getenv("BURSAIQ_HOST", "127.0.0.1")
     port = int(os.getenv("BURSAIQ_PORT", "5000"))
-    print(f"BursaIQ Stage 02 demo ready at http://{host}:{port}")
-    print("Mode: offline-first · synthetic sources · optional model")
+    print(f"BursaIQ Copilot Studio client ready at http://{host}:{port}")
+    print("Mode: Microsoft Copilot Studio · synthetic supporting sources")
     app.run(host=host, port=port, debug=False, threaded=True)

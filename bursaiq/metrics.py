@@ -1,4 +1,4 @@
-"""Deterministic GCMC metric tools kept outside any language model."""
+"""Deterministic GCMC metric tools kept outside the hosted agent."""
 
 from __future__ import annotations
 

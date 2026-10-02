@@ -35,7 +35,7 @@
       method: options.method || [
         ["1", "Interpret", "Identify the requested metric and reporting period."],
         ["2", "Retrieve", "Read only approved local demo files available to this workspace."],
-        ["3", "Calculate", "Apply deterministic formulas outside the language model."],
+        ["3", "Calculate", "Apply deterministic formulas outside the hosted agent."],
         ["4", "Explain", "Compose the narrative and attach traceable evidence."]
       ],
       formula: options.formula || "No derived calculation required.",
@@ -192,7 +192,7 @@
           method: [
             ["1", "Classify", "Recognise a product-discovery question and route it to Learn Bursa."],
             ["2", "Retrieve", "Open the approved local Bursa Products Overview."],
-            ["3", "Group", "Present the retrieved categories without asking the language model to rebuild the catalogue."],
+            ["3", "Group", "Present the retrieved categories without asking the hosted agent to rebuild the catalogue."],
             ["4", "Cite", "Attach the source and remind the reader to confirm current specifications."]
           ],
           formula: "No calculation. Categories are retrieved from the approved learning source.",
