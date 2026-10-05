@@ -114,7 +114,7 @@
     backend: false,
     pending: false,
     requestId: 0,
-    agent: { provider: "microsoft-copilot-studio", configured: false, authenticated: false, available: false },
+    agent: { provider: "microsoft-copilot-studio-direct-line", configured: false, available: false, authentication: "none" },
     conversationId: "",
     preferences: loadPreferences(),
     accessRequests: loadAccessRequests(),
@@ -385,49 +385,16 @@
       label.textContent = "Offline preview";
       container.title = "Backend unavailable; browser fallback is active";
     } else if (state.agent.available || mode === "copilot-studio") {
-      label.textContent = "Copilot Studio connected";
-      container.title = "BursaIQ is connected to the configured Microsoft Copilot Studio agent";
-    } else if (state.agent.configured) {
-      label.textContent = "Copilot sign-in required";
-      container.title = "Sign in with Microsoft Entra ID to use the configured Copilot Studio agent";
+      label.textContent = "Copilot Studio ready";
+      container.title = "The published prototype agent is available through Direct Line";
     } else {
-      label.textContent = "Copilot setup required";
-      container.title = "Add the Copilot Studio environment, schema, tenant and app registration settings";
+      label.textContent = "Agent endpoint required";
+      container.title = "Add the Copilot Studio Mobile app token endpoint to .env";
     }
   }
 
-  function agentUnavailableMarkup(message, requiresAuthentication = false) {
-    const action = requiresAuthentication && state.agent.configured
-      ? `<button class="button primary" type="button" data-connect-copilot>Sign in with Microsoft</button>`
-      : `<button class="button ghost" type="button" data-go="settings">Open integration settings</button>`;
-    return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Copilot Studio connection</div><div class="answer-body"><h3>The BursaIQ agent is not connected</h3><p>${escapeHtml(message || "Configure and sign in to Microsoft Copilot Studio, then try again.")}</p>${action}</div></article>`;
-  }
-
-  async function connectCopilot(button) {
-    if (!state.backend || !state.agent.configured) {
-      toast("Copilot setup required", "Add the four Copilot Studio settings to .env and restart BursaIQ.");
-      return;
-    }
-    const original = button?.textContent || "Sign in with Microsoft";
-    if (button) {
-      button.disabled = true;
-      button.textContent = "Waiting for sign-in…";
-    }
-    try {
-      const response = await fetch("/api/copilot/connect", { method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json" }, body: "{}" });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "Microsoft sign-in failed");
-      state.agent = payload;
-      updateSystemIndicator();
-      if (document.querySelector("[data-reset-preferences]")) renderPage("settings");
-      toast("Copilot Studio connected", "The BursaIQ front end can now start agent conversations.");
-    } catch (error) {
-      toast("Microsoft sign-in failed", error.message || "Check the server log and try again.");
-      if (button) {
-        button.disabled = false;
-        button.textContent = original;
-      }
-    }
+  function agentUnavailableMarkup(message) {
+    return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Copilot Studio connection</div><div class="answer-body"><h3>The BursaIQ agent is not connected</h3><p>${escapeHtml(message || "Add the Copilot Studio Mobile app token endpoint, then restart BursaIQ.")}</p><button class="button ghost" type="button" data-go="settings">Open integration settings</button></div></article>`;
   }
 
   function accessDeniedMarkup(workspace) {
@@ -457,7 +424,7 @@
       });
       const payload = await response.json();
       if (response.status === 403) return { denied: true, workspace: payload.workspace || routeQuestion(question) };
-      if (!response.ok) return { agentError: true, message: payload.error || "The Copilot Studio agent is unavailable.", requiresAuthentication: Boolean(payload.requiresAuthentication), agent: payload.agent };
+      if (!response.ok) return { agentError: true, message: payload.error || "The Copilot Studio agent is unavailable.", agent: payload.agent };
       return payload;
     } finally {
       window.clearTimeout(timeout);
@@ -529,7 +496,7 @@
       return;
     }
     if (resolution.agentError) {
-      dom.chat_thread.insertAdjacentHTML("beforeend", agentUnavailableMarkup(resolution.message, resolution.requiresAuthentication));
+      dom.chat_thread.insertAdjacentHTML("beforeend", agentUnavailableMarkup(resolution.message));
       updateSystemIndicator();
       dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
       return;
@@ -774,13 +741,12 @@
 
   function settingsPage() {
     const preferences = state.preferences;
-    const connectionLabel = state.agent.available ? "Connected" : state.agent.configured ? "Sign-in required" : "Configuration required";
-    const connectionDetail = state.agent.error || (state.agent.configured ? "Uses delegated Microsoft Entra ID authentication." : "Add the four COPILOTSTUDIOAGENT settings to .env.");
-    const connectionAction = state.agent.available ? "" : `<button class="button primary" type="button" data-connect-copilot ${state.agent.configured ? "" : "disabled"}>Sign in with Microsoft</button>`;
+    const connectionLabel = state.agent.available ? "Prototype agent ready" : "Token endpoint required";
+    const connectionDetail = state.agent.error || (state.agent.available ? "Published agent uses anonymous Direct Line access." : "Add COPILOTSTUDIOAGENT__TOKENENDPOINT to .env.");
     return `<div class="page-hero settings-hero"><div><h2>Your BursaIQ experience</h2><p>Preferences are stored locally in this browser and can be reset at any time.</p></div><button class="button ghost" type="button" data-reset-preferences>Restore defaults</button></div>
       <div class="settings-layout">
         <section class="settings-section"><h3>Microsoft Copilot Studio</h3><p>Your hosted agent powers BursaIQ conversations. Tokens stay in the local Python service and are never sent to browser code.</p>
-          <div class="setting-row"><span><strong>${connectionLabel}</strong><small>${escapeHtml(connectionDetail)}</small></span>${connectionAction}</div>
+          <div class="setting-row"><span><strong>${connectionLabel}</strong><small>${escapeHtml(connectionDetail)}</small></span></div>
         </section>
         <section class="settings-section plugins-section"><h3>Plugins</h3><p>Add optional tools BursaIQ may use alongside its governed data and hosted agent.</p><div class="plugin-list">
           ${pluginRow("webSearch", "Web Search", "Discover current public information when an approved connection is available.", icons.web)}
@@ -1058,11 +1024,6 @@
   }
 
   function handleWorkspaceClick(event) {
-    const connect = event.target.closest("[data-connect-copilot]");
-    if (connect) {
-      connectCopilot(connect);
-      return;
-    }
     if (event.target.closest("[data-open-pulse]")) {
       dom.chat_thread.innerHTML = marketPulseMarkup();
       dom.chat_thread.scrollTop = 0;

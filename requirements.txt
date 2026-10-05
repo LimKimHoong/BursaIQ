@@ -4,7 +4,3 @@ pypdf==6.18.0
 reportlab==5.0.1
 truststore==0.10.4
 python-dotenv==1.2.4
-msal==1.39.0
-aiohttp==3.14.3
-microsoft-agents-activity==1.8.0
-microsoft-agents-copilotstudio-client==1.8.0

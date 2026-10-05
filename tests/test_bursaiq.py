@@ -55,14 +55,40 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(choose_workspace("What is a candidate's application status?", "learn"), ("blocked", "policy-router"))
 
     def test_copilot_status_reports_missing_configuration_without_secrets(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
-            service = CopilotStudioService(Path(directory) / "token.json")
-            with patch.dict("os.environ", {}, clear=True):
-                status = service.status()
+        service = CopilotStudioService()
+        with patch.dict("os.environ", {}, clear=True):
+            status = service.status()
         self.assertFalse(status["configured"])
         self.assertFalse(status["available"])
-        self.assertEqual(status["provider"], "microsoft-copilot-studio")
-        self.assertEqual(len(status["missingSettings"]), 4)
+        self.assertEqual(status["provider"], "microsoft-copilot-studio-direct-line")
+        self.assertEqual(status["authentication"], "none")
+        self.assertEqual(status["missingSettings"], ["COPILOTSTUDIOAGENT__TOKENENDPOINT"])
+
+    def test_direct_line_conversation_needs_no_user_sign_in(self) -> None:
+        service = CopilotStudioService()
+        responses = [
+            {"token": "short-lived-token", "expires_in": 1800},
+            {"conversationId": "conversation-1", "token": "conversation-token"},
+            {"id": "user-activity-1"},
+            {
+                "watermark": "1",
+                "activities": [{
+                    "id": "agent-activity-1",
+                    "type": "message",
+                    "from": {"id": "copilot-agent"},
+                    "text": "Anonymous Copilot response",
+                    "suggestedActions": {"actions": [{"title": "Show evidence"}]},
+                }],
+            },
+        ]
+        with patch.dict("os.environ", {"COPILOTSTUDIOAGENT__TOKENENDPOINT": "https://example.test/token"}, clear=True):
+            with patch.object(service, "_request_json", side_effect=responses) as request_json:
+                reply = service.ask("How did the market perform?")
+
+        self.assertEqual(reply.text, "Anonymous Copilot response")
+        self.assertEqual(reply.conversation_id, "conversation-1")
+        self.assertEqual(reply.suggestions, ["Show evidence"])
+        self.assertEqual(request_json.call_count, 4)
 
     def test_verification_records_audit_history(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

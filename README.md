@@ -10,7 +10,7 @@ Every included figure and document is synthetic. Nothing in this repository is o
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
-- **Copilot Studio conversations:** the Flask gateway owns delegated Entra authentication, server-side tokens and Copilot conversation IDs; no credential is exposed to browser JavaScript.
+- **Copilot Studio conversations:** the Flask gateway obtains short-lived Direct Line tokens and keeps tokens and Copilot conversation IDs server-side; no credential is exposed to browser JavaScript.
 - **Local preferences:** Settings shows the Copilot connection, automatic analysis, chart motion and the default workspace. A Panel access section lets identities request Ask Reg through a reason-capture dialog without granting access automatically.
 - **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
 - **People-data boundary:** employee, candidate, recruitment and application-status questions are declined before invoking the hosted agent.
@@ -26,13 +26,13 @@ cd /Users/kimhoong0324/Desktop/BursaIQ-main
 ./myenv/bin/pip install -r requirements.txt
 ./myenv/bin/python scripts/seed_demo_data.py
 cp .env.example .env
-# Fill in the four COPILOTSTUDIOAGENT values in .env
+# Paste the Copilot Studio Mobile app Token Endpoint into .env
 ./myenv/bin/python server.py
 ```
 
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
 
-Open Settings and choose **Sign in with Microsoft**. The delegated sign-in account must be able to invoke the published Copilot Studio agent. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
+No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
 
 ## Suggested five-minute showcase
 
@@ -84,15 +84,14 @@ Verification cases are filtered and update-protected by reviewer assignment in b
 
 ## Microsoft Copilot Studio setup
 
-This integration follows Microsoft's Python `copilotstudio-client` sample and uses a delegated user token.
+This prototype uses Copilot Studio's Mobile app channel and the Bot Framework Direct Line API, so visitors do not need a Microsoft account.
 
-1. Publish the Copilot Studio agent. Under **Settings → Advanced → Metadata**, copy its environment ID and schema name.
-2. Create a single-tenant Microsoft Entra **public client/native** app registration with `http://localhost` as its redirect URI.
-3. Add delegated `Power Platform API / CopilotStudio.Copilots.Invoke` and `Microsoft Graph / User.Read` permissions. Grant tenant consent if your policy requires it.
-4. Copy `.env.example` to `.env` and fill in the environment ID, schema name, tenant ID and application (client) ID.
-5. Start BursaIQ, open Settings, and select **Sign in with Microsoft**. The MSAL token cache is written to `runtime/.copilot_token_cache.json` with user-only permissions and is ignored by Git.
+1. In Copilot Studio, set the agent's authentication to **No authentication**, then publish the agent again.
+2. Open **Channels → Mobile app** and copy the **Token Endpoint**.
+3. Copy `.env.example` to `.env` and set `COPILOTSTUDIOAGENT__TOKENENDPOINT` to that complete HTTPS URL.
+4. Start BursaIQ. The backend exchanges the endpoint for short-lived Direct Line tokens and keeps them in memory.
 
-Copilot Studio's client flow is user-delegated. Do not add a client secret to this application or commit `.env`/token-cache files.
+The token endpoint belongs only in the server-side `.env`; never put it in browser JavaScript or commit it. No-auth agents are appropriate for this synthetic prototype, but anyone who can reach the published channel may use the agent. Re-enable authentication before handling sensitive or production data.
 
 ## Project layout
 
@@ -106,7 +105,7 @@ bursaiq/data_loader.py     Excel/PDF/JSON ingestion and local retrieval
 bursaiq/metrics.py         Governed GCMC calculation tools
 bursaiq/store.py           SQLite verification/audit queue
 bursaiq/reporting.py       PDF generation and validation
-bursaiq/copilot_studio.py  Entra authentication and Copilot Studio gateway
+bursaiq/copilot_studio.py  Anonymous Direct Line and Copilot Studio gateway
 Input/                     Controlled synthetic source pack
 output/pdf/                Generated briefings
 runtime/                   Local demo database
@@ -115,7 +114,7 @@ runtime/                   Local demo database
 ## Honest Stage 02 boundaries
 
 - Business-impact numbers from the pitch should be labelled **illustrative estimates** until a measured pilot validates them. Keep them in the presentation as the hypothesis and label them; do not present them as measured product results.
-- BursaIQ's demo identities, role groups, source approvals and review ownership are simulated or local. Copilot Studio authentication is real delegated Entra sign-in.
+- BursaIQ's demo identities, role groups, source approvals and review ownership are simulated or local. The prototype agent is intentionally published without user authentication.
 - Microsoft Lists, Power Automate and notification email are presented as the proposed pilot architecture; the competition demo does not call a live Microsoft 365 tenant.
 - Current regional data is a controlled local comparison, not live market data.
 - English should remain the authoritative demo language. Bahasa Malaysia is a worthwhile stretch only after the five-minute English journey is stable; Chinese should be deferred.

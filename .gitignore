@@ -6,6 +6,5 @@ myenv/
 .venv/
 venv/
 runtime/*.sqlite3
-runtime/.copilot_token_cache.json
 output/pdf/*.pdf
 !output/pdf/.gitkeep

@@ -19,7 +19,6 @@ except ModuleNotFoundError:  # Keeps non-agent tests runnable before new depende
         return False
 
 from bursaiq.copilot_studio import (
-    CopilotAuthenticationError,
     CopilotConfigurationError,
     CopilotRequestError,
     CopilotStudioService,
@@ -43,7 +42,7 @@ app.config.update(JSON_SORT_KEYS=False, MAX_CONTENT_LENGTH=2 * 1024 * 1024)
 repository = LocalDataRepository(INPUT_DIR)
 reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
-copilot = CopilotStudioService(RUNTIME_DIR / ".copilot_token_cache.json")
+copilot = CopilotStudioService()
 
 DEMO_IDENTITIES = {
     "gcmc": "Nadia Karim",
@@ -154,11 +153,6 @@ def copilot_configuration_error(error):
     return jsonify({"error": str(error), "type": "copilot_configuration", "agent": copilot.status()}), 503
 
 
-@app.errorhandler(CopilotAuthenticationError)
-def copilot_authentication_error(error):
-    return jsonify({"error": str(error), "type": "copilot_authentication", "requiresAuthentication": True, "agent": copilot.status()}), 401
-
-
 @app.errorhandler(CopilotRequestError)
 def copilot_request_error(error):
     app.logger.error("Copilot Studio request failed: %s", error)
@@ -199,14 +193,6 @@ def bootstrap():
 @app.get("/api/copilot/status")
 def copilot_status():
     return jsonify(copilot.status())
-
-
-@app.post("/api/copilot/connect")
-def copilot_connect():
-    """Start Microsoft's interactive delegated sign-in on the local machine."""
-    if not request.is_json:
-        raise ValueError("A JSON request is required.")
-    return jsonify(copilot.connect())
 
 
 @app.post("/api/refresh")
@@ -286,9 +272,9 @@ def chat():
 
     reply = copilot.ask(question, conversation_id)
     return jsonify({
-        "answer": reply.answer,
+        "answer": reply.text,
         "conversationId": reply.conversation_id,
-        "suggestedActions": reply.suggested_actions,
+        "suggestedActions": reply.suggestions,
         "workspace": workspace,
         "routedBy": routed_by,
         "narrativeMode": "copilot-studio",
