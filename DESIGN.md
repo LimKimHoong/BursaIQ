@@ -1,343 +1,280 @@
 ---
 name: BursaIQ
-description: A calm exchange command surface where governed answers, evidence, and review stay in one conversation.
+description: A compact midnight market desk for role-aware intelligence, governed answers, and accountable action.
 colors:
-  ink-primary: "#f7f8fc"
-  ink-secondary: "#c7cede"
-  ink-tertiary: "#909bb1"
-  midnight-ground: "#070b16"
-  indigo-base: "#0b1120"
-  indigo-glass: "#111a2d"
-  indigo-raised: "#172238"
-  indigo-muted: "#1d2a43"
-  hairline: "rgba(213, 224, 255, 0.10)"
-  hairline-strong: "rgba(220, 230, 255, 0.17)"
-  panel-glass: "rgba(17, 25, 43, 0.72)"
-  control-glass: "rgba(255, 255, 255, 0.065)"
-  composer-glass: "rgba(24, 34, 57, 0.82)"
-  luminous-blue: "#4d9cff"
-  luminous-blue-bright: "#7bb8ff"
-  luminous-blue-deep: "#286bd6"
-  action-blue: "#3388f3"
-  action-blue-hover: "#4798fb"
-  action-blue-wash: "rgba(77, 156, 255, 0.20)"
-  active-blue-glass: "rgba(77, 156, 255, 0.18)"
-  exchange-gold: "#f3c969"
-  exchange-gold-soft: "#f8dda0"
-  critical-red: "#ff7d86"
-  success-green: "#67d89a"
-  information-blue: "#91b9ff"
+  ink: "#f5f7fa"
+  ink-soft: "#aeb8ca"
+  ink-faint: "#738099"
+  midnight-ground: "#0b1221"
+  decision-canvas: "#0e1a33"
+  panel: "#141f38"
+  active-panel: "#1b294a"
+  hairline: "#27354f"
+  market-teal: "#35d0ba"
+  market-teal-bright: "#66e1cf"
+  exchange-gold: "#f2b84b"
+  exchange-gold-soft: "#f7d78f"
+  critical-red: "#f27069"
+  success-green: "#51d0a8"
 typography:
   display:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif"
-    fontSize: "clamp(40px, 5vw, 62px)"
-    fontWeight: 700
-    lineHeight: 1.02
-    letterSpacing: "-0.04em"
-  headline:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif"
-    fontSize: "clamp(30px, 2.6vw, 42px)"
-    fontWeight: 680
+    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+    fontSize: "clamp(29px, 3.5vw, 44px)"
+    fontWeight: 760
     lineHeight: 1.08
-    letterSpacing: "-0.03em"
+    letterSpacing: "-0.035em"
+  headline:
+    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+    fontSize: "22px"
+    fontWeight: 700
+    lineHeight: 1.2
+    letterSpacing: "-0.02em"
   title:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif"
-    fontSize: "20px"
-    fontWeight: 680
-    lineHeight: 1.25
-    letterSpacing: "-0.025em"
+    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    lineHeight: 1.3
+    letterSpacing: "-0.01em"
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, SF Pro Display, Helvetica Neue, Arial, sans-serif"
-    fontSize: "15px"
+    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+    fontSize: "12.5px"
     fontWeight: 400
-    lineHeight: 1.55
+    lineHeight: 1.62
     letterSpacing: "0"
   label:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Text, SF Pro Display, Helvetica Neue, Arial, sans-serif"
-    fontSize: "11px"
+    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
+    fontSize: "10px"
     fontWeight: 650
-    lineHeight: 1.25
-    letterSpacing: "0.02em"
-  metric:
-    fontFamily: "-apple-system, BlinkMacSystemFont, SF Pro Display, SF Pro Text, Helvetica Neue, Arial, sans-serif"
-    fontSize: "clamp(42px, 5vw, 64px)"
-    fontWeight: 560
-    lineHeight: 1
-    letterSpacing: "-0.035em"
-    fontFeature: "tnum"
+    lineHeight: 1.3
+    letterSpacing: "0.08em"
 rounded:
-  sm: "11px"
-  control: "12px"
-  nav: "13px"
-  md: "18px"
-  composer: "20px"
-  panel: "22px"
-  lg: "24px"
+  xs: "7px"
+  sm: "8px"
+  md: "10px"
+  lg: "14px"
+  xl: "16px"
   pill: "999px"
 spacing:
-  xs: "8px"
-  sm: "12px"
-  md: "18px"
-  lg: "24px"
-  xl: "30px"
-  2xl: "44px"
+  xs: "7px"
+  sm: "10px"
+  md: "14px"
+  lg: "16px"
+  xl: "24px"
+  2xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.action-blue}"
-    textColor: "{colors.ink-primary}"
+    backgroundColor: "{colors.exchange-gold}"
+    textColor: "{colors.midnight-ground}"
     typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "0 15px"
-    height: "44px"
-  button-primary-hover:
-    backgroundColor: "{colors.action-blue-hover}"
-    textColor: "{colors.ink-primary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "0 15px"
+    rounded: "{rounded.md}"
+    padding: "0 14px"
     height: "44px"
   button-secondary:
-    backgroundColor: "{colors.action-blue-wash}"
-    textColor: "{colors.ink-primary}"
+    backgroundColor: "{colors.midnight-ground}"
+    textColor: "{colors.ink-soft}"
     typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "0 15px"
-    height: "44px"
-  button-ghost:
-    backgroundColor: "{colors.control-glass}"
-    textColor: "{colors.ink-secondary}"
-    typography: "{typography.label}"
-    rounded: "{rounded.control}"
-    padding: "0 15px"
+    rounded: "{rounded.md}"
+    padding: "0 12px"
     height: "44px"
   navigation-active:
-    backgroundColor: "{colors.active-blue-glass}"
-    textColor: "{colors.ink-primary}"
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
     typography: "{typography.label}"
-    rounded: "{rounded.nav}"
-    padding: "0 12px"
-    height: "50px"
+    rounded: "{rounded.sm}"
+    padding: "0 9px"
+    height: "44px"
   chip-suggestion:
-    backgroundColor: "{colors.control-glass}"
-    textColor: "{colors.ink-secondary}"
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink-soft}"
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
-    padding: "8px 13px"
+    padding: "6px 11px"
     height: "44px"
-  composer-input:
-    backgroundColor: "{colors.composer-glass}"
-    textColor: "{colors.ink-primary}"
+  composer:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.composer}"
-    padding: "17px 18px 10px"
-  card-answer:
-    backgroundColor: "{colors.control-glass}"
-    textColor: "{colors.ink-secondary}"
+    rounded: "{rounded.xl}"
+    padding: "13px 7px 7px 16px"
+  answer-card:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.ink-soft}"
     typography: "{typography.body}"
-    rounded: "{rounded.composer}"
-    padding: "20px"
-  sheet-evidence:
-    backgroundColor: "{colors.panel-glass}"
-    textColor: "{colors.ink-secondary}"
+    rounded: "{rounded.lg}"
+    padding: "16px"
+  decision-canvas:
+    backgroundColor: "{colors.decision-canvas}"
+    textColor: "{colors.ink-soft}"
     typography: "{typography.body}"
-    rounded: "{rounded.panel}"
-    padding: "22px"
-    width: "438px"
+    rounded: "{rounded.xs}"
+    padding: "16px"
+    width: "520px"
 ---
 
 # Design System: BursaIQ
 
 ## Overview
 
-**Creative North Star: "The Luminous Exchange Desk"**
+**Creative North Star: "The Midnight Market Desk"**
 
-BursaIQ is an exchange command surface, not a dashboard of competing cards. The experience should feel like a composed decision desk after dark: precise, accountable, and spacious enough for one clear question to lead. A midnight-indigo field recedes while luminous blue reveals the next useful action.
+BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. Today’s Brief is the role-aware entry point, placing changed signals, attention counts, and accountable next actions in the first viewport before the user opens a conversation.
 
-The interface borrows Apple's restraint rather than its ornament. Deep translucent materials establish hierarchy, SF Pro system typography stays quiet and legible, and generous separation makes dense market intelligence feel manageable. Users ask first, inspect evidence only when needed, then move governed answers into review without leaving the conversation.
+The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
 
 **Key Characteristics:**
 
-- Midnight-indigo atmosphere with luminous blue agency.
-- One conversational focal point before advanced controls.
-- Deep, sparse materials with soft inset highlights rather than visible card borders.
-- Evidence and analysis arrive as a spatially consistent right-side sheet.
-- Governed status, synthetic-data labels, and review state remain visible at decision points.
-- Tactile but restrained motion with immediate press feedback and no gratuitous bounce.
+- Midnight-navy ground with amber actions and teal analytical signals.
+- Role-aware Today’s Brief owns the first viewport, with conversation available as an investigation path.
+- Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.
+- Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.
+- Compact rectangular controls and fine structural rules instead of decorative glass.
+- Prepared questions and answers remain clearly labelled when Copilot is unavailable.
+- Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.
+- Motion communicates spatial state and stops under reduced-motion preferences.
 
 ## Colors
 
-The palette is a midnight exchange floor illuminated by cool blue action light, with gold reserved for provenance and caution and semantic colors used only when state matters.
+The palette resembles an exchange floor at night: deep navy structure, restrained cool text, amber action, and teal market feedback.
 
 ### Primary
 
-- **Luminous Exchange Blue** (#4d9cff): The core active-navigation, chart, and emphasis color; it identifies available agency without flooding the screen.
-- **Bright Luminous Blue** (#7bb8ff): Readable active detail, focus-adjacent emphasis, and chart points.
-- **Deep Action Blue** (#286bd6): A supporting blue for gradients and depth beneath luminous elements.
-- **Action Blue** (#3388f3): The concentrated call-to-action color for submit, send, approve, and enabled switches.
-- **Action Blue Hover** (#4798fb): The brighter primary-action state that confirms intent.
-- **Action Blue Wash** (rgba(77, 156, 255, 0.20)): Secondary-action material that supports without outranking a solid primary action.
-- **Active Blue Glass** (rgba(77, 156, 255, 0.18)): Active-navigation and suggestion-hover material.
+- **Exchange Gold:** Reserved for scarce actions, decisive values, attention markers, prototype and fallback provenance, and sparse chart emphasis.
+- **Soft Exchange Gold:** Provides readable caution and provenance text on dark surfaces.
 
 ### Secondary
 
-- **Exchange Gold** (#f3c969): Marks prototype status, as-of context, pending review, and cautionary evidence. It signals stewardship rather than promotion.
-- **Soft Exchange Gold** (#f8dda0): Provides readable gold-toned text on dark materials without becoming a competing action color.
+- **Market Teal:** Signals analytical links, active icons, healthy status, chart lines, focus, and hover intent.
+- **Bright Market Teal:** Strengthens interactive emphasis without replacing amber as the main action color.
 
 ### Tertiary
 
-- **Success Green** (#67d89a): Communicates ready, granted, completed, and positive market states.
-- **Critical Red** (#ff7d86): Communicates destructive review actions, denied states, and negative chart values.
-- **Information Blue** (#91b9ff): Supports plot annotations and informational file treatments when action blue would imply interactivity.
+- **Critical Red:** Marks restricted or destructive states and negative file/status treatments.
+- **Success Green:** Marks loaded, approved, and available state.
 
 ### Neutral
 
-- **Primary Ink** (#f7f8fc): Near-white for decisive content and active labels.
-- **Secondary Ink** (#c7cede): Cool gray for body copy and supporting controls.
-- **Tertiary Ink** (#909bb1): Receded gray for metadata, inactive navigation, and labels.
-- **Midnight Ground** (#070b16): The page-level field beneath every material.
-- **Indigo Base** (#0b1120): Deep structural surface and opaque fallback background.
-- **Indigo Glass** (#111a2d): Material tint for primary workspace surfaces.
-- **Raised Indigo** (#172238): Focused and raised control surface within the midnight field.
-- **Muted Indigo** (#1d2a43): Upper tonal step for restrained control depth.
-- **Cool Hairline** (rgba(213, 224, 255, 0.10)): Quiet separation used only when tone alone is insufficient.
-- **Strong Cool Hairline** (rgba(220, 230, 255, 0.17)): Higher-contrast boundary for focus and accessibility fallbacks.
-- **Panel Glass** (rgba(17, 25, 43, 0.72)): Primary translucent material for workspace and evidence panels.
-- **Control Glass** (rgba(255, 255, 255, 0.065)): Light fill for chips, ghost actions, and nested cards.
-- **Composer Glass** (rgba(24, 34, 57, 0.82)): Deep focused material for the signature assistant composer.
+- **Midnight Ground:** Page field and conversation background.
+- **Decision Canvas:** Right-side analysis surface and its collapsed rail.
+- **Panel / Active Panel:** Nested answers, composer, selected navigation, and table rows.
+- **Ink / Soft Ink / Faint Ink:** Three deliberate text levels for decisions, explanation, and metadata.
+- **Hairline:** The default structural boundary between zones and rows.
 
 ### Named Rules
 
-**The Luminous Priority Rule.** Blue belongs to action, focus, active navigation, and governed visualization; body copy and passive decoration stay neutral so the command path remains obvious.
+**The Amber Acts, Teal Explains Rule.** Amber is the scarce action and emphasis color; teal communicates analytical state, navigation intent, focus, and healthy operation.
+
+**The Structure by Line Rule.** Separate operational zones with navy tone and one-pixel blue-gray rules, not extra containers, gradients, or glass effects.
 
 ## Typography
 
-**Display Font:** SF Pro Display through the Apple system stack
+**Display Font:** Segoe UI through the system sans-serif stack
 
-**Body Font:** SF Pro Text through the Apple system stack
+**Body Font:** Segoe UI through the system sans-serif stack
 
-**Label/Mono Font:** SF Pro Text; governed figures use tabular numerals rather than a separate monospace face
+**Label/Mono Font:** The same system stack; figures use tabular numerals where alignment matters
 
-**Character:** The system stack feels native, disciplined, and operational. Optical sizing and compact negative tracking give large headings confidence, while body copy remains unstyled enough to keep evidence easy to audit.
+**Character:** Compact, neutral, and operational. Display type is exceptional; working surfaces use a clear 10–22px hierarchy in which evidence, state, and values lead.
 
 ### Hierarchy
 
-- **Display** (700, `clamp(40px, 5vw, 62px)`, 1.02): The centered assistant invitation in the first viewport.
-- **Headline** (680, `clamp(30px, 2.6vw, 42px)`, 1.08): Workspace titles and high-level page headings.
-- **Title** (680, `20px`, 1.25): Answer titles, sheet headings, and modal hierarchy.
-- **Body** (400, `15px`, 1.55): Default application copy; analytical answer prose narrows to roughly 72 characters per line and opens to 1.68 leading.
-- **Label** (650, `11px`, `0.02em`): Navigation metadata, controls, state labels, and compact governance language; sentence case is the default.
-- **Metric** (560, `clamp(42px, 5vw, 64px)`, 1): Market figures with tabular numerals and display-scale tracking.
+- **Display** (760, responsive 29–44px, 1.08): Reserved for exceptional invitation or management-narrative moments, never the default intelligence brief.
+- **Headline** (700, 22px, 1.2): Briefing, page, and reviewer-workflow headings.
+- **Title** (700, 16px, 1.3): Answer titles, plot titles, and panel hierarchy.
+- **Body** (400, 12.5px, 1.62): Answers and analytical explanation, kept to readable card widths.
+- **Label** (650, 10–11px, tracked only when compact grouping helps): Navigation, status, source metadata, table headings, signal explanations, and evidence controls.
 
 ### Named Rules
 
-**The Optical Restraint Rule.** Use negative tracking only for display, headline, title, and major metric roles; body and small labels stay at natural spacing and avoid all-caps except unavoidable source abbreviations.
+**The Brief Leads, Work Compresses Rule.** Today’s Brief opens with compact operational hierarchy; display-scale invitation type belongs only to deliberate conversational or narrative moments.
+
+**The Compact Copy Floor Rule.** Any compact text that explains a signal, source, action, owner, boundary, or state stays at least 10–11px and never relies on size alone to carry meaning.
 
 ## Layout
 
-The desktop shell reserves a 286px navigation column containing a 258px floating sidebar inset 14px from the viewport. The sticky top material is 54px high, and the main workspace uses 30px horizontal and 34px top padding. Content centers within a 1540px maximum canvas; the quiet home state narrows to 1120px and the prompt itself to 810px so the first action remains unmistakable.
+Desktop uses a fixed 250px left rail and a fluid main shell. Today’s Brief fills the first viewport with a four-part attention strip, a changed-signal ledger, and a next-action rail. Watchlist, Decision Memory, Source Health, and Management Briefing reuse the same hairline-separated rhythm instead of switching to card grids.
 
-Evidence expands the canvas into a flexible conversation column plus a 438px right-side sheet with an 18px gutter. Below 1170px, the sheet contracts to 370px. Below 900px, navigation becomes a reversible floating drawer and evidence enters the document flow beneath the answer. Below 620px, the top material, panel radii, prompt spacing, and horizontal padding compact without reducing core controls below 44px.
+When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. At 1280px, the sidebar and canvas reduce to 224px and 420px. Below 980px, navigation becomes a 280px off-canvas drawer, briefing side rails stack below their main ledgers, and the attention queue keeps three counts above a full-width action. Below 760px, the Decision Canvas stacks beneath the conversation, management metrics become rows, and signal ledgers reduce to a readable two-column form. At 520px, attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
 
-Spacing follows an airy 8 / 12 / 18 / 24 / 30 / 44px rhythm. Dense content stays inside a surface; separate tasks receive visible spatial separation rather than being divided into a field of equally weighted cards.
-
-**The Conversation First Rule.** In an empty command surface, center one prompt and keep advanced analysis absent until a question creates a reason for it.
-
-**The Right-Side Evidence Rule.** On wide screens, sources, governed method, plots, and full analysis use the same right-side sheet so opening evidence never changes the user's spatial model.
+Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44px minimum target even when the visible label or icon is small. Tables may scroll horizontally rather than crushing governed source metadata.
 
 ## Elevation & Depth
 
-The system uses a hybrid of tonal layering, translucent blur, soft ambient shadow, and a one-pixel inset highlight. Midnight ground carries no elevation. Navigation and modal sheets are the heaviest materials; workspace panels and the composer sit one step lower; chips and controls are light translucent fills. Borders are usually absent, and depth should come from material contrast before a line is introduced.
+The system is flat by default. Hierarchy comes from tonal navy layers and hairlines, not persistent shadows. The composer uses a restrained ambient shadow to anchor the primary input; amber controls use a small tinted lift; the mobile drawer gains a strong side shadow only while open. Focus is a teal border plus a quiet three-pixel wash.
 
 ### Shadow Vocabulary
 
-- **Navigation Material** (`box-shadow: 0 22px 70px rgba(0, 0, 0, 0.32), inset 0 1px rgba(255, 255, 255, 0.08)`): Use only on the floating sidebar.
-- **Top Material** (`box-shadow: 0 13px 38px rgba(0, 0, 0, 0.20), inset 0 1px rgba(255, 255, 255, 0.07)`): Keep the sticky header present without forming a hard bar.
-- **Panel Material** (`box-shadow: 0 26px 72px rgba(0, 0, 0, 0.22), inset 0 1px rgba(255, 255, 255, 0.06)`): Use for answer, page, and evidence surfaces.
-- **Action Lift** (`box-shadow: 0 8px 22px rgba(31, 108, 210, 0.30)`): Use beneath primary and send actions.
-- **Composer Material** (`box-shadow: 0 25px 70px rgba(0, 0, 0, 0.30), inset 0 1px rgba(255, 255, 255, 0.095)`): Give the signature input deep ambient presence.
-- **Composer Focus** (`box-shadow: 0 28px 74px rgba(0, 0, 0, 0.34), 0 0 0 3px rgba(77, 156, 255, 0.20), inset 0 1px rgba(255, 255, 255, 0.10)`): Raise the composer and add its restrained halo.
-- **Dialog Material** (`box-shadow: 0 38px 110px rgba(0, 0, 0, 0.55), inset 0 1px rgba(255, 255, 255, 0.09)`): Pair the strongest depth level with background dimming and blur.
+- **Composer anchor** (`0 12px 32px rgba(0, 0, 0, .20)`): Keeps the question input legible against the continuous ground.
+- **Amber action lift** (`0 8px 18px rgba(242, 184, 75, .14)`): Used only beneath the send control.
+- **Mobile drawer depth** (`18px 0 50px rgba(0, 0, 0, .42)`): Appears only while the off-canvas navigation is open.
 
 ### Named Rules
 
-**The Material Hierarchy Rule.** Use heavier translucency for navigation and governed sheets, lighter translucency for interactive surfaces, and never stack ornamental glass layers without a functional hierarchy change.
-
-**The Grounded Motion Rule.** Press feedback is immediate and small, state transitions settle in roughly 150–160ms, sheets materialize from the right, and dialogs scale gently; reduced-motion mode removes these spatial effects.
+**The Flat Until Spatial Rule.** Add shadow only when an element must sit above another plane—the composer, a primary action, or the open mobile drawer.
 
 ## Shapes
 
-The form language is softly machined: compact controls use 11–13px corners, primary materials use 18–24px corners, the composer uses 20px, and pills are fully rounded. Borders are mostly replaced by translucent fills and inset highlights. The user's question bubble is the deliberate exception, using one tighter lower-right corner to point back toward its author.
-
-**The Soft Precision Rule.** Rounded forms should feel engineered and grounded, never bubbly: keep curves consistent with component scale and preserve straight alignment across adjacent analytical content.
+The form language is compact and mildly rounded. Structural panels remain square to the viewport; navigation and small controls use 7–10px corners; answer cards use 14px; the composer uses 16px; suggestion and status chips are pills. The asymmetric question bubble uses a 4px lower-right corner to communicate direction without adding a speech-tail ornament.
 
 ## Components
 
 ### Buttons
 
-- **Shape:** Grounded rounded rectangle with a 44px minimum touch height and 12px corners.
-- **Primary:** White label over concentrated action blue, 15px horizontal padding, and a compact blue-tinted shadow.
-- **Hover / Focus:** Brighten the fill, preserve the three-pixel-offset focus outline, and compress to 97% only during press.
-- **Secondary:** White label over a low-alpha luminous-blue fill; use for available actions that should not outrank submit or send.
-- **Ghost:** Secondary ink over a light glass fill; use for cancel, neutral navigation, and tertiary actions.
-- **Danger:** Soft red text over a restrained red material; reserve for rejection and change-request decisions.
+- **Shape:** Compact 8–11px corners with a 44px target.
+- **Primary:** Exchange Gold on Midnight Ground; the send icon is the clearest example.
+- **Hover / Focus:** Amber brightens on hover; focus is a visible teal outline/wash; active state scales briefly to 0.94–0.98.
+- **Secondary:** Midnight fill, hairline border, soft ink; teal appears on hover.
 
 ### Chips
 
-- **Style:** Fully rounded glass control with 44px minimum height, compact label type, and generous horizontal padding.
-- **State:** Suggestion chips gain a faint blue material on hover; status chips use semantic color only when a real state is present.
+- **Style:** Pill-shaped navy controls with soft text and a hairline border.
+- **State:** Hover moves border and text to teal. Provenance chips use amber for predefined fallback and teal for governed/local state.
 
 ### Cards / Containers
 
-- **Corner Style:** 20–22px for answer and primary workspace surfaces; 15–16px for nested evidence and table containers.
-- **Background:** Indigo glass for primary surfaces and low-alpha white for nested answer or evidence groups.
-- **Shadow Strategy:** Ambient depth belongs to the parent material; nested cards rely on tonal contrast and inset light.
-- **Border:** None by default. Use the hairline token only for data rows, source separation, or higher-contrast fallbacks.
-- **Internal Padding:** 20–22px for answer and evidence content, increasing to 26–44px for pages and dialogs.
+- **Corner Style:** 10px for analytical cards and 14px for conversation cards.
+- **Background:** Panel navy nested inside the midnight ground.
+- **Shadow Strategy:** Flat by default; rely on tone and hairlines.
+- **Border:** One-pixel Hairline; gold-tinted hairline for fallback or caution notes.
+- **Internal Padding:** Usually 11–16px.
 
 ### Inputs / Fields
 
-- **Style:** The assistant composer is a 20px translucent indigo material with a 16px text field, 44px send control, and grounding status in its footer. Dialog fields use a darker inset surface with 13px corners.
-- **Focus:** Composer focus raises the material and adds a subtle three-pixel blue halo. Standalone controls use a two-pixel light-blue outline with a three-pixel offset.
-- **Error / Disabled:** Errors use clear red copy and `aria-invalid`; disabled actions mute both text and fill without disappearing.
+- **Style:** The signature composer is a 16px panel with a strong hairline and a 13px text field.
+- **Focus:** Border shifts to Market Teal with a quiet three-pixel teal wash.
+- **Error / Disabled:** Connection failures appear as explicit content, never as silent disabled controls.
 
 ### Navigation
 
-- **Style:** A floating 258px translucent sidebar with 50px rows, 13px corners, 19px line icons, and two-line sentence-case labels.
-- **States:** Hover adds a neutral glass wash; active state uses a restrained blue material with brighter supporting text, never a competing indicator stripe.
-- **Mobile:** Below 900px, navigation becomes a floating drawer with a blurred scrim, inert background, focus transfer, and Escape dismissal.
+The desktop rail is a fixed black-navy column with 44px rows. Today’s Brief is the default entry; Watchlist remains available to every identity, while Management Briefing and Decision Memory appear only for GCMC, Market Reviewer, and Finance identities. Verification Centre and Source Health appear only for reviewer identities, and Ask Reg remains access-controlled. Active rows use Panel navy and a teal icon; history questions remain quieter until hover. On mobile, the rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
 
-### Assistant Composer
+### Intelligence & Workflow Ledgers
 
-The composer is the signature control and the first viewport's visual anchor. It should read as one deep material rather than a field plus toolbar, keep the prompt copy dominant, expose the grounded-data status quietly, and place the blue send action at the lower right.
+Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents reviewer-scoped freshness and quality; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger.
 
-### Evidence Sheet
+Watchlist and Decision Memory writes are role-scoped in local browser storage; preferences and access requests are also device-local. Verification uses the local audit queue, and no prototype action implies an external notification. Synthetic, restricted, and proposed-production boundaries remain adjacent to the affected workflow.
 
-The evidence sheet is a sticky right-side material with stable Plot, Analysis, and Sources tabs. It enters from the right, keeps its own scroll context on desktop, and collapses into the page flow on narrow screens; charts, methods, source cards, and warnings share the same nested tonal vocabulary.
+### Decision Canvas
 
-### Answer and Review Handoff
-
-Assistant answers use a quiet translucent card, 72-character reading measure, visible provenance, and compact actions. “Explore” opens the evidence sheet; “Verify” and “Create PDF” move the answer forward without changing the conversation's center of gravity.
-
-**The 44-Point Rule.** Every primary, icon, navigation, chip, send, and reviewer action must preserve at least a 44px interaction target at shipped breakpoints.
-
-**The Governed Handoff Rule.** Evidence, synthetic-data status, and verification state stay visible wherever an answer can be exported, approved, or acted upon.
+The right canvas is a persistent analytical plane with four keyboard-complete tabs: Plot, Analysis, Sources, and Actions. Plot uses teal lines or bars with sparse amber emphasis; Analysis exposes the narrative and governed method; Sources names the evidence and coverage; Actions bridges the answer into Watchlist, Decision Memory, verification, or—when the role allows—Management Briefing. It opens at 520px, reduces at narrower desktops, collapses into a 54px labelled rail, and stacks below the answer on small screens.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** let one centered assistant prompt own the quiet first viewport.
-- **Do** use luminous blue for agency, focus, active navigation, and governed visualization.
-- **Do** reveal analysis in the consistent right-side evidence sheet when the user asks for depth.
-- **Do** preserve visible provenance, synthetic-data labels, access state, and human-review status at decision points.
-- **Do** use generous separation and a 44px minimum interaction target across desktop and mobile.
-- **Do** honor reduced motion, reduced transparency, increased contrast, keyboard focus, and Escape dismissal.
+- **Do** use amber for scarce actions, fallback provenance, and the value that deserves immediate attention.
+- **Do** use teal for analysis, focus, healthy status, and interactive intent.
+- **Do** preserve the three-zone desk and the labelled collapsed-canvas rail.
+- **Do** keep working controls at least 44px and support reduced motion and increased contrast.
+- **Do** keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.
+- **Do** label synthetic, predefined, and restricted content at the point of use.
+- **Do** preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.
 
 ### Don't:
 
-- **Don't** turn BursaIQ into a dashboard of equal-weight cards, KPIs, and permanent analysis panels.
-- **Don't** stack glass for decoration or place translucent surfaces where no hierarchy changes.
-- **Don't** spend action blue on passive ornament, long-form copy, or every icon.
-- **Don't** use display tracking, all-caps metadata, or tiny dense labels as a substitute for hierarchy.
-- **Don't** introduce bounce, overshoot, or motion that delays the user's next action.
-- **Don't** hide evidence, review state, access boundaries, or synthetic-data disclosure behind a separate workflow.
+- **Don't** reintroduce luminous-blue primary actions or decorative glass panels.
+- **Don't** turn every information group into a floating card; use lines and tonal layers first.
+- **Don't** use amber and teal interchangeably or flood either accent across passive surfaces.
+- **Don't** restore conversation as the default entry; Today’s Brief must lead every role into current intelligence and accountable next steps.
+- **Don't** shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.
+- **Don't** hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.
+- **Don't** animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.

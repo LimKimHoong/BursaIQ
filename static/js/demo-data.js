@@ -61,6 +61,62 @@ window.BURSAIQ_DEMO = {
       { market: "United States · S&P 500", mtdPct: 1.9, ytdPct: 9.6, currency: "USD" }
     ]
   },
+  intelligence: {
+    generated: "1 Aug 2026 · 07:30 MYT",
+    signals: [
+      {
+        id: "adv-momentum",
+        severity: "attention",
+        topic: "Market activity",
+        title: "Trading activity accelerated into July",
+        summary: "30-day ADV rose above the previous 30-day period while trading velocity improved by four percentage points.",
+        metric: "RM3.42bn ADV",
+        change: "+11.0%",
+        sourceId: "gcmc-pulse",
+        question: "How did 30-day ADV change?"
+      },
+      {
+        id: "sector-concentration",
+        severity: "watch",
+        topic: "Index drivers",
+        title: "Technology led July’s sector contribution",
+        summary: "Technology contributed 9.6 index points, making it the largest positive sector driver in the prepared dataset.",
+        metric: "+9.6 pts",
+        change: "Top contributor",
+        sourceId: "gcmc-pulse",
+        question: "Which sectors drove the market?"
+      },
+      {
+        id: "participation-breadth",
+        severity: "stable",
+        topic: "Investor participation",
+        title: "Institutional and foreign buying offset retail selling",
+        summary: "Local institutions and foreign investors recorded RM704m of combined net buying, matched by local retail net selling.",
+        metric: "RM704m",
+        change: "Net buying",
+        sourceId: "gcmc-pulse",
+        question: "Show investor participation"
+      }
+    ],
+    alerts: [
+      { id: "alert-adv", signalId: "adv-momentum", status: "New", time: "07:30 MYT", rule: "ADV change exceeds 8%", owner: "Nadia Karim" },
+      { id: "alert-tech", signalId: "sector-concentration", status: "Watching", time: "31 Jul · 18:05", rule: "Single-sector contribution exceeds 8 pts", owner: "Market Intelligence" },
+      { id: "alert-source", signalId: "source-freshness", status: "Review", time: "31 Jul · 17:40", rule: "Learning source exceeds freshness target", owner: "Learning & Development" }
+    ],
+    management: {
+      headline: "Momentum improved, participation broadened, and source governance remains visible.",
+      narrative: "July closed with the FBM KLCI up 2.4% month to date and 30-day ADV at RM3.42bn. Technology and Financial Services provided most of the positive index contribution. The immediate management focus is to validate whether the activity uplift is sustained and to keep the July market briefing inside the governed review path.",
+      priorities: [
+        { title: "Validate the activity uplift", owner: "Market Intelligence", due: "Next market cut", status: "In progress" },
+        { title: "Complete July briefing verification", owner: "Market Intelligence Lead", due: "Before publication", status: "Pending review" },
+        { title: "Refresh ageing learning content", owner: "Learning & Development", due: "5 Aug 2026", status: "Planned" }
+      ]
+    },
+    decisions: [
+      { id: "DEC-260731-01", title: "Use July activity uplift in the management market narrative", rationale: "ADV and velocity both improved in the prepared dataset.", owner: "Nadia Karim", workspace: "Market Intelligence", status: "Awaiting verification", created: "31 Jul 2026 · 18:16 MYT", question: "How did the market perform in July?" },
+      { id: "DEC-260728-02", title: "Retain plain-language ADV definition for onboarding", rationale: "The approved primer supports the simplified explanation used in Learn Bursa.", owner: "Learning & Development", workspace: "Learn Bursa", status: "Recorded", created: "28 Jul 2026 · 10:05 MYT", question: "Explain ADV in plain language" }
+    ]
+  },
   documents: [
     {
       id: "gcmc-pulse",
@@ -69,7 +125,13 @@ window.BURSAIQ_DEMO = {
       filename: "GCMC_Market_Pulse.xlsx",
       format: "XLSX",
       owner: "Group Corporate Marketing & Communications",
+      updatedBy: "Nadia Karim",
       updated: "31 Jul 2026 · 18:00 MYT",
+      health: "Healthy",
+      qualityPct: 98,
+      freshness: "Current",
+      usage: "18 answers this week",
+      nextReview: "1 Aug 2026 · 18:00 MYT",
       pages: "4 worksheets",
       status: "Loaded",
       excerpt: "Synthetic monthly index, trading, investor participation and regional benchmark observations for the competition demo."
@@ -81,7 +143,13 @@ window.BURSAIQ_DEMO = {
       filename: "Bursa_Market_Primer.pdf",
       format: "PDF",
       owner: "Learning & Development",
+      updatedBy: "Farah Lee",
       updated: "28 Jul 2026 · 09:30 MYT",
+      health: "Review soon",
+      qualityPct: 91,
+      freshness: "4 days old",
+      usage: "11 answers this week",
+      nextReview: "5 Aug 2026",
       pages: "6 pages",
       status: "Loaded",
       excerpt: "A beginner-friendly introduction to the exchange, market capitalisation, ADV, velocity and investor participation."
@@ -93,7 +161,13 @@ window.BURSAIQ_DEMO = {
       filename: "Bursa_Products_Overview.pdf",
       format: "PDF",
       owner: "Learning & Development",
+      updatedBy: "Farah Lee",
       updated: "10 Sep 2026 · 14:30 MYT",
+      health: "Healthy",
+      qualityPct: 96,
+      freshness: "Current",
+      usage: "7 answers this week",
+      nextReview: "17 Sep 2026",
       pages: "2 pages",
       status: "Loaded",
       excerpt: "A high-level guide to Bursa securities, derivatives, Islamic-market products, indices, LFX and Bursa Gold Dinar."
@@ -105,7 +179,13 @@ window.BURSAIQ_DEMO = {
       filename: "New_Joiner_Conduct_Guide.pdf",
       format: "PDF",
       owner: "Governance & Sustainability",
+      updatedBy: "Aisha Wong",
       updated: "20 Jul 2026 · 11:15 MYT",
+      health: "Attention",
+      qualityPct: 86,
+      freshness: "12 days old",
+      usage: "4 answers this week",
+      nextReview: "2 Aug 2026",
       pages: "5 pages",
       status: "Loaded",
       excerpt: "Practical guidance on confidentiality, responsible data handling and escalation for new joiners."
@@ -117,7 +197,13 @@ window.BURSAIQ_DEMO = {
       filename: "Market_Regulation_Guide_Demo.json",
       format: "JSON",
       owner: "Regulatory Policy & Advisory",
+      updatedBy: "Arif Rahman",
       updated: "15 Sep 2026 · 10:00 MYT",
+      health: "Restricted",
+      qualityPct: 99,
+      freshness: "Current",
+      usage: "3 governed answers",
+      nextReview: "22 Sep 2026",
       pages: "4 demo topics",
       status: "Restricted",
       excerpt: "Synthetic guidance covering continuous disclosure, unusual market activity queries, suspected market misconduct escalation and continuing listing obligations."

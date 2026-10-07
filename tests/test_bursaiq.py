@@ -28,6 +28,8 @@ class IngestionTests(unittest.TestCase):
         self.assertEqual(self.loaded["meta"]["ingestionErrors"], [])
         self.assertEqual(len(self.loaded["documents"]), 5)
         self.assertEqual(self.loaded["market"]["headline"]["fbmKLCI"], 1638.2)
+        self.assertTrue(all("qualityPct" in item and "updatedBy" in item for item in self.loaded["documents"]))
+        self.assertEqual(next(item for item in self.loaded["documents"] if item["id"] == "gcmc-pulse")["health"], "Healthy")
 
     def test_search_obeys_workspace_access(self) -> None:
         adv_results = self.repository.search("Explain ADV in plain language", "learn", "gcmc")

@@ -28,7 +28,7 @@
   const defaultPreferences = {
     autoOpenInsights: true,
     chartMotion: true,
-    defaultWorkspace: "home",
+    defaultWorkspace: "today-brief",
     plugins: { webSearch: false, pdfTools: true, spreadsheetTools: true }
   };
 
@@ -36,7 +36,7 @@
     try {
       const saved = JSON.parse(localStorage.getItem("bursaiq_preferences") || "{}");
       const preferences = { ...defaultPreferences, ...saved, plugins: { ...defaultPreferences.plugins, ...(saved.plugins || {}) } };
-      if (!["home", "learn"].includes(preferences.defaultWorkspace)) preferences.defaultWorkspace = "home";
+      if (!["today-brief", "home", "learn"].includes(preferences.defaultWorkspace)) preferences.defaultWorkspace = "today-brief";
       return preferences;
     } catch (_error) {
       return { ...defaultPreferences, plugins: { ...defaultPreferences.plugins } };
@@ -47,6 +47,15 @@
     try {
       const saved = JSON.parse(localStorage.getItem("bursaiq_access_requests") || "{}");
       return saved && typeof saved === "object" ? saved : {};
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  function loadLocalMap(key) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      return saved && typeof saved === "object" && !Array.isArray(saved) ? saved : {};
     } catch (_error) {
       return {};
     }
@@ -103,6 +112,18 @@
     }
   };
 
+  const predefinedDemoQuestions = new Set([
+    "how did the market perform in july?",
+    "how did 30-day adv change?",
+    "which sectors drove the market?",
+    "compare malaysia with regional peers",
+    "show investor participation",
+    "explain adv in plain language",
+    "what is trading velocity?",
+    "what is continuous disclosure?",
+    "what should happen after an unusual market activity query?"
+  ]);
+
   const state = {
     workspace: "home",
     answerWorkspace: "market",
@@ -118,13 +139,15 @@
     conversationId: "",
     preferences: loadPreferences(),
     accessRequests: loadAccessRequests(),
+    watchlists: loadLocalMap("bursaiq_watchlists"),
+    decisionMemories: loadLocalMap("bursaiq_decision_memories"),
     accessRequestPanel: ""
   };
 
   const dom = {};
 
   function bindDom() {
-    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "workflow-nav-label", "verification-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
+    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "watchlist-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "today-brief-nav", "watchlist-nav", "management-brief-nav", "workflow-nav-label", "verification-nav", "data-sources-nav", "decision-memory-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
       dom[id.replaceAll("-", "_")] = document.getElementById(id);
     });
   }
@@ -166,6 +189,26 @@
 
   function isReviewer() {
     return Boolean(demo.identities[state.role].reviewerFor?.length);
+  }
+
+  function hasManagementAccess() {
+    return ["gcmc", "securities", "finance"].includes(state.role);
+  }
+
+  function roleWatchlist() {
+    return state.watchlists[state.role] || ["adv-momentum", "sector-concentration"];
+  }
+
+  function roleDecisionMemory() {
+    const localItems = state.decisionMemories[state.role] || [];
+    const seeded = demo.intelligence?.decisions || [];
+    if (isReviewer()) return [...localItems, ...seeded];
+    return [...localItems, ...seeded.filter((item) => item.owner === demo.identities[state.role].name || item.workspace === "Learn Bursa")];
+  }
+
+  function persistRoleCollection(key, stateKey, items) {
+    state[stateKey] = { ...state[stateKey], [state.role]: items };
+    localStorage.setItem(key, JSON.stringify(state[stateKey]));
   }
 
   function reviewerCases(cases = state.verification) {
@@ -279,13 +322,17 @@
 
   function evidenceMarkup() {
     return `<aside class="evidence-panel insight-panel" id="evidence-panel" aria-label="Full answer analysis">
-      <div class="insight-header"><div><span>Answer details</span><strong>Evidence &amp; analysis</strong></div><button class="icon-button" type="button" data-close-insight aria-label="Close analysis panel"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
-      <div class="evidence-tabs" role="tablist" aria-label="Analysis views">
-        <button class="evidence-tab is-active" data-tab="plot" role="tab" type="button">Plot</button>
-        <button class="evidence-tab" data-tab="analysis" role="tab" type="button">Analysis</button>
-        <button class="evidence-tab" data-tab="sources" role="tab" type="button">Sources <span id="evidence-badge">0</span></button>
+      <button class="insight-rail" type="button" data-open-insight aria-label="Open answer canvas"><span>‹</span><strong>Answer canvas</strong></button>
+      <div class="insight-expanded">
+        <div class="insight-header"><div><span>Decision canvas</span><strong>Evidence &amp; analysis</strong></div><button class="canvas-toggle" type="button" data-close-insight aria-label="Collapse analysis panel">›</button></div>
+        <div class="evidence-tabs" role="tablist" aria-label="Analysis views">
+          <button class="evidence-tab is-active" id="evidence-tab-plot" data-tab="plot" role="tab" aria-controls="evidence-content" aria-selected="true" tabindex="0" type="button">Plot</button>
+          <button class="evidence-tab" id="evidence-tab-analysis" data-tab="analysis" role="tab" aria-controls="evidence-content" aria-selected="false" tabindex="-1" type="button">Analysis</button>
+          <button class="evidence-tab" id="evidence-tab-sources" data-tab="sources" role="tab" aria-controls="evidence-content" aria-selected="false" tabindex="-1" type="button">Sources <span id="evidence-badge">0</span></button>
+          <button class="evidence-tab" id="evidence-tab-actions" data-tab="actions" role="tab" aria-controls="evidence-content" aria-selected="false" tabindex="-1" type="button">Actions</button>
+        </div>
+        <div class="evidence-content" id="evidence-content" role="tabpanel" aria-labelledby="evidence-tab-plot" tabindex="0"></div>
       </div>
-      <div class="evidence-content" id="evidence-content"></div>
     </aside>`;
   }
 
@@ -303,6 +350,7 @@
     dom.workspace_grid.innerHTML = conversationMarkup("market", true);
     selectNavigation("home");
     bindDom();
+    renderSuggestions(workspaceConfig.market.suggestions);
     closeNavigation();
   }
 
@@ -373,7 +421,7 @@
 
   function answerProvenance(result) {
     if (result.narrativeMode === "copilot-studio") return `<span class="provenance-chip copilot">Microsoft Copilot Studio</span>`;
-    if (result.narrativeMode === "fallback") return `<span class="provenance-chip fallback">Offline preview</span>`;
+    if (result.narrativeMode === "fallback") return `<span class="provenance-chip fallback">Predefined demo answer</span>`;
     return `<span class="provenance-chip">BursaIQ local preview</span>`;
   }
 
@@ -381,7 +429,10 @@
     const label = document.querySelector(".system-state strong");
     const container = document.querySelector(".system-state");
     if (!label || !container) return;
-    if (!state.backend) {
+    if (mode === "fallback") {
+      label.textContent = "Demo fallback active";
+      container.title = "A predefined local answer is being used because Copilot Studio is unavailable";
+    } else if (!state.backend) {
       label.textContent = "Offline preview";
       container.title = "Backend unavailable; browser fallback is active";
     } else if (state.agent.available || mode === "copilot-studio") {
@@ -434,13 +485,25 @@
   async function resolveAnswer(question, selectedWorkspace, role) {
     const localWorkspace = selectedWorkspace === "home" ? routeQuestion(question) : selectedWorkspace;
     if (!state.backend) {
-      return hasAccess(localWorkspace) ? { workspace: localWorkspace, result: engine.respond(localWorkspace, question) } : { denied: true, workspace: localWorkspace };
+      if (!hasAccess(localWorkspace)) return { denied: true, workspace: localWorkspace };
+      if (!predefinedDemoQuestions.has(question.toLowerCase().trim())) {
+        return { agentError: true, message: "BursaIQ is offline. Use one of the predefined demo questions or restore the local server connection." };
+      }
+      const result = engine.respond(localWorkspace, question);
+      result.narrativeMode = "fallback";
+      return { workspace: localWorkspace, result };
     }
     try {
       const payload = await requestBackendAnswer(question, selectedWorkspace === "home" ? "assistant" : selectedWorkspace, role);
       if (payload?.denied) return payload;
       if (payload?.agentError) {
         if (payload.agent) state.agent = payload.agent;
+        if (predefinedDemoQuestions.has(question.toLowerCase().trim()) && hasAccess(localWorkspace)) {
+          const result = engine.respond(localWorkspace, question);
+          result.narrativeMode = "fallback";
+          result.fallbackReason = payload.message;
+          return { workspace: localWorkspace, result };
+        }
         return payload;
       }
       const workspace = workspaceConfig[payload.workspace] ? payload.workspace : localWorkspace;
@@ -455,7 +518,13 @@
       if (payload.agent) state.agent = payload.agent;
       return { workspace, result };
     } catch (_error) {
-      return { agentError: true, message: "BursaIQ could not reach the Copilot Studio service. Check the server connection and try again." };
+      if (predefinedDemoQuestions.has(question.toLowerCase().trim()) && hasAccess(localWorkspace)) {
+        const result = engine.respond(localWorkspace, question);
+        result.narrativeMode = "fallback";
+        result.fallbackReason = "Copilot Studio could not be reached.";
+        return { workspace: localWorkspace, result };
+      }
+      return { agentError: true, message: "BursaIQ could not reach the Copilot Studio service. Use one of the predefined demo questions or check the connection." };
     }
   }
 
@@ -510,7 +579,8 @@
     const defaultInsightTab = targetWorkspace === "market" ? "plot" : "analysis";
     const narrative = result.agentNarrative ? narrativeMarkup(result.agentNarrative) : firstParagraph(result.html);
     const answerLabel = selectedWorkspace === "home" ? "BursaIQ Assistant" : `BursaIQ · ${workspaceConfig[targetWorkspace].title}`;
-    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">Synthetic output · ${demo.meta.asOf}</div></div></article>`);
+    const answerNote = result.narrativeMode === "fallback" ? `Predefined local demo response · Synthetic output · ${demo.meta.asOf}` : `Synthetic output · ${demo.meta.asOf}`;
+    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">${answerNote}</div></div></article>`);
     renderSuggestions(result.followups.slice(0, 3));
     if (state.preferences.autoOpenInsights && targetWorkspace === "market") showEvidence("plot", false);
     else if (state.preferences.autoOpenInsights && document.getElementById("evidence-panel")) showEvidence("analysis", false);
@@ -524,15 +594,18 @@
       dom.workspace_grid.classList.add("has-evidence");
       bindDom();
     }
+    document.getElementById("evidence-panel")?.classList.remove("is-collapsed");
     state.insightTab = tabName || (state.answerWorkspace === "market" ? "plot" : "analysis");
+    dom.workspace_grid.classList.remove("evidence-collapsed");
     renderEvidence();
     if (shouldScroll && window.innerWidth <= 900) document.getElementById("evidence-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   function closeEvidence() {
-    document.getElementById("evidence-panel")?.remove();
-    dom.workspace_grid.classList.remove("has-evidence");
-    bindDom();
+    const panel = document.getElementById("evidence-panel");
+    if (!panel) return;
+    panel.classList.add("is-collapsed");
+    dom.workspace_grid.classList.add("evidence-collapsed");
   }
 
   function chartSpec() {
@@ -559,10 +632,10 @@
   function lineChart(spec) {
     const width = 360;
     const height = 225;
-    const left = 44;
+    const left = 54;
     const right = 16;
     const top = 23;
-    const bottom = 34;
+    const bottom = 38;
     const minimum = Math.min(...spec.values);
     const maximum = Math.max(...spec.values);
     const padding = Math.max((maximum - minimum) * 0.18, maximum * 0.015);
@@ -572,10 +645,12 @@
     const yAt = (value) => top + ((high - value) * (height - top - bottom)) / Math.max(high - low, 1);
     const points = spec.values.map((value, index) => `${xAt(index).toFixed(1)},${yAt(value).toFixed(1)}`).join(" ");
     const area = `${left},${height - bottom} ${points} ${width - right},${height - bottom}`;
-    const grid = [0, 1, 2, 3].map((step) => {
-      const y = top + (step * (height - top - bottom)) / 3;
-      const value = high - (step * (high - low)) / 3;
-      return `<line class="plot-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"/><text class="plot-axis-value" x="${left - 7}" y="${y + 3}" text-anchor="end">${value.toFixed(spec.valueDigits)}</text>`;
+    const tickCount = 3;
+    const grid = Array.from({ length: tickCount }, (_, step) => {
+      const y = top + (step * (height - top - bottom)) / (tickCount - 1);
+      const value = high - (step * (high - low)) / (tickCount - 1);
+      const label = value.toLocaleString("en-MY", { minimumFractionDigits: spec.valueDigits, maximumFractionDigits: spec.valueDigits });
+      return `<line class="plot-grid" x1="${left}" y1="${y}" x2="${width - right}" y2="${y}"/><text class="plot-axis-value" x="${left - 8}" y="${y + 3}" text-anchor="end">${label}</text>`;
     }).join("");
     const labels = spec.labels.map((label, index) => `<text class="plot-axis-label" x="${xAt(index)}" y="${height - 10}" text-anchor="middle">${escapeHtml(label)}</text>`).join("");
     const dots = spec.values.map((value, index) => `<circle class="plot-point" style="--point:${index}" cx="${xAt(index)}" cy="${yAt(value)}" r="3.5"><title>${escapeHtml(spec.labels[index])}: ${value.toFixed(spec.valueDigits)} ${escapeHtml(spec.unit)}</title></circle>`).join("");
@@ -606,7 +681,31 @@
   function plotMarkup(spec) {
     if (!spec) return `<div class="no-plot">${icons.file}<h2>This answer is document-led</h2><p>Open Analysis for the full explanation, or Sources for the exact approved material used.</p><button class="button secondary" type="button" data-tab-jump="analysis">Read full answer</button></div>`;
     const latest = spec.values.at(-1);
-    return `<div class="plot-heading"><div><h2>${escapeHtml(spec.title)}</h2><p>${escapeHtml(spec.description)}</p></div><span>${escapeHtml(spec.unit)}</span></div><div class="plot-frame">${spec.kind === "line" ? lineChart(spec) : barChart(spec)}</div><div class="plot-readout"><span>Latest observation</span><strong>${latest.toFixed(spec.valueDigits)} ${escapeHtml(spec.unit)}</strong></div><div class="plot-explanation"><strong>How to read this</strong><p>${escapeHtml(spec.description)} Open Analysis for the complete narrative and calculation method.</p></div><div class="warning-block">Animated from the prepared synthetic dataset · ${escapeHtml(demo.meta.asOf)}</div>`;
+    const latestLabel = latest.toLocaleString("en-MY", { minimumFractionDigits: spec.valueDigits, maximumFractionDigits: spec.valueDigits });
+    return `<div class="plot-heading"><div><h2>${escapeHtml(spec.title)}</h2><p>${escapeHtml(spec.description)}</p></div><span>${escapeHtml(spec.unit)}</span></div><div class="plot-frame">${spec.kind === "line" ? lineChart(spec) : barChart(spec)}</div><div class="plot-readout"><span>Latest observation</span><strong>${latestLabel} ${escapeHtml(spec.unit)}</strong></div><div class="plot-explanation"><strong>How to read this</strong><p>${escapeHtml(spec.description)} Open Analysis for the complete narrative and calculation method.</p></div><div class="warning-block">Animated from the prepared synthetic dataset · ${escapeHtml(demo.meta.asOf)}</div>`;
+  }
+
+  function signalForCurrentAnswer() {
+    const question = state.currentQuestion.toLowerCase();
+    const signals = demo.intelligence?.signals || [];
+    if (/(sector|driver|stock|counter|attribution)/.test(question)) return signals.find((item) => item.id === "sector-concentration");
+    if (/(investor|flow|participation|foreign)/.test(question)) return signals.find((item) => item.id === "participation-breadth");
+    return signals.find((item) => item.id === "adv-momentum") || signals[0];
+  }
+
+  function actionsMarkup() {
+    const signal = signalForCurrentAnswer();
+    const watched = signal && roleWatchlist().includes(signal.id);
+    const memorySaved = roleDecisionMemory().some((item) => item.question === state.currentQuestion && item.owner === demo.identities[state.role].name);
+    return `<div class="actions-view"><h2>Move insight into action</h2><p class="panel-intro">Keep the evidence attached as this answer moves into monitoring, decision-making or review.</p>
+      <div class="action-ledger">
+        <button type="button" data-insight-action="watch" data-signal-id="${escapeHtml(signal?.id || "adv-momentum")}"><span>${icons.pulse}</span><span><strong>${watched ? "Remove from watchlist" : "Add to watchlist"}</strong><small>${watched ? "Stop monitoring this signal for the active identity." : "Monitor this signal and surface related alerts."}</small></span><em>${watched ? "Watching" : "Monitor"}</em></button>
+        <button type="button" data-insight-action="memory"><span>${icons.list}</span><span><strong>${memorySaved ? "Saved to Decision Memory" : "Save to Decision Memory"}</strong><small>Record the question, answer rationale, owner and evidence trail.</small></span><em>${memorySaved ? "Saved" : "Record"}</em></button>
+        <button type="button" data-insight-action="verify"><span>${icons.shield}</span><span><strong>Submit for verification</strong><small>Send the governed answer package to its assigned Data Owner.</small></span><em>Review</em></button>
+        ${hasManagementAccess() ? `<button type="button" data-insight-action="brief"><span>${icons.chart}</span><span><strong>Add to management briefing</strong><small>Carry this insight into the executive narrative and priority view.</small></span><em>Brief</em></button>` : ""}
+      </div>
+      <div class="action-boundary"><strong>Prototype workflow</strong><p>Watchlist and Decision Memory changes are stored on this device. Verification uses the local audit queue; no external notification is sent.</p></div>
+    </div>`;
   }
 
   function renderEvidence() {
@@ -616,13 +715,17 @@
       const selected = tab.dataset.tab === state.insightTab;
       tab.classList.toggle("is-active", selected);
       tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
     });
+    dom.evidence_content.setAttribute("aria-labelledby", `evidence-tab-${state.insightTab}`);
     dom.evidence_badge.textContent = result.sources.length;
     if (state.insightTab === "analysis") {
       const agentAnalysis = result.agentNarrative ? `<section class="agent-analysis"><div><span class="provenance-chip copilot">Copilot Studio answer</span><small>Hosted agent response</small></div>${narrativeMarkup(result.agentNarrative)}</section>` : "";
       dom.evidence_content.innerHTML = `${agentAnalysis}<article class="full-analysis"><h2>${result.title}</h2>${result.html}</article><h2 class="section-title">How this was produced</h2>${result.method.map((item) => `<div class="method-step"><span>${item[0]}</span><div><strong>${item[1]}</strong><p>${item[2]}</p></div></div>`).join("")}<div class="formula-box">${result.formula}</div><ul class="context-list">${Object.entries(result.context).map(([key, value]) => `<li><span>${key}</span><strong>${value}</strong></li>`).join("")}</ul>`;
     } else if (state.insightTab === "sources") {
       dom.evidence_content.innerHTML = `<h2>${result.sources.length} source reference${result.sources.length === 1 ? "" : "s"}</h2><p class="panel-intro">Open a source or inspect the exact location used.</p>${sourceCards(result.sources)}<div class="confidence-row"><span>Evidence coverage</span><strong>${result.confidence}%</strong></div><div class="confidence-track"><span style="width:${result.confidence}%"></span></div>`;
+    } else if (state.insightTab === "actions") {
+      dom.evidence_content.innerHTML = actionsMarkup();
     } else {
       dom.evidence_content.innerHTML = plotMarkup(chartSpec());
     }
@@ -632,26 +735,79 @@
     return sources.map((doc, index) => `<article class="evidence-card"><div class="evidence-card-head"><span class="file-icon ${doc.format.toLowerCase()}">${doc.format}</span><div><strong>${doc.title}</strong><small>${doc.owner}</small></div><span class="source-index">${index + 1}</span></div>${doc.detail || doc.excerpt ? `<p class="source-detail">${doc.detail || doc.excerpt}</p>` : ""}${state.backend ? `<a class="action-button" href="/api/sources/${encodeURIComponent(doc.id)}?role=${encodeURIComponent(state.role)}" target="_blank" rel="noopener">${icons.file}Open source</a>` : ""}</article>`).join("");
   }
 
+  function signalById(id) {
+    return (demo.intelligence?.signals || []).find((item) => item.id === id);
+  }
+
+  function todayBriefPage() {
+    const signals = demo.intelligence?.signals || [];
+    const openAlerts = (demo.intelligence?.alerts || []).filter((item) => item.status !== "Watching").length;
+    const pendingDecisions = roleDecisionMemory().filter((item) => item.status !== "Recorded").length;
+    return `<div class="page-hero intelligence-hero"><div><h2>Today’s intelligence brief</h2><p>A role-aware opening view of the signals, decisions and governed sources that deserve attention now.</p></div><span class="brief-time">Prepared ${escapeHtml(demo.intelligence.generated)}</span></div>
+      <div class="attention-strip" aria-label="Attention queue"><div><span>Needs attention</span><strong>${openAlerts}</strong><small>active alert rules</small></div><div><span>Watching</span><strong>${roleWatchlist().length}</strong><small>signals in your watchlist</small></div><div><span>Decisions</span><strong>${pendingDecisions}</strong><small>awaiting closure</small></div><button type="button" data-go="watchlist"><strong>Open attention queue</strong><small>Review alerts and monitored signals</small>${icons.arrow}</button></div>
+      <div class="brief-layout"><section class="brief-ledger"><div class="section-heading"><div><h3>Signals that changed</h3><p>Prioritised from the prepared synthetic market cut.</p></div><span>${signals.length} signals</span></div>
+        ${signals.map((signal) => `<article class="signal-row is-${escapeHtml(signal.severity)}"><div class="signal-marker"><span></span>${escapeHtml(signal.topic)}</div><div class="signal-copy"><h4>${escapeHtml(signal.title)}</h4><p>${escapeHtml(signal.summary)}</p><div><button type="button" data-brief-question="${escapeHtml(signal.question)}">Ask BursaIQ</button><button type="button" data-watch-toggle="${escapeHtml(signal.id)}">${roleWatchlist().includes(signal.id) ? "Watching" : "Watch signal"}</button></div></div><div class="signal-value"><strong>${escapeHtml(signal.metric)}</strong><small>${escapeHtml(signal.change)}</small></div></article>`).join("")}
+      </section><aside class="brief-side"><div class="section-heading"><div><h3>What to do next</h3><p>Suggested workflow, not an automated decision.</p></div></div><ol class="next-action-list"><li><span>${icons.pulse}</span><div><strong>Check the next market cut</strong><small>Confirm whether the ADV uplift is sustained.</small></div></li><li><span>${icons.shield}</span><div><strong>Close the July review</strong><small>One briefing remains pending with the Data Owner.</small></div></li><li><span>${icons.file}</span><div><strong>Refresh ageing content</strong><small>The conduct guide is outside its freshness target.</small></div></li></ol><button class="button secondary" type="button" data-go="management-brief" ${hasManagementAccess() ? "" : "disabled"}>Open management view</button></aside></div>
+      <p class="feature-footnote">Synthetic competition intelligence · signals are illustrative and do not constitute investment advice.</p>`;
+  }
+
+  function watchlistPage() {
+    const watchedIds = roleWatchlist();
+    const watched = watchedIds.map(signalById).filter(Boolean);
+    const alerts = demo.intelligence?.alerts || [];
+    return `<div class="page-hero"><div><h2>Watchlist &amp; alerts</h2><p>Monitor material changes without losing the source, threshold or accountable owner behind each alert.</p></div><span class="status-pill ${alerts.length ? "" : "approved"}">${alerts.length} alerts</span></div>
+      <div class="watch-layout"><section><div class="section-heading"><div><h3>Your monitored signals</h3><p>Stored locally for ${escapeHtml(demo.identities[state.role].name)}.</p></div><span>${watched.length} watching</span></div><div class="watch-ledger">${watched.length ? watched.map((signal) => `<div class="watch-row"><span class="watch-pulse is-${escapeHtml(signal.severity)}"></span><div><strong>${escapeHtml(signal.title)}</strong><small>${escapeHtml(signal.metric)} · ${escapeHtml(signal.change)}</small></div><button type="button" data-brief-question="${escapeHtml(signal.question)}">Investigate</button><button type="button" data-watch-toggle="${escapeHtml(signal.id)}" aria-label="Remove ${escapeHtml(signal.title)} from watchlist">Remove</button></div>`).join("") : `<div class="ledger-empty"><h3>No signals watched</h3><p>Add a signal from Today’s Brief or the Decision Canvas.</p><button class="button secondary" type="button" data-go="today-brief">Browse today’s signals</button></div>`}</div></section>
+      <section><div class="section-heading"><div><h3>Alert activity</h3><p>Rules show why each item entered the queue.</p></div></div><div class="alert-ledger">${alerts.map((alert) => { const signal = signalById(alert.signalId); return `<article class="alert-row"><div><span class="status-pill ${alert.status === "Watching" ? "approved" : alert.status === "Review" ? "denied" : ""}">${escapeHtml(alert.status)}</span><time>${escapeHtml(alert.time)}</time></div><div><strong>${escapeHtml(signal?.title || "Source freshness threshold")}</strong><p>${escapeHtml(alert.rule)}</p><small>Owner · ${escapeHtml(alert.owner)}</small></div></article>`; }).join("")}</div></section></div>
+      <div class="warning-block">Prototype alerts are generated from the local synthetic dataset. No live market notification or external message is sent.</div>`;
+  }
+
+  function managementBriefPage() {
+    const management = demo.intelligence?.management;
+    const headline = demo.market.headline;
+    return `<div class="page-hero management-hero"><div><h2>Management briefing</h2><p>One decision-ready narrative with the supporting priorities, evidence state and next owners.</p></div><button class="button secondary" type="button" data-management-print>${icons.download}Print briefing</button></div>
+      <article class="management-narrative"><h3>${escapeHtml(management.headline)}</h3><p>${escapeHtml(management.narrative)}</p><div class="management-proof"><span>Evidence coverage <strong>96%</strong></span><span>Verification <strong>1 pending</strong></span><span>Source health <strong>2 of 5 healthy</strong></span></div></article>
+      <dl class="management-metrics"><div><dt>FBM KLCI</dt><dd>${headline.fbmKLCI.toLocaleString("en-MY", { minimumFractionDigits: 1 })}</dd><small>+${headline.klciMtdPct.toFixed(1)}% MTD</small></div><div><dt>30-day ADV</dt><dd>RM${headline.adv30dBn.toFixed(2)}bn</dd><small>+${(((headline.adv30dBn / headline.advPrior30dBn) - 1) * 100).toFixed(1)}% vs prior</small></div><div><dt>Market capitalisation</dt><dd>RM${headline.marketCapBn.toLocaleString("en-MY")}bn</dd><small>+${headline.marketCapMtdPct.toFixed(1)}% MTD</small></div></dl>
+      <section class="priority-section"><div class="section-heading"><div><h3>Management priorities</h3><p>Every item carries an owner and decision horizon.</p></div><span>${management.priorities.length} priorities</span></div><div class="priority-ledger">${management.priorities.map((item) => `<div class="priority-row"><span class="priority-status"></span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.owner)}</small></div><time>${escapeHtml(item.due)}</time><span class="status-pill ${item.status === "In progress" ? "approved" : item.status === "Pending review" ? "denied" : ""}">${escapeHtml(item.status)}</span></div>`).join("")}</div></section>
+      <div class="management-footer"><span>${icons.shield}</span><p><strong>Management boundary</strong>This view summarises synthetic prototype data. Source citations and governed methods remain in the Decision Canvas.</p><button class="button ghost" type="button" data-brief-question="How did the market perform in July?">Open supporting analysis</button></div>`;
+  }
+
+  function decisionMemoryPage() {
+    const decisions = roleDecisionMemory();
+    return `<div class="page-hero"><div><h2>Decision Memory</h2><p>A searchable institutional record of what was decided, why it was reasonable, and which evidence supported it.</p></div><span class="status-pill approved">${decisions.length} records</span></div>
+      <div class="memory-ledger">${decisions.map((item) => `<article class="memory-row"><div class="memory-date"><time>${escapeHtml(item.created)}</time><span></span></div><div class="memory-copy"><div><span>${escapeHtml(item.id)}</span><span class="status-pill ${item.status === "Recorded" ? "approved" : "denied"}">${escapeHtml(item.status)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.rationale)}</p><dl><div><dt>Owner</dt><dd>${escapeHtml(item.owner)}</dd></div><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Originating question</dt><dd>${escapeHtml(item.question)}</dd></div></dl><button type="button" data-brief-question="${escapeHtml(item.question)}">Reopen evidence trail ${icons.arrow}</button></div></article>`).join("")}</div><div class="warning-block">Local prototype record. Production Decision Memory would require an approved retention policy, access control and enterprise system of record.</div>`;
+  }
+
   function renderPage(page) {
-    if (page === "verification" && !isReviewer()) {
+    if (["verification", "data-sources"].includes(page) && !isReviewer()) {
       renderHome();
-      toast("Reviewer access required", "Verification cases are visible only to their assigned reviewer accounts.");
+      toast("Reviewer access required", "Verification cases and source oversight are visible only to reviewer accounts.");
       return;
     }
     state.requestId += 1;
     state.pending = false;
     state.workspace = page;
     state.currentAnswer = null;
-    const labels = { verification: "Verification Centre", settings: "Settings" };
+    if (["management-brief", "decision-memory"].includes(page) && !hasManagementAccess()) {
+      renderHome();
+      toast("Management access required", "This view is available to the GCMC, Market Reviewer and Finance demo identities.");
+      return;
+    }
+    const labels = { "today-brief": "Today’s Brief", watchlist: "Watchlist & Alerts", "management-brief": "Management Briefing", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
     const descriptions = {
+      "today-brief": "The signals, decisions and source issues that need attention now.",
+      watchlist: "Monitored signals and transparent alert rules.",
+      "management-brief": "A concise decision-ready view for leadership conversations.",
+      "decision-memory": "The evidence and rationale behind prior decisions.",
       verification: "Human review for answers that may inform decisions.",
+      "data-sources": "Freshness, quality, usage and ownership of governed demo sources.",
       settings: "Choose how BursaIQ responds and behaves on this device."
     };
     setHeading({ title: labels[page], description: descriptions[page] });
     dom.asof_chip.style.display = "none";
     selectNavigation(page);
     dom.workspace_grid.className = "workspace-grid";
-    const content = page === "verification" ? verificationPage() : settingsPage();
+    const pageRenderers = { "today-brief": todayBriefPage, watchlist: watchlistPage, "management-brief": managementBriefPage, "decision-memory": decisionMemoryPage, verification: verificationPage, "data-sources": dataSourcesPage, settings: settingsPage };
+    const content = (pageRenderers[page] || settingsPage)();
     dom.workspace_grid.innerHTML = `<section class="page-panel">${content}</section>`;
     closeNavigation();
   }
@@ -756,7 +912,7 @@
         </div></section>
         <section class="settings-section panel-access-section"><h3>Panel access</h3><p>Request a restricted workspace when it is relevant to your role. Requests require the panel owner’s approval.</p><div class="panel-access-list">${Object.keys(requestablePanels).map(panelAccessRow).join("")}<p class="panel-access-note">Stage 02 simulation: requests are stored on this device and do not change access automatically.</p></div></section>
         <section class="settings-section"><h3>Workspace behaviour</h3><p>Choose what opens first and how supporting analysis appears.</p>
-          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
+          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="today-brief" ${preferences.defaultWorkspace === "today-brief" ? "selected" : ""}>Today’s Brief</option><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
           ${settingSwitch("autoOpenInsights", "Open analysis automatically", "Show the right-side plot or evidence panel after an answer.", preferences.autoOpenInsights)}
           ${settingSwitch("chartMotion", "Animate market charts", "Draw chart lines and bars when the analysis panel opens.", preferences.chartMotion)}
         </section>
@@ -804,14 +960,32 @@
     return `<div class="page-hero"><div><h2>Cases to verify</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
   }
 
+  function dataSourcesPage() {
+    const permittedWorkspaces = new Set(demo.identities[state.role].access);
+    const sources = demo.documents.filter((source) => permittedWorkspaces.has(source.workspace));
+    const healthy = sources.filter((source) => source.health === "Healthy").length;
+    const averageQuality = Math.round(sources.reduce((total, source) => total + Number(source.qualityPct || 0), 0) / Math.max(sources.length, 1));
+    return `<div class="page-hero source-oversight-hero"><div><h2>Source Health</h2><p>Reviewer view of freshness, quality, usage and the accountable people behind every governed source.</p></div><span class="status-pill approved">${healthy} healthy</span></div>
+      <div class="source-summary"><div><span>Visible sources</span><strong>${sources.length}</strong></div><div><span>Average quality</span><strong>${averageQuality}%</strong></div><div><span>Needs attention</span><strong>${sources.length - healthy}</strong></div><div><span>Review scope</span><strong>${escapeHtml(demo.identities[state.role].reviewerFor.join(", "))}</strong></div></div>
+      <div class="data-table-wrap source-table-wrap"><table class="data-table source-table"><thead><tr><th>Data source</th><th>Freshness</th><th>Quality</th><th>Usage</th><th>Updated by</th><th>Health</th></tr></thead><tbody>${sources.map((source) => `<tr><td><span class="source-file-mark ${source.format.toLowerCase()}">${escapeHtml(source.format)}</span><span><strong>${escapeHtml(source.title)}</strong><small>${escapeHtml(workspaceConfig[source.workspace]?.title || source.workspace)} · ${escapeHtml(source.filename)}</small></span></td><td><time>${escapeHtml(source.updated)}</time><small>${escapeHtml(source.freshness || "Current")}</small></td><td><div class="quality-cell"><span><i style="width:${Number(source.qualityPct || 0)}%"></i></span><strong>${Number(source.qualityPct || 0)}%</strong></div></td><td>${escapeHtml(source.usage || "No recent use")}</td><td><strong>${escapeHtml(source.updatedBy || source.owner)}</strong><small>${escapeHtml(source.owner)}</small></td><td><span class="status-pill ${source.health === "Healthy" ? "approved" : "denied"}">${escapeHtml(source.health || source.status)}</span><small>Next · ${escapeHtml(source.nextReview || "Not scheduled")}</small></td></tr>`).join("")}</tbody></table></div>
+      <div class="warning-block">Synthetic demonstration sources only. Health combines illustrative freshness and quality controls; “Updated by” identifies the accountable demo owner in the local manifest.</div>`;
+  }
+
   function updateNavigationVisibility() {
     const regAllowed = hasAccess("reg");
     dom.ask_reg_nav.hidden = !regAllowed;
     dom.ask_reg_nav.setAttribute("aria-hidden", String(!regAllowed));
     const reviewerAllowed = isReviewer();
-    dom.workflow_nav_label.hidden = !reviewerAllowed;
+    const managementAllowed = hasManagementAccess();
+    dom.management_brief_nav.hidden = !managementAllowed;
+    dom.management_brief_nav.setAttribute("aria-hidden", String(!managementAllowed));
+    dom.workflow_nav_label.hidden = !(reviewerAllowed || managementAllowed);
     dom.verification_nav.hidden = !reviewerAllowed;
     dom.verification_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
+    dom.data_sources_nav.hidden = !reviewerAllowed;
+    dom.data_sources_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
+    dom.decision_memory_nav.hidden = !managementAllowed;
+    dom.decision_memory_nav.setAttribute("aria-hidden", String(!managementAllowed));
   }
 
   async function updateIdentity() {
@@ -963,6 +1137,46 @@
 
   function updateCounts() {
     if (dom.verification_count) dom.verification_count.textContent = reviewerCases().filter((item) => item.status === "Pending review").length;
+    if (dom.watchlist_count) dom.watchlist_count.textContent = roleWatchlist().length;
+  }
+
+  function toggleWatch(signalId) {
+    const signal = signalById(signalId);
+    if (!signal) return;
+    const items = [...roleWatchlist()];
+    const existingIndex = items.indexOf(signalId);
+    if (existingIndex >= 0) items.splice(existingIndex, 1);
+    else items.unshift(signalId);
+    persistRoleCollection("bursaiq_watchlists", "watchlists", items);
+    updateCounts();
+    toast(existingIndex >= 0 ? "Removed from watchlist" : "Signal added", existingIndex >= 0 ? `${signal.title} is no longer monitored.` : `${signal.title} is now monitored for this identity.`);
+  }
+
+  function saveCurrentDecision() {
+    if (!state.currentAnswer) return;
+    const existing = (state.decisionMemories[state.role] || []).some((item) => item.question === state.currentQuestion);
+    if (existing) {
+      toast("Already recorded", "This answer is already in Decision Memory for the active identity.");
+      return;
+    }
+    const record = {
+      id: `DEC-${Date.now().toString().slice(-8)}`,
+      title: state.currentAnswer.title,
+      rationale: plainText(state.currentAnswer.agentNarrative || state.currentAnswer.html).slice(0, 220),
+      owner: demo.identities[state.role].name,
+      workspace: workspaceConfig[state.answerWorkspace]?.title || "BursaIQ",
+      status: "Awaiting verification",
+      created: new Date().toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" }),
+      question: state.currentQuestion
+    };
+    persistRoleCollection("bursaiq_decision_memories", "decisionMemories", [record, ...(state.decisionMemories[state.role] || [])]);
+    toast("Decision recorded", `${record.id} was added to Decision Memory.`);
+  }
+
+  function askFromPage(question) {
+    const workspace = routeQuestion(question);
+    switchWorkspace(workspace === "blocked" ? "home" : workspace);
+    window.setTimeout(() => ask(question), 0);
   }
 
   function toast(title, message) {
@@ -1063,6 +1277,35 @@
       toast(state.preferences.plugins[id] ? "Plugin enabled" : "Plugin disabled", `${pluginName} was updated for this device.`);
       return;
     }
+    const briefQuestion = event.target.closest("[data-brief-question]");
+    if (briefQuestion) {
+      askFromPage(briefQuestion.dataset.briefQuestion);
+      return;
+    }
+    const watchToggle = event.target.closest("[data-watch-toggle]");
+    if (watchToggle) {
+      toggleWatch(watchToggle.dataset.watchToggle);
+      renderPage(state.workspace);
+      return;
+    }
+    const insightAction = event.target.closest("[data-insight-action]");
+    if (insightAction) {
+      const command = insightAction.dataset.insightAction;
+      if (command === "watch") toggleWatch(insightAction.dataset.signalId);
+      if (command === "memory") saveCurrentDecision();
+      if (command === "verify") submitVerification(insightAction);
+      if (command === "brief") {
+        switchWorkspace("management-brief");
+        toast("Added to management view", "The current insight is represented in the prototype briefing narrative.");
+        return;
+      }
+      if (command !== "verify") renderEvidence();
+      return;
+    }
+    if (event.target.closest("[data-management-print]")) {
+      window.print();
+      return;
+    }
     const question = event.target.closest("[data-question]");
     if (question) return ask(question.dataset.question);
     const tab = event.target.closest(".evidence-tab");
@@ -1078,6 +1321,7 @@
       return;
     }
     if (event.target.closest("[data-close-insight]")) return closeEvidence();
+    if (event.target.closest("[data-open-insight]")) return showEvidence(state.insightTab, false);
     const action = event.target.closest("[data-answer-action]")?.dataset.answerAction;
     if (action === "insight") showEvidence(event.target.closest("[data-answer-action]")?.dataset.insightTab);
     if (action === "verify") submitVerification(event.target.closest('[data-answer-action="verify"]'));
@@ -1112,7 +1356,23 @@
     dom.workspace_grid.addEventListener("submit", (event) => { if (event.target.id === "chat-form") { event.preventDefault(); ask(document.getElementById("question-input").value); } });
     dom.workspace_grid.addEventListener("input", (event) => { if (event.target.id === "question-input") resizeInput(); });
     dom.workspace_grid.addEventListener("change", updateSetting);
-    dom.workspace_grid.addEventListener("keydown", (event) => { if (event.target.id === "question-input" && event.key === "Enter" && !event.shiftKey) { event.preventDefault(); event.target.form.requestSubmit(); } });
+    dom.workspace_grid.addEventListener("keydown", (event) => {
+      if (event.target.id === "question-input" && event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        event.target.form.requestSubmit();
+        return;
+      }
+      const tab = event.target.closest(".evidence-tab");
+      if (!tab || !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      const tabs = [...dom.workspace_grid.querySelectorAll(".evidence-tab")];
+      let index = tabs.indexOf(tab);
+      if (event.key === "Home") index = 0;
+      else if (event.key === "End") index = tabs.length - 1;
+      else index = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+      event.preventDefault();
+      tabs[index].focus();
+      tabs[index].click();
+    });
     document.getElementById("report-form").addEventListener("submit", createReport);
     dom.access_request_form.addEventListener("submit", submitAccessRequest);
     dom.access_request_reason.addEventListener("input", () => validateAccessRequestReason(false));
@@ -1144,6 +1404,7 @@
     syncNavigationAccessibility();
     const initialWorkspace = state.preferences.defaultWorkspace;
     if (workspaceConfig[initialWorkspace] && hasAccess(initialWorkspace)) renderWorkspace(initialWorkspace);
+    else if (initialWorkspace === "today-brief") renderPage("today-brief");
     else renderHome();
     updateSystemIndicator();
   }

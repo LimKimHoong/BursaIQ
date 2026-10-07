@@ -11,11 +11,11 @@
 </head>
 <body>
   <!--
-  THESIS: BursaIQ is an exchange command surface, not a dashboard of competing cards.
-  OWN-WORLD: Midnight indigo, luminous blue actions, deep translucent materials, SF Pro typography and generous spatial separation.
-  STORY: Ask first; inspect evidence when needed; move governed answers into review without leaving the conversation.
-  FIRST VIEWPORT: A floating navigation material frames one centered assistant prompt; status stays quiet above, and analysis arrives as a right-side sheet.
-  FORM: Apple-style Exchange Command Center, fifth grounded direction, seed 342aab3f.
+  THESIS: BursaIQ is a compact exchange desk, not a generic card dashboard or decorative AI chat screen.
+  OWN-WORLD: Midnight navy, flat blue-gray rules, warm amber actions, market-teal signals, compact rectangular controls and dense operational typography.
+  STORY: Open on today’s exchange brief; investigate a changed signal; carry its evidence into monitoring, decision memory, human review, or a management-ready narrative.
+  FIRST VIEWPORT: The role-aware intelligence brief owns the main field on every viewport, with attention counts, changed signals, and accountable next actions visible before conversation.
+  FORM: Reference-led Midnight Market Desk, preserving the supplied prototype’s three-column cockpit and sidebar motion — seed 342aab3f.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
   -->
   <a class="skip-link" href="#main-content">Skip to workspace</a>
@@ -26,6 +26,11 @@
       </div>
 
       <div class="demo-badge"><span></span> Prototype</div>
+
+      <button class="new-conversation" id="new-thread-button" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+        <span>New conversation</span>
+      </button>
 
       <nav class="primary-nav" aria-label="Workspaces">
         <p class="nav-label">Workspaces</p>
@@ -41,11 +46,40 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>
           <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em>Pilot</em>
         </button>
+        <p class="nav-label nav-label-spaced">Intelligence</p>
+        <button class="nav-item" data-workspace="today-brief" id="today-brief-nav" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 3v4m8-4v4M4 10h16M8 14h3m2 0h3m-8 3h5"/></svg>
+          <span>Today’s Brief</span><em>Live</em>
+        </button>
+        <button class="nav-item" data-workspace="watchlist" id="watchlist-nav" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s8-4.5 8-11V5l-8-3-8 3v5c0 6.5 8 11 8 11zM8 12h3l1.5-3 2 6 1.5-3H19"/></svg>
+          <span>Watchlist &amp; Alerts</span><b id="watchlist-count">0</b>
+        </button>
+        <button class="nav-item" data-workspace="management-brief" id="management-brief-nav" type="button" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>
+          <span>Management Briefing</span>
+        </button>
         <p class="nav-label nav-label-spaced" id="workflow-nav-label" hidden>Workflow</p>
         <button class="nav-item" data-workspace="verification" id="verification-nav" type="button" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
           <span>Verification Centre</span><b id="verification-count">0</b>
         </button>
+        <button class="nav-item" data-workspace="data-sources" id="data-sources-nav" type="button" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+          <span>Source Health</span>
+        </button>
+        <button class="nav-item" data-workspace="decision-memory" id="decision-memory-nav" type="button" hidden aria-hidden="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM8 2v4M9 10h6m-6 4h6"/></svg>
+          <span>Decision Memory</span>
+        </button>
+
+        <div class="demo-question-nav">
+          <p class="nav-label nav-label-spaced">Demo questions</p>
+          <button class="history-item" type="button" data-question="How did the market perform in July?"><span></span>July market performance</button>
+          <button class="history-item" type="button" data-question="How did 30-day ADV change?"><span></span>30-day ADV movement</button>
+          <button class="history-item" type="button" data-question="Which sectors drove the market?"><span></span>Sector drivers</button>
+          <button class="history-item" type="button" data-question="Explain ADV in plain language"><span></span>Explain ADV</button>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -76,9 +110,6 @@
         <div class="breadcrumb"><span>BursaIQ</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg><strong id="breadcrumb-label">BursaIQ Assistant</strong></div>
         <div class="topbar-actions">
           <div class="system-state" title="All demo services available" role="status" aria-live="polite" aria-atomic="true"><span></span><strong>Local demo ready</strong><em class="mobile-status-label" aria-hidden="true">Ready</em></div>
-          <button class="icon-button" id="new-thread-button" type="button" aria-label="Start a new conversation">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
         </div>
       </header>
 
