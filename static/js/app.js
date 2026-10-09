@@ -25,12 +25,14 @@
     refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10.1 0A7 7 0 0 0 6.4 7.7L4 12m16 0-2.4 4.3A7 7 0 0 1 4.9 12"/></svg>`
   };
 
-  const preferencesVersion = 2;
+  const preferencesVersion = 4;
 
   const defaultPreferences = {
     version: preferencesVersion,
     autoOpenInsights: true,
     chartMotion: true,
+    theme: "dark",
+    showPet: true,
     defaultWorkspace: "home",
     plugins: { webSearch: false, pdfTools: true, spreadsheetTools: true }
   };
@@ -158,13 +160,14 @@
       generated: demo.intelligence.generated
     },
     managementRefreshing: false,
-    managementRefreshCount: 0
+    managementRefreshCount: 0,
+    guideOpen: false
   };
 
   const dom = {};
 
   function bindDom() {
-    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "watchlist-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "today-brief-nav", "watchlist-nav", "management-brief-nav", "workflow-nav-label", "verification-nav", "data-sources-nav", "decision-memory-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim"].forEach((id) => {
+    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "watchlist-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "today-brief-nav", "watchlist-nav", "management-brief-nav", "workflow-nav-label", "verification-nav", "data-sources-nav", "decision-memory-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim", "theme-toggle", "guide-pet-shell", "guide-panel", "guide-pet-trigger", "guide-close", "guide-form", "guide-input", "guide-messages", "guide-suggestions"].forEach((id) => {
       dom[id.replaceAll("-", "_")] = document.getElementById(id);
     });
   }
@@ -187,7 +190,7 @@
 
   async function connectBackend() {
     if (location.protocol === "file:") {
-      state.verification = reviewerCases(demo.verification);
+      state.verification = accessibleVerificationCases(demo.verification);
       return;
     }
     try {
@@ -200,7 +203,7 @@
       state.backend = true;
     } catch (_error) {
       state.backend = false;
-      state.verification = reviewerCases(demo.verification);
+      state.verification = accessibleVerificationCases(demo.verification);
     }
   }
 
@@ -233,23 +236,30 @@
     return cases.filter((item) => assignments.has(item.reviewer));
   }
 
+  function requestedCases(cases = state.verification) {
+    const requester = demo.identities[state.role].name;
+    return cases.filter((item) => item.requestedBy === requester);
+  }
+
+  function accessibleVerificationCases(cases = state.verification) {
+    const accessible = new Map();
+    [...reviewerCases(cases), ...requestedCases(cases)].forEach((item) => accessible.set(item.id, item));
+    return [...accessible.values()];
+  }
+
   async function refreshVerificationAccess() {
     if (!state.backend) {
-      state.verification = reviewerCases(demo.verification);
-      return;
-    }
-    if (!isReviewer()) {
-      state.verification = [];
+      state.verification = accessibleVerificationCases(demo.verification);
       return;
     }
     try {
       const response = await fetch(`/api/verification?role=${encodeURIComponent(state.role)}`, { headers: { Accept: "application/json" } });
-      if (!response.ok) throw new Error("Review queue unavailable");
+      if (!response.ok) throw new Error("Verification requests unavailable");
       const payload = await response.json();
       state.verification = Array.isArray(payload.cases) ? payload.cases : [];
     } catch (_error) {
       state.verification = [];
-      toast("Review queue unavailable", "The assigned cases could not be loaded. Try again after checking the local server.");
+      toast("Verification requests unavailable", "Your request status could not be loaded. Try again after checking the local server.");
     }
   }
 
@@ -262,9 +272,187 @@
     applyPreferences();
   }
 
+  function applyTheme() {
+    const theme = state.preferences.theme === "light" ? "light" : "dark";
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+    const themeColor = document.getElementById("theme-color");
+    if (themeColor) themeColor.content = theme === "light" ? "#eef1f8" : "#070b16";
+    if (dom.theme_toggle) {
+      const label = `Switch to ${nextTheme} mode`;
+      dom.theme_toggle.setAttribute("aria-label", label);
+      dom.theme_toggle.setAttribute("title", label);
+      dom.theme_toggle.setAttribute("aria-pressed", String(theme === "light"));
+    }
+    const setting = dom.workspace_grid?.querySelector('[data-setting="theme"]');
+    if (setting && setting.value !== theme) setting.value = theme;
+  }
+
   function applyPreferences() {
+    applyTheme();
+    applyGuideVisibility();
     document.body.classList.toggle("reduce-chart-motion", !state.preferences.chartMotion);
     updateSystemIndicator();
+  }
+
+  function toggleTheme() {
+    state.preferences.theme = state.preferences.theme === "light" ? "dark" : "light";
+    savePreferences();
+    toast(`${state.preferences.theme === "light" ? "Light" : "Dark"} mode`, "Appearance was saved for this device.");
+  }
+
+  let guideCloseTimer = null;
+
+  function closeGuide({ restoreFocus = true, immediate = false } = {}) {
+    if (!dom.guide_panel || !dom.guide_pet_shell) return;
+    window.clearTimeout(guideCloseTimer);
+    const wasOpen = state.guideOpen;
+    state.guideOpen = false;
+    dom.guide_pet_shell.classList.remove("is-open", "is-thinking");
+    dom.guide_pet_trigger?.setAttribute("aria-expanded", "false");
+    dom.guide_pet_trigger?.setAttribute("aria-label", "Open IQ Guide");
+    dom.guide_panel.setAttribute("aria-hidden", "true");
+    const finish = () => {
+      if (!state.guideOpen) dom.guide_panel.hidden = true;
+    };
+    if (immediate) finish();
+    else guideCloseTimer = window.setTimeout(finish, 220);
+    if (wasOpen && restoreFocus && state.preferences.showPet !== false) dom.guide_pet_trigger?.focus();
+  }
+
+  function applyGuideVisibility() {
+    if (!dom.guide_pet_shell) return;
+    const visible = state.preferences.showPet !== false;
+    document.documentElement.dataset.pet = visible ? "visible" : "hidden";
+    if (!visible) closeGuide({ restoreFocus: false, immediate: true });
+    dom.guide_pet_shell.hidden = !visible;
+  }
+
+  function openGuide() {
+    if (!dom.guide_panel || state.preferences.showPet === false) return;
+    window.clearTimeout(guideCloseTimer);
+    state.guideOpen = true;
+    dom.guide_panel.hidden = false;
+    dom.guide_panel.setAttribute("aria-hidden", "false");
+    dom.guide_pet_trigger?.setAttribute("aria-expanded", "true");
+    dom.guide_pet_trigger?.setAttribute("aria-label", "Close IQ Guide");
+    window.requestAnimationFrame(() => {
+      dom.guide_pet_shell?.classList.add("is-open");
+      dom.guide_input?.focus();
+    });
+  }
+
+  function toggleGuide() {
+    if (state.guideOpen) closeGuide();
+    else openGuide();
+  }
+
+  function guideDestinationAvailable(workspace) {
+    if (workspace === "management-brief") return hasManagementAccess();
+    if (workspaceConfig[workspace]) return hasAccess(workspace);
+    return true;
+  }
+
+  function guideReply(question) {
+    const value = question.toLowerCase();
+    const currentLabels = { home: "BursaIQ Assistant", market: "Market Intelligence", learn: "Learn Bursa", reg: "Ask Reg", "today-brief": "Today’s Brief", watchlist: "Watchlist & Alerts", "management-brief": "Management Briefing", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
+    if (/(where am i|current panel|current page)/.test(value)) {
+      return { text: `You’re in ${currentLabels[state.workspace] || "BursaIQ"}. Tell me the task you want to complete and I can recommend the next panel.` };
+    }
+
+    let result;
+    if (/(source health|data source|freshness|updated by|data owner|source quality)/.test(value)) {
+      result = { workspace: "data-sources", label: "Open Source Health", text: "Use Source Health to check governed data sources, freshness, quality, recent usage, ownership and update dates." };
+    } else if (/(verify|verification|review|approve|audit|human check)/.test(value)) {
+      result = { workspace: "verification", label: "Open Verification Centre", text: "Use Verification Centre when an answer may inform a decision and needs a reviewer to inspect its narrative, calculation and evidence trail." };
+    } else if (/(management|leadership|executive|briefing|senior management)/.test(value)) {
+      result = { workspace: "management-brief", label: "Open Management Briefing", text: "Use Management Briefing to turn the current market truth into a concise leadership narrative, decisive metrics and owned priorities." };
+    } else if (/(decision memory|rationale|previous decision|decision history|why.*decid)/.test(value)) {
+      result = { workspace: "decision-memory", label: "Open Decision Memory", text: "Use Decision Memory to revisit the question, evidence, rationale, owner and status behind a recorded decision." };
+    } else if (/(watch|alert|monitor|threshold|notify|tracking)/.test(value)) {
+      result = { workspace: "watchlist", label: "Open Watchlist & Alerts", text: "Use Watchlist & Alerts to monitor signals over time and see the rule that caused each alert." };
+    } else if (/(today|daily brief|what changed|attention|priority|signal)/.test(value)) {
+      result = { workspace: "today-brief", label: "Open Today’s Brief", text: "Use Today’s Brief for the signals, decisions and source issues that deserve attention now." };
+    } else if (/(learn|onboard|definition|term|plain language|understand bursa)/.test(value)) {
+      result = { workspace: "learn", label: "Open Learn Bursa", text: "Use Learn Bursa for plain-language explanations and guided onboarding pathways grounded in approved learning material." };
+    } else if (/(regulation|regulatory|listing|disclosure|misconduct|ask reg)/.test(value)) {
+      result = { workspace: "reg", label: "Open Ask Reg", text: "Use Ask Reg for controlled regulatory guidance, authority boundaries and escalation to the accountable owner." };
+    } else if (/(setting|theme|light mode|dark mode|show.*pet|hide.*pet)/.test(value)) {
+      result = { workspace: "settings", label: "Open Settings", text: "Use Settings to change Light or Dark mode, restore this guide pet, choose the default workspace and manage prototype tools." };
+    } else if (/(workflow|what happens next|next step)/.test(value)) {
+      result = isReviewer()
+        ? { workspace: "verification", label: "Open Verification Centre", text: "For reviewer work, Verification Centre is the clearest starting point. It shows the queue, accountable owner and approval trail." }
+        : { workspace: "decision-memory", label: "Open Decision Memory", text: "For an accountable workflow, start with Decision Memory to preserve the evidence and rationale, then use Verification Centre to track the request through review." };
+    } else {
+      result = { workspace: "home", label: "Open BursaIQ Assistant", text: "Start in BursaIQ Assistant when you are unsure. Ask across approved workspaces there, then move a grounded answer into monitoring, review, decision memory or briefing." };
+    }
+
+    if (guideDestinationAvailable(result.workspace)) return result;
+    if (result.workspace === "reg") {
+      return { workspace: "settings", label: "Open access settings", text: "Ask Reg is restricted for the active demo identity. Open Settings to request panel access; the guide will not expose restricted source details." };
+    }
+    return { workspace: "today-brief", label: "Open Today’s Brief", text: `${currentLabels[result.workspace]} is not available to the active demo identity. Today’s Brief is the best permitted summary of current signals and next actions.` };
+  }
+
+  function appendGuideMessage(role, text, action = null) {
+    if (!dom.guide_messages) return;
+    const message = document.createElement("article");
+    message.className = `guide-message is-${role}`;
+    if (role === "guide") {
+      const avatar = document.createElement("span");
+      avatar.className = "guide-message-avatar";
+      avatar.setAttribute("aria-hidden", "true");
+      const image = document.createElement("img");
+      image.src = "/static/assets/bursaiq-guide-pet.png";
+      image.alt = "";
+      avatar.appendChild(image);
+      message.appendChild(avatar);
+    }
+    const content = document.createElement("div");
+    const copy = document.createElement("p");
+    copy.textContent = text;
+    content.appendChild(copy);
+    if (action?.workspace) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "guide-message-action";
+      button.dataset.guideGo = action.workspace;
+      button.textContent = action.label;
+      content.appendChild(button);
+    }
+    message.appendChild(content);
+    dom.guide_messages.appendChild(message);
+    dom.guide_messages.scrollTop = dom.guide_messages.scrollHeight;
+  }
+
+  function askGuide(question) {
+    const cleanQuestion = String(question || "").trim();
+    if (!cleanQuestion) return;
+    if (/^\/close$/i.test(cleanQuestion)) {
+      state.preferences.showPet = false;
+      savePreferences();
+      toast("IQ Guide hidden", "You can show the pet again from Settings → Appearance.");
+      return;
+    }
+    appendGuideMessage("user", cleanQuestion);
+    const reply = guideReply(cleanQuestion);
+    appendGuideMessage("guide", reply.text, reply);
+    dom.guide_pet_shell?.classList.add("is-thinking");
+    window.setTimeout(() => dom.guide_pet_shell?.classList.remove("is-thinking"), 460);
+  }
+
+  function submitGuideQuestion(event) {
+    event.preventDefault();
+    const question = dom.guide_input?.value || "";
+    if (dom.guide_input) dom.guide_input.value = "";
+    askGuide(question);
+  }
+
+  function navigateFromGuide(workspace) {
+    if (!workspace || !guideDestinationAvailable(workspace)) return;
+    switchWorkspace(workspace);
+    closeGuide({ restoreFocus: false });
   }
 
   function setHeading(config) {
@@ -934,16 +1122,11 @@
   }
 
   function renderPage(page) {
-    if (["verification", "data-sources"].includes(page) && !isReviewer()) {
-      renderHome();
-      toast("Reviewer access required", "Verification cases and source oversight are visible only to reviewer accounts.");
-      return;
-    }
     state.requestId += 1;
     state.pending = false;
     state.workspace = page;
     state.currentAnswer = null;
-    if (["management-brief", "decision-memory"].includes(page) && !hasManagementAccess()) {
+    if (page === "management-brief" && !hasManagementAccess()) {
       renderHome();
       toast("Management access required", "This view is available to the GCMC, Market Reviewer and Finance demo identities.");
       return;
@@ -954,7 +1137,7 @@
       watchlist: "Monitored signals and transparent alert rules.",
       "management-brief": "A concise decision-ready view for leadership conversations.",
       "decision-memory": "The evidence and rationale behind prior decisions.",
-      verification: "Human review for answers that may inform decisions.",
+      verification: isReviewer() ? "Review assigned cases and track the status of requests you submitted." : "Track the latest status of requests you submitted.",
       "data-sources": "Freshness, quality, usage and ownership of governed demo sources.",
       settings: "Choose how BursaIQ responds and behaves on this device."
     };
@@ -1057,6 +1240,10 @@
     const connectionDetail = state.agent.error || (state.agent.available ? "Published agent uses anonymous Direct Line access." : "Add COPILOTSTUDIOAGENT__TOKENENDPOINT to .env.");
     return `<div class="page-hero settings-hero"><div><h2>Your BursaIQ experience</h2><p>Preferences are stored locally in this browser and can be reset at any time.</p></div><button class="button ghost" type="button" data-reset-preferences>Restore defaults</button></div>
       <div class="settings-layout">
+        <section class="settings-section"><h3>Appearance</h3><p>Choose the liquid-glass environment that best suits your workspace.</p>
+          <label class="setting-row setting-select"><span><strong>Colour mode</strong><small>Light uses pearl glass; Dark keeps the current violet midnight palette.</small></span><select data-setting="theme" aria-label="Colour mode"><option value="dark" ${preferences.theme === "dark" ? "selected" : ""}>Dark</option><option value="light" ${preferences.theme === "light" ? "selected" : ""}>Light</option></select></label>
+          ${settingSwitch("showPet", "Show IQ Guide pet", "Keep the animated workspace guide at the bottom-left. Type /Close in its chat to hide it.", preferences.showPet !== false)}
+        </section>
         <section class="settings-section"><h3>Microsoft Copilot Studio</h3><p>Your hosted agent powers BursaIQ conversations. Tokens stay in the local Python service and are never sent to browser code.</p>
           <div class="setting-row"><span><strong>${connectionLabel}</strong><small>${escapeHtml(connectionDetail)}</small></span></div>
         </section>
@@ -1109,11 +1296,16 @@
   }
 
   function verificationPage() {
-    const cases = reviewerCases();
-    if (!cases.length) {
-      return `<div class="page-hero"><div><h2>Cases to verify</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill approved">0 assigned</span></div><div class="empty-state reviewer-empty"><div>${icons.shield}<h2>You’re all caught up</h2><p>No pending or completed cases are assigned to this reviewer account.</p></div></div>`;
-    }
-    return `<div class="page-hero"><div><h2>Cases to verify</h2><p>Only cases assigned to ${escapeHtml(demo.identities[state.role].name)} are shown.</p></div><span class="status-pill">${cases.filter((item) => item.status === "Pending review").length} pending</span></div><div class="data-table-wrap"><table class="data-table"><thead><tr><th>Case</th><th>Requested by</th><th>Reviewer assignment</th><th>Status</th><th>Action</th></tr></thead><tbody>${cases.map((item) => `<tr><td><strong>${escapeHtml(item.title)}</strong><br><small>${escapeHtml(item.id)}</small></td><td>${escapeHtml(item.requestedBy)}</td><td>${escapeHtml(item.reviewer)}</td><td><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></td><td><button class="button ${item.status === "Pending review" ? "secondary" : "ghost"}" type="button" data-verification-details="${escapeHtml(item.id)}">${item.status === "Pending review" ? "Review details" : "View decision"}</button></td></tr>`).join("")}</tbody></table></div><div class="warning-block">Reviewer-scoped local demonstration. The server rejects access to cases outside this account’s assigned queue.</div>`;
+    const assignedPending = reviewerCases().filter((item) => item.status === "Pending review");
+    const submitted = requestedCases();
+    const statusClass = (item) => item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : "";
+    const requestRows = submitted.length
+      ? `<div class="verification-case-list">${submitted.map((item) => `<article class="verification-case-row"><div class="verification-case-title"><span>${escapeHtml(item.id)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.created || item.createdAt || "Demo queue")}</small></div><span class="status-pill ${statusClass(item)}">${escapeHtml(item.status)}</span><dl><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Assigned reviewer</dt><dd>${escapeHtml(item.reviewer)}</dd></div></dl><button class="button ghost" type="button" data-verification-details="${escapeHtml(item.id)}">View request</button></article>`).join("")}</div>`
+      : `<div class="verification-empty">${icons.shield}<strong>No requests submitted</strong><p>Submit an answer through Verify to track its review status here.</p></div>`;
+    const reviewPanel = isReviewer()
+      ? `<section class="verification-panel is-reviewer-panel"><header class="verification-panel-head"><div><span class="verification-scope">${icons.lock} Reviewer only</span><h2>Pending my review</h2><p>Outstanding cases assigned to ${escapeHtml(demo.identities[state.role].name)}.</p></div><span class="status-pill">${assignedPending.length} pending</span></header>${assignedPending.length ? `<div class="verification-case-list">${assignedPending.map((item) => `<article class="verification-case-row"><div class="verification-case-title"><span>${escapeHtml(item.id)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.created || item.createdAt || "Demo queue")}</small></div><span class="status-pill">${escapeHtml(item.status)}</span><dl><div><dt>Requested by</dt><dd>${escapeHtml(item.requestedBy)}</dd></div><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div></dl><button class="button secondary" type="button" data-verification-details="${escapeHtml(item.id)}">Review details</button></article>`).join("")}</div>` : `<div class="verification-empty">${icons.check}<strong>You’re all caught up</strong><p>No outstanding cases are assigned to this reviewer account.</p></div>`}</section>`
+      : "";
+    return `<div class="verification-workspace${isReviewer() ? " has-review-queue" : " request-only"}">${reviewPanel}<section class="verification-panel"><header class="verification-panel-head"><div><h2>My submitted requests</h2><p>Requests created by ${escapeHtml(demo.identities[state.role].name)}, with their latest review status.</p></div><span class="status-pill approved">${submitted.length} ${submitted.length === 1 ? "request" : "requests"}</span></header>${requestRows}</section></div><div class="warning-block">Stage 02 local workflow. Each identity can see its own submitted requests; only assigned reviewers can open the pending review queue or record a decision.</div>`;
   }
 
   function dataSourcesPage() {
@@ -1121,9 +1313,10 @@
     const sources = demo.documents.filter((source) => permittedWorkspaces.has(source.workspace));
     const healthy = sources.filter((source) => source.health === "Healthy").length;
     const averageQuality = Math.round(sources.reduce((total, source) => total + Number(source.qualityPct || 0), 0) / Math.max(sources.length, 1));
+    const reviewScope = isReviewer() ? demo.identities[state.role].reviewerFor.join(", ") : "Permitted workspaces";
     return `<div class="page-toolbar"><span class="status-pill approved">${healthy} healthy</span></div>
-      <div class="source-summary"><div><span>Visible sources</span><strong>${sources.length}</strong></div><div><span>Average quality</span><strong>${averageQuality}%</strong></div><div><span>Needs attention</span><strong>${sources.length - healthy}</strong></div><div><span>Review scope</span><strong>${escapeHtml(demo.identities[state.role].reviewerFor.join(", "))}</strong></div></div>
-      <div class="data-table-wrap source-table-wrap"><table class="data-table source-table"><thead><tr><th>Data source</th><th>Freshness</th><th>Quality</th><th>Usage</th><th>Updated by</th><th>Health</th></tr></thead><tbody>${sources.map((source) => `<tr><td><span class="source-file-mark ${source.format.toLowerCase()}">${escapeHtml(source.format)}</span><span><strong>${escapeHtml(source.title)}</strong><small>${escapeHtml(workspaceConfig[source.workspace]?.title || source.workspace)} · ${escapeHtml(source.filename)}</small></span></td><td><time>${escapeHtml(source.updated)}</time><small>${escapeHtml(source.freshness || "Current")}</small></td><td><div class="quality-cell"><span><i style="width:${Number(source.qualityPct || 0)}%"></i></span><strong>${Number(source.qualityPct || 0)}%</strong></div></td><td>${escapeHtml(source.usage || "No recent use")}</td><td><strong>${escapeHtml(source.updatedBy || source.owner)}</strong><small>${escapeHtml(source.owner)}</small></td><td><span class="status-pill ${source.health === "Healthy" ? "approved" : "denied"}">${escapeHtml(source.health || source.status)}</span><small>Next · ${escapeHtml(source.nextReview || "Not scheduled")}</small></td></tr>`).join("")}</tbody></table></div>
+      <div class="source-summary"><div><span>Visible sources</span><strong>${sources.length}</strong></div><div><span>Average quality</span><strong>${averageQuality}%</strong></div><div><span>Needs attention</span><strong>${sources.length - healthy}</strong></div><div><span>Review scope</span><strong>${escapeHtml(reviewScope)}</strong></div></div>
+      <div class="data-table-wrap source-table-wrap"><table class="data-table source-table"><thead><tr><th>Data source</th><th>Freshness</th><th>Quality</th><th>Usage</th><th>Updated by</th><th>Health</th></tr></thead><tbody>${sources.map((source) => `<tr><td><span class="source-cell"><span class="source-file-mark ${source.format.toLowerCase()}">${escapeHtml(source.format)}</span><span><strong>${escapeHtml(source.title)}</strong><small>${escapeHtml(workspaceConfig[source.workspace]?.title || source.workspace)} · ${escapeHtml(source.filename)}</small></span></span></td><td><time>${escapeHtml(source.updated)}</time><small>${escapeHtml(source.freshness || "Current")}</small></td><td><div class="quality-cell"><span><i style="width:${Number(source.qualityPct || 0)}%"></i></span><strong>${Number(source.qualityPct || 0)}%</strong></div></td><td>${escapeHtml(source.usage || "No recent use")}</td><td><strong>${escapeHtml(source.updatedBy || source.owner)}</strong><small>${escapeHtml(source.owner)}</small></td><td><span class="status-pill ${source.health === "Healthy" ? "approved" : "denied"}">${escapeHtml(source.health || source.status)}</span><small>Next · ${escapeHtml(source.nextReview || "Not scheduled")}</small></td></tr>`).join("")}</tbody></table></div>
       <div class="warning-block">Synthetic demonstration sources only. Health combines illustrative freshness and quality controls; “Updated by” identifies the accountable demo owner in the local manifest.</div>`;
   }
 
@@ -1131,17 +1324,16 @@
     const regAllowed = hasAccess("reg");
     dom.ask_reg_nav.hidden = !regAllowed;
     dom.ask_reg_nav.setAttribute("aria-hidden", String(!regAllowed));
-    const reviewerAllowed = isReviewer();
     const managementAllowed = hasManagementAccess();
     dom.management_brief_nav.hidden = !managementAllowed;
     dom.management_brief_nav.setAttribute("aria-hidden", String(!managementAllowed));
-    dom.workflow_nav_label.hidden = !(reviewerAllowed || managementAllowed);
-    dom.verification_nav.hidden = !reviewerAllowed;
-    dom.verification_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
-    dom.data_sources_nav.hidden = !reviewerAllowed;
-    dom.data_sources_nav.setAttribute("aria-hidden", String(!reviewerAllowed));
-    dom.decision_memory_nav.hidden = !managementAllowed;
-    dom.decision_memory_nav.setAttribute("aria-hidden", String(!managementAllowed));
+    dom.workflow_nav_label.hidden = false;
+    dom.verification_nav.hidden = false;
+    dom.verification_nav.setAttribute("aria-hidden", "false");
+    dom.data_sources_nav.hidden = false;
+    dom.data_sources_nav.setAttribute("aria-hidden", "false");
+    dom.decision_memory_nav.hidden = false;
+    dom.decision_memory_nav.setAttribute("aria-hidden", "false");
   }
 
   async function updateIdentity() {
@@ -1180,7 +1372,7 @@
       if (!response.ok) throw new Error("Report service failed");
       const payload = await response.json();
       record.url = payload.downloadUrl;
-      if (payload.verification && reviewerCases([payload.verification]).length) state.verification.unshift(payload.verification);
+      if (payload.verification) state.verification.unshift(payload.verification);
     } catch (_error) {
       toast("PDF service unavailable", "Check the local server and try again.");
       return;
@@ -1236,7 +1428,7 @@
         return;
       }
     }
-    if (reviewerCases([item]).length) state.verification.unshift(item);
+    state.verification.unshift(item);
     setVerificationButtonState(button, "submitted");
     updateCounts();
     toast("Sent for verification", `${item.id} was assigned to ${item.reviewer}.`);
@@ -1261,12 +1453,19 @@
   }
 
   function showVerificationDetails(id) {
-    const item = reviewerCases().find((entry) => entry.id === id);
+    const item = accessibleVerificationCases().find((entry) => entry.id === id);
     if (!item || !dom.verification_dialog) return;
     const details = item.details || {};
     const context = details.context && typeof details.context === "object" ? Object.entries(details.context) : [];
-    dom.verification_dialog_title.textContent = item.status === "Pending review" ? "Review verification case" : "Verification decision";
-    dom.verification_detail_content.innerHTML = `<div class="review-case-head"><div><span>${escapeHtml(item.id)}</span><h3>${escapeHtml(item.title)}</h3></div><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></div><dl class="review-meta"><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Requested by</dt><dd>${escapeHtml(item.requestedBy)}</dd></div><div><dt>Assigned reviewer</dt><dd>${escapeHtml(item.reviewer)}</dd></div><div><dt>Submitted</dt><dd>${escapeHtml(item.created || item.createdAt || "Demo queue")}</dd></div></dl><section class="review-section"><h4>Question and answer</h4><p class="review-question">${escapeHtml(details.question || "How did the market perform in July?")}</p><h5>${escapeHtml(details.answerTitle || item.title)}</h5><p>${escapeHtml(details.answerText || "This seeded demonstration case packages the answer narrative, deterministic calculations and cited source locations for reviewer inspection.")}</p></section><section class="review-section"><h4>Calculation</h4><div class="formula-box">${escapeHtml(details.formula || item.scope)}</div>${context.length ? `<ul class="context-list">${context.map(([key, value]) => `<li><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></li>`).join("")}</ul>` : ""}</section><section class="review-section"><h4>Evidence package</h4>${verificationSourceList(details.sources)}</section><div class="review-checklist"><span>${icons.check} Narrative inspected</span><span>${icons.check} Calculation inspected</span><span>${icons.check} Sources inspected</span></div>${item.status === "Pending review" ? `<div class="dialog-actions"><button class="button danger" type="button" data-verify="${escapeHtml(item.id)}" data-status="Changes requested">Request changes</button><button class="button primary" type="button" data-verify="${escapeHtml(item.id)}" data-status="Approved">Approve case</button></div>` : `<div class="warning-block">Decision recorded in the local audit store.</div>`}`;
+    const canReview = item.status === "Pending review" && reviewerCases().some((entry) => entry.id === item.id);
+    const checklistLabel = item.status === "Pending review" && !canReview ? "included" : "inspected";
+    dom.verification_dialog_title.textContent = canReview ? "Review verification case" : "Verification request";
+    const outcome = canReview
+      ? `<div class="dialog-actions"><button class="button danger" type="button" data-verify="${escapeHtml(item.id)}" data-status="Changes requested">Request changes</button><button class="button primary" type="button" data-verify="${escapeHtml(item.id)}" data-status="Approved">Approve case</button></div>`
+      : item.status === "Pending review"
+        ? `<div class="warning-block">Awaiting review by ${escapeHtml(item.reviewer)}. Only the assigned reviewer can approve this request or ask for changes.</div>`
+        : `<div class="warning-block">Decision recorded in the local audit store.</div>`;
+    dom.verification_detail_content.innerHTML = `<div class="review-case-head"><div><span>${escapeHtml(item.id)}</span><h3>${escapeHtml(item.title)}</h3></div><span class="status-pill ${item.status === "Approved" ? "approved" : item.status === "Changes requested" ? "denied" : ""}">${escapeHtml(item.status)}</span></div><dl class="review-meta"><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Requested by</dt><dd>${escapeHtml(item.requestedBy)}</dd></div><div><dt>Assigned reviewer</dt><dd>${escapeHtml(item.reviewer)}</dd></div><div><dt>Submitted</dt><dd>${escapeHtml(item.created || item.createdAt || "Demo queue")}</dd></div></dl><section class="review-section"><h4>Question and answer</h4><p class="review-question">${escapeHtml(details.question || "How did the market perform in July?")}</p><h5>${escapeHtml(details.answerTitle || item.title)}</h5><p>${escapeHtml(details.answerText || "This seeded demonstration case packages the answer narrative, deterministic calculations and cited source locations for reviewer inspection.")}</p></section><section class="review-section"><h4>Calculation</h4><div class="formula-box">${escapeHtml(details.formula || item.scope)}</div>${context.length ? `<ul class="context-list">${context.map(([key, value]) => `<li><span>${escapeHtml(key)}</span><strong>${escapeHtml(value)}</strong></li>`).join("")}</ul>` : ""}</section><section class="review-section"><h4>Evidence package</h4>${verificationSourceList(details.sources)}</section><div class="review-checklist"><span>${icons.check} Narrative ${checklistLabel}</span><span>${icons.check} Calculation ${checklistLabel}</span><span>${icons.check} Sources ${checklistLabel}</span></div>${outcome}`;
     dom.verification_dialog.showModal();
   }
 
@@ -1292,7 +1491,7 @@
   }
 
   function updateCounts() {
-    if (dom.verification_count) dom.verification_count.textContent = reviewerCases().filter((item) => item.status === "Pending review").length;
+    if (dom.verification_count) dom.verification_count.textContent = accessibleVerificationCases().filter((item) => item.status === "Pending review").length;
     if (dom.watchlist_count) dom.watchlist_count.textContent = roleWatchlist().length;
   }
 
@@ -1501,11 +1700,30 @@
     document.querySelectorAll("[data-workspace]").forEach((item) => item.addEventListener("click", () => switchWorkspace(item.dataset.workspace)));
     dom.role_select.addEventListener("change", updateIdentity);
     dom.open_report_button.addEventListener("click", openReportDialog);
-    dom.new_thread_button.addEventListener("click", () => switchWorkspace(workspaceConfig[state.workspace] ? state.workspace : "home"));
+    dom.new_thread_button.addEventListener("click", () => switchWorkspace("home"));
+    dom.theme_toggle.addEventListener("click", toggleTheme);
+    dom.guide_pet_trigger.addEventListener("click", toggleGuide);
+    dom.guide_close.addEventListener("click", () => closeGuide());
+    dom.guide_form.addEventListener("submit", submitGuideQuestion);
+    dom.guide_panel.addEventListener("click", (event) => {
+      const suggestion = event.target.closest("[data-guide-question]");
+      if (suggestion) {
+        askGuide(suggestion.dataset.guideQuestion);
+        dom.guide_input?.focus();
+        return;
+      }
+      const destination = event.target.closest("[data-guide-go]");
+      if (destination) navigateFromGuide(destination.dataset.guideGo);
+    });
     dom.menu_button.addEventListener("click", toggleNavigation);
     dom.mobile_scrim.addEventListener("click", () => closeNavigation({ restoreFocus: true }));
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && document.body.classList.contains("nav-open")) closeNavigation({ restoreFocus: true });
+      if (event.key !== "Escape") return;
+      if (state.guideOpen) {
+        closeGuide();
+        return;
+      }
+      if (document.body.classList.contains("nav-open")) closeNavigation({ restoreFocus: true });
     });
     window.addEventListener("resize", syncNavigationAccessibility);
     dom.workspace_grid.addEventListener("click", handleWorkspaceClick);

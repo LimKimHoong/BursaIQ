@@ -1,11 +1,26 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#070b16">
+  <meta name="theme-color" id="theme-color" content="#070b16">
   <meta name="description" content="BursaIQ — evidence-grounded market intelligence for Bursa Malaysia teams.">
   <title>BursaIQ — Decision intelligence, with evidence</title>
+  <script>
+    (() => {
+      try {
+        const preferences = JSON.parse(localStorage.getItem("bursaiq_preferences") || "{}");
+        const theme = preferences.theme === "light" ? "light" : "dark";
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.dataset.pet = preferences.showPet === false ? "hidden" : "visible";
+        document.documentElement.style.colorScheme = theme;
+        document.getElementById("theme-color").content = theme === "light" ? "#eef1f8" : "#070b16";
+      } catch (_error) {
+        document.documentElement.dataset.theme = "dark";
+        document.documentElement.dataset.pet = "visible";
+      }
+    })();
+  </script>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/css/app.css">
 </head>
@@ -21,8 +36,6 @@
   <a class="skip-link" href="#main-content">Skip to workspace</a>
   <div class="app-shell" id="app">
     <aside class="primary-sidebar" id="primary-sidebar" aria-label="BursaIQ navigation">
-      <div class="demo-badge"><span class="demo-badge-dot"></span><span class="demo-badge-text">Prototype</span></div>
-
       <button class="new-conversation" id="new-thread-button" type="button">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
         <span>New conversation</span>
@@ -57,22 +70,29 @@
           <span>Management Briefing</span>
         </button>
 
-        <p class="nav-label nav-label-spaced" id="workflow-nav-label" hidden><span>Workflow</span></p>
-        <button class="nav-item" data-workspace="verification" id="verification-nav" type="button" hidden aria-hidden="true">
+        <p class="nav-label nav-label-spaced" id="workflow-nav-label"><span>Workflow</span></p>
+        <button class="nav-item" data-workspace="verification" id="verification-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
           <span>Verification Centre</span><b id="verification-count">0</b>
         </button>
-        <button class="nav-item" data-workspace="data-sources" id="data-sources-nav" type="button" hidden aria-hidden="true">
+        <button class="nav-item" data-workspace="data-sources" id="data-sources-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
           <span>Source Health</span>
         </button>
-        <button class="nav-item" data-workspace="decision-memory" id="decision-memory-nav" type="button" hidden aria-hidden="true">
+        <button class="nav-item" data-workspace="decision-memory" id="decision-memory-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM8 2v4M9 10h6m-6 4h6"/></svg>
           <span>Decision Memory</span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
+        <button class="footer-settings sidebar-theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
+          <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <g class="theme-icon-sun"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g>
+            <path class="theme-icon-moon" d="M20.5 15.2A8.7 8.7 0 0 1 8.8 3.5 8.8 8.8 0 1 0 20.5 15.2z"/>
+          </svg>
+          <span>Light / Dark</span>
+        </button>
         <button class="footer-settings" data-workspace="settings" id="settings-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.09v4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
           <span>Settings</span>
@@ -124,6 +144,36 @@
   </div>
 
   <div class="mobile-scrim" id="mobile-scrim"></div>
+
+  <section class="guide-pet-shell" id="guide-pet-shell" aria-label="IQ Guide">
+    <div class="guide-panel" id="guide-panel" role="dialog" aria-modal="false" aria-labelledby="guide-title" aria-hidden="true" hidden>
+      <header class="guide-header">
+        <span class="guide-avatar" aria-hidden="true"><img src="/static/assets/bursaiq-guide-pet.png" alt=""></span>
+        <div><strong id="guide-title">IQ Guide</strong><small>Workspace directory</small></div>
+        <button class="guide-close" id="guide-close" type="button" aria-label="Close IQ Guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="guide-messages" id="guide-messages" aria-live="polite" aria-relevant="additions">
+        <article class="guide-message is-guide"><span class="guide-message-avatar" aria-hidden="true"><img src="/static/assets/bursaiq-guide-pet.png" alt=""></span><p>Not sure where to go? Tell me what you need to do and I’ll point you to the right BursaIQ workspace or workflow.</p></article>
+      </div>
+      <div class="guide-suggestions" id="guide-suggestions" aria-label="Suggested directory questions">
+        <button type="button" data-guide-question="Where should I start?">Where should I start?</button>
+        <button type="button" data-guide-question="Which panel tracks alerts?">Track alerts</button>
+        <button type="button" data-guide-question="How does review work?">Review workflow</button>
+      </div>
+      <form class="guide-form" id="guide-form">
+        <label class="sr-only" for="guide-input">Ask IQ Guide which BursaIQ panel to use</label>
+        <input id="guide-input" type="text" maxlength="240" autocomplete="off" placeholder="Ask which panel to use…">
+        <button type="submit" aria-label="Ask IQ Guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-2-5zM5 12l7 2"/></svg></button>
+      </form>
+      <p class="guide-command">Navigation help stays on this device · type <code>/Close</code> to hide the pet</p>
+    </div>
+    <span class="guide-pet-hint" aria-hidden="true">Ask me where to go</span>
+    <button class="guide-pet-trigger" id="guide-pet-trigger" type="button" aria-label="Open IQ Guide" aria-controls="guide-panel" aria-expanded="false">
+      <span class="guide-pet-orbit" aria-hidden="true"></span>
+      <img class="guide-pet-image" src="/static/assets/bursaiq-guide-pet.png" alt="">
+      <span class="guide-pet-status" aria-hidden="true"></span>
+    </button>
+  </section>
 
   <dialog class="app-dialog" id="report-dialog" aria-labelledby="report-dialog-title">
     <form method="dialog" class="dialog-shell" id="report-form">

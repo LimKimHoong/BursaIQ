@@ -1,6 +1,6 @@
 ---
 name: BursaIQ
-description: A compact midnight market desk for role-aware intelligence, governed answers, and accountable action.
+description: A two-mode liquid-glass market desk for role-aware intelligence, governed answers, and accountable action.
 colors:
   ink: "#f5f7fa"
   ink-soft: "#aeb8ca"
@@ -50,9 +50,10 @@ typography:
 rounded:
   xs: "7px"
   sm: "8px"
-  md: "10px"
-  lg: "14px"
-  xl: "16px"
+  md: "13px"
+  lg: "20px"
+  xl: "26px"
+  shell: "30px"
   pill: "999px"
 spacing:
   xs: "7px"
@@ -91,11 +92,11 @@ components:
     padding: "6px 11px"
     height: "44px"
   composer:
-    backgroundColor: "{colors.panel}"
+    backgroundColor: "rgba(19, 25, 46, 0.66)"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
     rounded: "{rounded.xl}"
-    padding: "13px 7px 7px 16px"
+    padding: "18px 10px 11px 20px"
   answer-card:
     backgroundColor: "{colors.panel}"
     textColor: "{colors.ink-soft}"
@@ -117,24 +118,37 @@ components:
 
 **Creative North Star: "The Midnight Market Desk"**
 
-BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.
+BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.
 
-The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
+The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Appearance sits directly above Settings in the rail and uses the same complete 44px tile in compact mode; the demo identity remains an unboxed avatar-and-name control. A selective liquid-glass layer gives the conversational entry point, navigation chrome, and Decision Canvas a tactile sense of depth; dense ledgers remain line-led and optically quiet. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Muted violet appears only as refracted material light. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
 
 **Key Characteristics:**
 
-- Midnight-navy ground with amber actions and teal analytical signals.
+- A persistent Light / Dark appearance choice: violet midnight glass after dark and pearl-lilac glass in daylight.
+- An animated IQ Guide pet provides local, role-aware wayfinding without becoming a second answer engine.
 - The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.
 - Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.
 - Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.
-- Compact rectangular controls and fine structural rules instead of decorative glass.
+- Liquid glass for floating, interactive surfaces; fine structural rules for evidence-heavy operational content.
 - Prepared questions and answers remain clearly labelled when Copilot is unavailable.
 - Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.
 - Motion communicates spatial state and stops under reduced-motion preferences.
 
-## Colors
+## Themes & Colors
 
-The palette resembles an exchange floor at night: deep navy structure, restrained cool text, amber action, and teal market feedback.
+The shared accent logic resembles an exchange floor: amber action, teal market feedback, and restrained violet refraction. Dark mode uses deep navy structure and cool light ink. Light mode uses a pearl-blue ground, dark navy ink, translucent white-lilac material, and darker teal/gold variants so status and action remain readable. The choice is stored on the device, applied before first paint, and available from the navigation rail directly above Settings as well as from the Settings page.
+
+### Dark — Midnight Market Desk
+
+- Violet-tinted navy liquid glass sits over a continuous midnight ground.
+- White and cool grey ink preserve dense analytical hierarchy.
+- This is the default and retains the established BursaIQ prototype identity.
+
+### Light — Pearl Exchange
+
+- Pale blue-grey ground, translucent pearl surfaces, and restrained lilac refraction create daylight glass without flattening the interface into white cards.
+- Dark navy ink carries hierarchy; teal and gold are deepened for accessible contrast.
+- Borders use white upper rims and cool structural hairlines; shadows are softer and less black than in Dark mode.
 
 ### Primary
 
@@ -163,7 +177,7 @@ The palette resembles an exchange floor at night: deep navy structure, restraine
 
 **The Amber Acts, Teal Explains Rule.** Amber is the scarce action and emphasis color; teal communicates analytical state, navigation intent, focus, and healthy operation.
 
-**The Structure by Line Rule.** Separate operational zones with navy tone and one-pixel blue-gray rules, not extra containers, gradients, or glass effects.
+**The Glass Floats, Evidence Stays Still Rule.** Use refracted glass for navigation, the composer, chat exchanges, dialogs, and the Decision Canvas. Keep dense ledgers, tables, and source metadata line-led and substantially opaque.
 
 ## Typography
 
@@ -199,57 +213,67 @@ Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44p
 
 ## Elevation & Depth
 
-The system is flat by default. Hierarchy comes from tonal navy layers and hairlines, not persistent shadows. The composer uses a restrained ambient shadow to anchor the primary input; amber controls use a small tinted lift; the mobile drawer gains a strong side shadow only while open. Focus is a teal border plus a quiet three-pixel wash.
+Depth follows interaction. The composer is the clearest glass object: violet-tinted navy in Dark mode and pearl-lilac with a cool teal refraction in Light mode. Both use a bright upper rim, offset shadow, and saturated background blur. Navigation chrome and the Decision Canvas use heavier glass; answer cards and compact controls use lighter refraction. Ledgers and tables stay comparatively flat. Focus is a teal border plus a quiet three-pixel wash.
 
 ### Shadow Vocabulary
 
-- **Composer anchor** (`0 12px 32px rgba(0, 0, 0, .20)`): Keeps the question input legible against the continuous ground.
+- **Composer float:** Dark uses `0 28px 80px rgba(2, 5, 16, .44)`; Light uses a softer `0 28px 72px rgba(65, 62, 88, .18)` plus a white inset rim.
 - **Amber action lift** (`0 8px 18px rgba(242, 184, 75, .14)`): Used only beneath the send control.
 - **Mobile drawer depth** (`18px 0 50px rgba(0, 0, 0, .42)`): Appears only while the off-canvas navigation is open.
 
 ### Named Rules
 
-**The Flat Until Spatial Rule.** Add shadow only when an element must sit above another plane—the composer, a primary action, or the open mobile drawer.
+**The Weight Follows Area Rule.** Large glass surfaces receive stronger blur and deeper shadows; compact controls receive lighter material and almost no independent elevation.
 
 ## Shapes
 
-The form language is compact and mildly rounded. Structural panels remain square to the viewport; navigation and small controls use 7–10px corners; answer cards use 14px; the composer uses 16px; suggestion and status chips are pills. The asymmetric question bubble uses a 4px lower-right corner to communicate direction without adding a speech-tail ornament.
+The outer application shell uses a 30px curve on desktop. Navigation and compact controls use 8–13px corners; answer cards use 22px; the composer uses 26px; suggestion and status chips remain pills. The asymmetric question bubble keeps a tighter lower-right corner to communicate direction without adding a speech-tail ornament. Mobile drops the outer-shell inset while preserving 22px composer and drawer geometry.
 
 ## Components
 
+### IQ Guide Pet
+
+The supplied white two-eye character sits at the bottom-left beside the compact rail. Its idle motion is a restrained three-pixel drift; hover produces one short greeting tilt, and opening the directory gives it a listening posture. The character is a transparent raster cutout rather than a redrawn icon, preserving the user-supplied expression in both themes. All looping motion stops under reduced-motion preferences.
+
+Clicking the pet opens a non-modal liquid-glass directory anchored to the character. The guide recommends the correct BursaIQ workspace or workflow, explains role boundaries, and offers one direct navigation action. It is intentionally local and deterministic, so wayfinding remains available when Copilot Studio cannot be reached and no question is sent outside the device. `/Close` hides the entire pet; Settings → Appearance restores it. Escape closes only the panel. The saved visibility preference is applied before first paint.
+
+The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mode. It never obscures access rules: unavailable reviewer, management, or regulatory destinations resolve to a permitted alternative with an explicit explanation.
+
 ### Buttons
 
-- **Shape:** Compact 8–11px corners with a 44px target.
+- **Shape:** Compact 8–13px corners with a 44px target.
 - **Primary:** Exchange Gold on Midnight Ground; the send icon is the clearest example.
 - **Hover / Focus:** Amber brightens on hover; focus is a visible teal outline/wash; active state scales briefly to 0.94–0.98.
-- **Secondary:** Midnight fill, hairline border, soft ink; teal appears on hover.
+- **Secondary:** Translucent theme-aware fill, hairline border, soft ink; teal appears on hover.
 
 ### Chips
 
-- **Style:** Pill-shaped navy controls with soft text and a hairline border.
+- **Style:** Pill-shaped translucent controls with soft text and a hairline border.
 - **State:** Hover moves border and text to teal. Provenance chips use amber for predefined fallback and teal for governed/local state.
 
 ### Cards / Containers
 
-- **Corner Style:** 10px for analytical cards and 14px for conversation cards.
-- **Background:** Panel navy nested inside the midnight ground.
-- **Shadow Strategy:** Flat by default; rely on tone and hairlines.
+- **Corner Style:** 10–12px for analytical cards and 21–22px for conversation cards.
+- **Background:** Refracted violet-navy glass in Dark mode and pearl-lilac glass in Light mode; dense data remains more opaque in both.
+- **Shadow Strategy:** Deep and soft only where a surface floats; ledger rows rely on tone and hairlines.
 - **Border:** One-pixel Hairline; gold-tinted hairline for fallback or caution notes.
 - **Internal Padding:** Usually 11–16px.
 
 ### Inputs / Fields
 
-- **Style:** The signature composer is a 16px panel with a strong hairline and a 13px text field.
+- **Style:** The signature composer is a 26px liquid-glass panel with a bright rim, 14px desktop text, and 16px mobile text.
 - **Focus:** Border shifts to Market Teal with a quiet three-pixel teal wash.
 - **Error / Disabled:** Connection failures appear as explicit content, never as silent disabled controls.
 
 ### Navigation
 
-The desktop rail is a fixed black-navy 72px icon column with 44px targets, ordered by task progression: Workspace, Intelligence, then Workflow. Thin rules distinguish the groups while compact; hovering the rail or moving keyboard focus into it reveals the full 250px names over the workspace without shifting the canvas. The top bar carries only the BursaIQ product name; the active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Watchlist remains available to every identity, while Management Briefing and Decision Memory appear only for GCMC, Market Reviewer, and Finance identities. Verification Centre and Source Health appear only for reviewer identities, and Ask Reg remains access-controlled. Active rows use Panel navy and a teal icon. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
+The desktop rail is a fixed 72px icon column with complete 44px square targets, ordered by task progression: Workspace, Intelligence, then Workflow. It uses black-violet glass in Dark mode and pearl-lilac glass in Light mode. Active and hover surfaces keep all four corners visible while compact, then widen into full rows as the rail reveals its 250px labels over the workspace. Thin rules distinguish the groups while compact. The rail begins directly with the unboxed New conversation action—there is no prototype badge—and always returns to the single landing-page composer. The top bar carries only the BursaIQ product name and service state; the matching Light / Dark and Settings tiles sit together at the foot of the rail, above the unboxed identity control. The active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Verification Centre, Source Health, and Decision Memory are available to every identity, Management Briefing remains role-aware, and Ask Reg remains access-controlled. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
 
 ### Intelligence & Workflow Ledgers
 
-Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents reviewer-scoped freshness and quality; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger. Its instruction field and adjacent Print/Refresh controls regenerate the narrative through Copilot Studio, with a visibly labelled deterministic fallback when the agent cannot be reached.
+Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents freshness and quality for sources permitted to the active identity; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger. Its instruction field and adjacent Print/Refresh controls regenerate the narrative through Copilot Studio, with a visibly labelled deterministic fallback when the agent cannot be reached.
+
+Verification Centre separates two responsibilities without mixing their authority. Every identity sees My submitted requests and the latest status of each request. Reviewer identities additionally see Pending my review, which contains only outstanding cases assigned to their review queue and is the sole surface that exposes approval or change-request actions. Both sections use the same line-led case grammar, but the reviewer panel carries an explicit access label.
 
 Watchlist and Decision Memory writes are role-scoped in local browser storage; preferences and access requests are also device-local. Verification uses the local audit queue, and no prototype action implies an external notification. Synthetic, restricted, and proposed-production boundaries remain adjacent to the affected workflow.
 
@@ -268,13 +292,17 @@ The right canvas is a persistent analytical plane with four keyboard-complete ta
 - **Do** keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.
 - **Do** label synthetic, predefined, and restricted content at the point of use.
 - **Do** preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.
+- **Do** preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.
+- **Do** keep IQ Guide answers about navigation, panel purpose, workflow and access boundaries; route substantive Bursa questions to BursaIQ Assistant.
 
 ### Don't:
 
-- **Don't** reintroduce luminous-blue primary actions or decorative glass panels.
+- **Don't** apply glass indiscriminately to tables, ledgers, or every information group; material must communicate a floating or interactive plane.
 - **Don't** turn every information group into a floating card; use lines and tonal layers first.
 - **Don't** use amber and teal interchangeably or flood either accent across passive surfaces.
 - **Don't** place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.
 - **Don't** shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.
 - **Don't** hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.
 - **Don't** animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.
+- **Don't** make Light mode a flat white recolour; retain refracted violet, white rims, layered translucency, and cool structural shadows.
+- **Don't** let the pet block primary work, bypass role gates, imitate Copilot Studio, or keep moving when reduced motion is requested.

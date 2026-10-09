@@ -64,6 +64,18 @@ def reviewer_can_access(case: dict[str, Any], role: str) -> bool:
     return case.get("reviewer") in reviewer_assignments(role)
 
 
+def verification_access_scope(role: str) -> tuple[list[dict[str, Any]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Return assigned review work and the active identity's own submitted requests."""
+    all_cases = verification.list_cases()
+    assignments = reviewer_assignments(role)
+    requester = DEMO_IDENTITIES.get(role, "")
+    assigned = [case for case in all_cases if case.get("reviewer") in assignments]
+    requested = [case for case in all_cases if requester and case.get("requestedBy") == requester]
+    accessible_ids = {case["id"] for case in [*assigned, *requested]}
+    accessible = [case for case in all_cases if case["id"] in accessible_ids]
+    return assigned, requested, accessible
+
+
 def body_json() -> dict[str, Any]:
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
@@ -184,7 +196,10 @@ def health():
 def bootstrap():
     role = str(request.args.get("role", "")).lower()
     payload = repository.public_bootstrap()
-    payload["verification"] = verification.list_cases(reviewer_assignments(role))
+    assigned, requested, accessible = verification_access_scope(role)
+    payload["verification"] = accessible
+    payload["verificationAssigned"] = assigned
+    payload["verificationRequested"] = requested
     payload["reviewerAccess"] = bool(reviewer_assignments(role))
     payload["agent"] = copilot.status()
     return jsonify(payload)
@@ -316,10 +331,8 @@ def download_report(filename: str):
 @app.get("/api/verification")
 def list_verification():
     role = str(request.args.get("role", "")).lower()
-    assignments = reviewer_assignments(role)
-    if not assignments:
-        return jsonify({"error": "This demo identity is not assigned to a review queue.", "cases": []}), 403
-    return jsonify({"cases": verification.list_cases(assignments)})
+    assigned, requested, accessible = verification_access_scope(role)
+    return jsonify({"cases": accessible, "assigned": assigned, "requested": requested, "reviewerAccess": bool(reviewer_assignments(role))})
 
 
 @app.post("/api/verification")

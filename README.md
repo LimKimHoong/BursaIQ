@@ -11,7 +11,7 @@ Every included figure and document is synthetic. Nothing in this repository is o
 - **Today’s Intelligence Brief:** a role-aware opening brief prioritises changed signals, active alerts, pending decisions and next actions.
 - **Watchlist & Alerts:** demo identities can monitor signals, see the rule behind each alert and reopen the related evidence trail. Watchlists persist locally per identity.
 - **Actions in the Decision Canvas:** an answer can move directly into monitoring, Decision Memory, human verification or the management briefing view.
-- **Decision Memory:** GCMC, Market Reviewer and Finance identities can inspect the question, rationale, owner, evidence context and status behind past decisions; new records persist locally.
+- **Decision Memory:** every identity can inspect the decision records permitted to them, including the question, rationale, owner, evidence context and status; new records persist locally per identity.
 - **Management Briefing:** a printable executive narrative combines the market headline, governed metrics, evidence state and named management priorities.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
@@ -21,8 +21,8 @@ Every included figure and document is synthetic. Nothing in this repository is o
 - **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
 - **People-data boundary:** employee, candidate, recruitment and application-status questions are declined before invoking the hosted agent.
 - **Real local ingestion:** structured data is loaded from Excel and document text is extracted from PDF files under `Input/`.
-- **Human verification:** a reviewer-scoped case queue lets the assigned Data Owner inspect, approve or return answers. Submissions still show the proposed Microsoft Lists → Power Automate email handoff, while the Stage 02 demo persists decisions in a local SQLite audit queue.
-- **Expanded Source Health:** reviewer identities can inspect freshness, quality, usage, accountable updater, next review date and overall health beneath Verification Centre.
+- **Human verification:** every identity can track the status of requests they submitted, while reviewer identities receive a separate assigned queue for inspecting, approving or returning outstanding cases. The Stage 02 demo persists decisions in a local SQLite audit queue.
+- **Expanded Source Health:** every identity can inspect freshness, quality, usage, accountable updater, next review date and overall health for sources permitted to their workspaces.
 - **Real PDF export:** ReportLab generates a two-page executive briefing; pypdf verifies that it opens and contains the title, evidence register and synthetic-data label.
 - **No local inference stack:** Ollama, Transformers and downloadable model weights are not used by BursaIQ.
 
@@ -46,7 +46,7 @@ No user sign-in is required. The HTML still opens as a visual preview if the ser
 1. **Frame the problem (35 seconds).** “Colleagues spend time gathering figures, interpreting them, checking sources and turning the result into a reusable briefing.”
 2. **Open Today’s Brief (45 seconds).** Show the role-aware attention queue, investigate the ADV signal, then add it to the Watchlist.
 3. **Ask the hero question (60 seconds).** Ask: `How did the market perform in July?` Open the Decision Canvas and use Actions to save the answer to Decision Memory.
-4. **Close the workflow (45 seconds).** Submit the answer for verification, then switch to Arif Rahman to show the reviewer-scoped queue and expanded Source Health.
+4. **Close the workflow (45 seconds).** Submit the answer for verification, show its status under My submitted requests, then switch to Arif Rahman to show the separate reviewer-only pending queue.
 5. **Brief management (35 seconds).** Return as Nadia and open Management Briefing to show the executive narrative, evidence state, priorities and print view.
 6. **Show adoption value (35 seconds).** Open Learn Bursa and ask: `Explain ADV in plain language.` Point to the raw-source evidence.
 7. **Close (30 seconds).** “BursaIQ turns a question into monitored intelligence, a traceable decision and a management-ready briefing—without losing its evidence.”
@@ -57,12 +57,12 @@ The script leaves roughly 45 seconds for transitions and judge reaction. All thr
 
 | Identity | Department | Demonstrated access |
 |---|---|---|
-| Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Decision Memory, Management Briefing |
+| Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Verification Centre, Source Health, Decision Memory, Management Briefing |
 | Arif Rahman | Securities Market | BursaIQ Assistant, Learn Bursa, Ask Reg, market review queue, Source Health, Decision Memory, Management Briefing |
-| Farah Lee | HR | BursaIQ Assistant, Learn Bursa |
-| Mei Tan | Finance | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Decision Memory, Management Briefing |
+| Farah Lee | HR | BursaIQ Assistant, Learn Bursa, Verification Centre, Source Health, Decision Memory |
+| Mei Tan | Finance | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Verification Centre, Source Health, Decision Memory, Management Briefing |
 
-Verification cases are filtered and update-protected by reviewer assignment in both the UI and API. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
+Verification cases are filtered in both the UI and API: identities receive their own submitted requests, reviewers additionally receive assigned cases, and only assigned reviewers can record a decision. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
 
 ## Replacing the synthetic files later
 

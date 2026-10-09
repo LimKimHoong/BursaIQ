@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-07T21:56:43+08:00",
+  "generatedAt": "2026-10-09T23:05:00+08:00",
   "title": "Design System: BursaIQ",
   "extensions": {
     "colorMeta": {
@@ -45,6 +45,12 @@
         "displayName": "Active Panel",
         "canonical": "#1b294a",
         "tonalRamp": ["oklch(15% 0.058 255)", "oklch(28% 0.058 255)", "oklch(42% 0.058 255)", "oklch(56% 0.058 255)", "oklch(70% 0.058 255)", "oklch(82% 0.058 255)", "oklch(90% 0.058 255)", "oklch(95% 0.058 255)"]
+      },
+      "glass-violet": {
+        "role": "secondary",
+        "displayName": "Refracted Violet",
+        "canonical": "#a96ee8",
+        "tonalRamp": ["oklch(15% 0.095 310)", "oklch(28% 0.095 310)", "oklch(42% 0.095 310)", "oklch(56% 0.095 310)", "oklch(70% 0.095 310)", "oklch(82% 0.095 310)", "oklch(90% 0.095 310)", "oklch(95% 0.095 310)"]
       },
       "hairline": {
         "role": "neutral",
@@ -113,9 +119,9 @@
     },
     "shadows": [
       {
-        "name": "composer-anchor",
-        "value": "0 12px 32px rgba(0, 0, 0, 0.20)",
-        "purpose": "Anchors the main question input on the continuous midnight ground."
+        "name": "composer-float",
+        "value": "0 28px 80px rgba(2, 5, 16, 0.44)",
+        "purpose": "Separates the liquid-glass question input from the continuous midnight ground."
       },
       {
         "name": "amber-action-lift",
@@ -214,9 +220,9 @@
       "name": "Assistant Composer",
       "kind": "input",
       "refersTo": "composer",
-      "description": "The anchored question field with a visible governed-routing cue.",
+      "description": "The signature liquid-glass question field with a visible governed-routing cue.",
       "html": "<label class=\"ds-composer\"><span>Ask BursaIQ</span><textarea rows=\"2\" placeholder=\"Ask BursaIQ…\"></textarea><small>● Routes within your permitted workspaces</small></label>",
-      "css": ".ds-composer { display:grid; width:min(560px,100%); border:1px solid #364868; border-radius:16px; padding:13px 16px 10px; color:#f5f7fa; background:#141f38; box-shadow:0 12px 32px rgba(0,0,0,.2); font-family:\"Segoe UI\",sans-serif; } .ds-composer > span { font-size:10px; color:#738099; } .ds-composer textarea { resize:none; border:0; outline:0; padding:8px 0; color:#f5f7fa; background:transparent; font:400 13px/1.5 \"Segoe UI\",sans-serif; } .ds-composer small { color:#7e8da3; font-size:9.5px; } .ds-composer small::first-letter { color:#35d0ba; } .ds-composer:focus-within { border-color:#35d0ba; box-shadow:0 0 0 3px rgba(53,208,186,.08); }"
+      "css": ".ds-composer { display:grid; width:min(620px,100%); border:1px solid rgba(238,221,255,.24); border-radius:26px; padding:18px 20px 11px; color:#f5f7fa; background:linear-gradient(145deg,rgba(116,76,139,.28),rgba(35,31,59,.68) 40%,rgba(15,23,43,.82)); box-shadow:0 28px 80px rgba(2,5,16,.44),inset 0 1px rgba(255,255,255,.32); backdrop-filter:blur(34px) saturate(165%); font-family:\"Segoe UI\",sans-serif; } .ds-composer > span { font-size:10px; color:#b0a8ba; } .ds-composer textarea { resize:none; border:0; outline:0; padding:9px 0; color:#f5f7fa; background:transparent; font:400 14px/1.55 \"Segoe UI\",sans-serif; } .ds-composer small { color:#b0a8ba; font-size:10px; } .ds-composer small::first-letter { color:#35d0ba; } .ds-composer:focus-within { border-color:#66e1cf; box-shadow:0 32px 88px rgba(2,5,16,.5),0 0 0 3px rgba(53,208,186,.11),inset 0 1px rgba(255,255,255,.36); }"
     },
     {
       "name": "Predefined Answer Card",
@@ -247,18 +253,27 @@
       "description": "A compact source or workflow status marker.",
       "html": "<span class=\"ds-status\"><i></i>Loaded</span>",
       "css": ".ds-status { display:inline-flex; min-height:28px; align-items:center; gap:6px; border:1px solid #27354f; border-radius:8px; padding:0 9px; color:#35d0ba; background:rgba(53,208,186,.07); font:650 10px/1.3 \"Segoe UI\",sans-serif; } .ds-status i { width:5px; height:5px; border-radius:50%; background:#35d0ba; }"
+    },
+    {
+      "name": "IQ Guide Pet",
+      "kind": "custom",
+      "description": "A device-local, role-aware BursaIQ directory anchored to the supplied animated white character. It recommends a permitted panel, exposes one direct navigation action, hides with /Close, and can be restored from Settings.",
+      "html": "<section class=\"ds-guide\"><div class=\"ds-guide-panel\"><strong>IQ Guide</strong><p>Tell me what you need to do and I’ll point you to the right workspace or workflow.</p><button type=\"button\">Open Today’s Brief</button></div><button class=\"ds-guide-pet\" type=\"button\" aria-label=\"Open IQ Guide\"><img src=\"/static/assets/bursaiq-guide-pet.png\" alt=\"\"></button></section>",
+      "css": ".ds-guide { position:relative; width:68px; height:68px; } .ds-guide-pet { width:68px; height:68px; overflow:visible; border:0; border-radius:50%; padding:0; background:transparent; cursor:pointer; } .ds-guide-pet img { width:112px; height:100px; object-fit:contain; filter:drop-shadow(0 9px 13px rgba(0,0,0,.22)); } .ds-guide-panel { position:absolute; bottom:78px; left:0; width:360px; border:1px solid rgba(226,209,242,.18); border-radius:22px; padding:14px; color:#f5f7fa; background:linear-gradient(145deg,rgba(75,50,91,.88),rgba(9,16,31,.96)); box-shadow:0 30px 84px rgba(1,3,12,.5),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(32px) saturate(155%); } .ds-guide-panel button { min-height:44px; border:1px solid rgba(53,208,186,.22); border-radius:10px; color:#66e1cf; background:rgba(53,208,186,.07); }"
     }
   ],
   "narrative": {
-    "northStar": "The Midnight Market Desk",
-    "overview": "BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.\n\nThe fixed 72px icon rail reveals its full navigation names over the fluid workspace on hover or keyboard focus, while the collapsible Decision Canvas keeps the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.",
+    "northStar": "The Adaptive Market Desk",
+    "overview": "BursaIQ is a compact exchange workstation with two deliberate environments: the established violet Midnight Market Desk and a daylight Pearl Exchange. The BursaIQ Assistant workspace is the single conversational landing page, giving every role one governed composer before moving into intelligence and accountable workflow panels.\n\nThe fixed 72px icon rail reveals its full navigation names over the fluid workspace on hover or keyboard focus; it begins directly with an unboxed plus action that returns to the landing-page composer. Matching Light / Dark and Settings controls sit together as complete 44px tiles at the foot of the rail, while the identity remains an unboxed avatar-and-name control. Verification Centre separates every identity's submitted-request status from the reviewer-only pending queue, while Source Health and Decision Memory remain visible to everyone within their permitted data. A bottom-left IQ Guide pet turns the supplied white two-eye character into a local, role-aware directory: it recommends the correct workspace or workflow, explains unavailable destinations, and never impersonates the answer engine. Its /Close command and Settings preference keep the flourish optional. The collapsible Decision Canvas keeps the operating model visible without competing for attention. Selective liquid glass gives the composer, navigation chrome, chat exchanges, dialogs, IQ Guide, and Decision Canvas tactile depth in both themes; dense ledgers and tables remain line-led and optically quiet. Every interactive target remains at least 44px, and motion stops under reduced-motion preferences.",
     "keyCharacteristics": [
-      "Midnight-navy ground with amber actions and teal analytical signals.",
+      "Persistent Light and Dark modes with equivalent liquid-glass depth: violet midnight and pearl-lilac daylight.",
+      "An animated, optional IQ Guide pet provides local role-aware wayfinding and direct panel navigation.",
       "The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.",
+      "Verification Centre gives everyone their own request status and adds a separate outstanding queue only for assigned reviewers.",
       "Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.",
       "Management Briefing accepts optional generation instructions beside its Print and Refresh controls, and labels Copilot Studio versus prepared fallback output.",
       "Fixed icon-first navigation that reveals labels without shifting the fluid workspace, plus a collapsible right Decision Canvas.",
-      "Compact rectangular controls and fine structural rules instead of decorative glass.",
+      "Theme-aware liquid glass for floating interactive surfaces, with fine structural rules for evidence-heavy operational content.",
       "Prepared questions and answers remain clearly labelled when Copilot is unavailable.",
       "Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.",
       "Motion communicates spatial state and stops under reduced-motion preferences."
@@ -270,9 +285,19 @@
         "section": "colors"
       },
       {
-        "name": "The Structure by Line Rule",
-        "body": "Separate operational zones with navy tone and one-pixel blue-gray rules, not extra containers, gradients, or glass effects.",
+        "name": "The Glass Floats, Evidence Stays Still Rule",
+        "body": "Use refracted glass for navigation, the composer, chat exchanges, dialogs, and the Decision Canvas. Keep dense ledgers, tables, and source metadata line-led and substantially opaque.",
         "section": "colors"
+      },
+      {
+        "name": "The Material Survives the Theme Rule",
+        "body": "Light mode is not a flat white recolour: preserve refraction, translucent layers, a bright upper rim, cool shadows, and the same amber-action and teal-analysis semantics used in Dark mode.",
+        "section": "colors"
+      },
+      {
+        "name": "The Pet Directs, It Does Not Decide Rule",
+        "body": "IQ Guide answers only workspace, panel, workflow and access-boundary questions. It routes substantive market, learning and regulatory questions to the governed BursaIQ Assistant experience.",
+        "section": "components"
       },
       {
         "name": "The Workspace Leads, Work Compresses Rule",
@@ -285,8 +310,8 @@
         "section": "typography"
       },
       {
-        "name": "The Flat Until Spatial Rule",
-        "body": "Add shadow only when an element must sit above another plane—the composer, a primary action, or the open mobile drawer.",
+        "name": "The Weight Follows Area Rule",
+        "body": "Large glass surfaces receive stronger blur and deeper shadows; compact controls receive lighter material and almost no independent elevation.",
         "section": "elevation"
       }
     ],
@@ -297,16 +322,20 @@
       "Do keep working controls at least 44px and support reduced motion and increased contrast.",
       "Do keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.",
       "Do label synthetic, predefined, and restricted content at the point of use.",
-      "Do preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations."
+      "Do preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.",
+      "Do preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.",
+      "Do keep IQ Guide local, role-aware, optional and focused on wayfinding."
     ],
     "donts": [
-      "Don't reintroduce luminous-blue primary actions or decorative glass panels.",
+      "Don't apply glass indiscriminately to tables, ledgers, or every information group; material must communicate a floating or interactive plane.",
       "Don't turn every information group into a floating card; use lines and tonal layers first.",
       "Don't use amber and teal interchangeably or flood either accent across passive surfaces.",
       "Don't place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.",
       "Don't shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.",
       "Don't hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.",
-      "Don't animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state."
+      "Don't animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.",
+      "Don't make Light mode a flat white recolour; retain pearl translucency, restrained violet refraction, white rims, and cool structural shadows.",
+      "Don't let IQ Guide bypass role gates, answer substantive intelligence questions, block primary work, or loop motion under reduced-motion preferences."
     ]
   }
 }

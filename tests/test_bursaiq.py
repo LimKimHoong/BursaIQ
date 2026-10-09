@@ -211,18 +211,30 @@ class WorkflowTests(unittest.TestCase):
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(response.get_json()["calculationMode"], "deterministic")
 
-    def test_verification_queue_is_scoped_to_assigned_reviewers(self) -> None:
+    def test_verification_workspace_separates_assigned_and_submitted_cases(self) -> None:
         from server import app
 
         with app.test_client() as client:
             analyst_bootstrap = client.get("/api/bootstrap?role=gcmc").get_json()
             self.assertFalse(analyst_bootstrap["reviewerAccess"])
-            self.assertEqual(analyst_bootstrap["verification"], [])
-            self.assertEqual(client.get("/api/verification?role=gcmc").status_code, 403)
+            self.assertEqual(analyst_bootstrap["verificationAssigned"], [])
+            self.assertTrue(analyst_bootstrap["verificationRequested"])
+            self.assertTrue(all(case["requestedBy"] == "Nadia Karim" for case in analyst_bootstrap["verificationRequested"]))
+
+            analyst_response = client.get("/api/verification?role=gcmc")
+            self.assertEqual(analyst_response.status_code, 200)
+            analyst_payload = analyst_response.get_json()
+            self.assertEqual(analyst_payload["assigned"], [])
+            self.assertEqual(analyst_payload["cases"], analyst_payload["requested"])
+
+            hr_payload = client.get("/api/verification?role=hr").get_json()
+            self.assertEqual(hr_payload["assigned"], [])
+            self.assertEqual(hr_payload["requested"], [])
 
             reviewer_response = client.get("/api/verification?role=securities")
             self.assertEqual(reviewer_response.status_code, 200)
-            cases = reviewer_response.get_json()["cases"]
+            reviewer_payload = reviewer_response.get_json()
+            cases = reviewer_payload["assigned"]
             self.assertTrue(cases)
             self.assertTrue(all(case["reviewer"] == "Market Intelligence Lead" for case in cases))
 
