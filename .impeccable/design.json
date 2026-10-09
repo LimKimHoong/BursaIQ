@@ -191,9 +191,9 @@
       "name": "Active Workspace Navigation",
       "kind": "nav",
       "refersTo": "navigation-active",
-      "description": "A compact active row for the fixed or off-canvas workspace rail; Today’s Brief is the default entry.",
-      "html": "<button class=\"ds-nav-active\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 5h16v14H4zM8 3v4m8-4v4M4 10h16\"/></svg><span>Today’s Brief</span></button>",
-      "css": ".ds-nav-active { display:flex; width:220px; min-height:44px; align-items:center; gap:10px; border:0; border-radius:8px; padding:0 9px; color:#f5f7fa; background:#141f38; box-shadow:inset 0 0 0 1px rgba(53,208,186,.1); font:650 11px/1.3 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-nav-active svg { width:16px; fill:none; stroke:#35d0ba; stroke-width:1.7; } .ds-nav-active:hover { background:#1b294a; } .ds-nav-active:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; }"
+      "description": "A 44px active icon target for the fixed desktop rail that reveals its name with the complete navigation on hover or keyboard focus; BursaIQ Assistant is the default entry.",
+      "html": "<button class=\"ds-nav-active\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z\"/></svg><span>BursaIQ Assistant</span></button>",
+      "css": ".ds-nav-active { display:grid; width:222px; min-height:44px; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:10px; border:0; border-radius:8px; padding:0 9px; color:#f5f7fa; background:#141f38; box-shadow:inset 0 0 0 1px rgba(53,208,186,.1); font:650 11px/1.3 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-nav-active svg { width:16px; fill:none; stroke:#35d0ba; stroke-width:1.7; } .ds-nav-active:hover { background:#1b294a; } .ds-nav-active:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; }"
     },
     {
       "name": "Today’s Brief Attention Strip",
@@ -251,12 +251,13 @@
   ],
   "narrative": {
     "northStar": "The Midnight Market Desk",
-    "overview": "BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. Today’s Brief is the role-aware entry point, placing changed signals, attention counts, and accountable next actions in the first viewport before the user opens a conversation.\n\nThe fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.",
+    "overview": "BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.\n\nThe fixed 72px icon rail reveals its full navigation names over the fluid workspace on hover or keyboard focus, while the collapsible Decision Canvas keeps the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.",
     "keyCharacteristics": [
       "Midnight-navy ground with amber actions and teal analytical signals.",
-      "Role-aware Today’s Brief owns the first viewport, with conversation available as an investigation path.",
+      "The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.",
       "Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.",
-      "Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.",
+      "Management Briefing accepts optional generation instructions beside its Print and Refresh controls, and labels Copilot Studio versus prepared fallback output.",
+      "Fixed icon-first navigation that reveals labels without shifting the fluid workspace, plus a collapsible right Decision Canvas.",
       "Compact rectangular controls and fine structural rules instead of decorative glass.",
       "Prepared questions and answers remain clearly labelled when Copilot is unavailable.",
       "Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.",
@@ -274,8 +275,8 @@
         "section": "colors"
       },
       {
-        "name": "The Brief Leads, Work Compresses Rule",
-        "body": "Today’s Brief opens with compact operational hierarchy; display-scale invitation type belongs only to deliberate conversational or narrative moments.",
+        "name": "The Workspace Leads, Work Compresses Rule",
+        "body": "The assistant opens with one deliberate invitation; intelligence and workflow pages switch to compact operational hierarchy.",
         "section": "typography"
       },
       {
@@ -302,7 +303,7 @@
       "Don't reintroduce luminous-blue primary actions or decorative glass panels.",
       "Don't turn every information group into a floating card; use lines and tonal layers first.",
       "Don't use amber and teal interchangeably or flood either accent across passive surfaces.",
-      "Don't restore conversation as the default entry; Today’s Brief must lead every role into current intelligence and accountable next steps.",
+      "Don't place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.",
       "Don't shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.",
       "Don't hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.",
       "Don't animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state."

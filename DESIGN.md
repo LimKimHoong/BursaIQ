@@ -117,14 +117,14 @@ components:
 
 **Creative North Star: "The Midnight Market Desk"**
 
-BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. Today’s Brief is the role-aware entry point, placing changed signals, attention counts, and accountable next actions in the first viewport before the user opens a conversation.
+BursaIQ is a compact exchange workstation after dark: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.
 
 The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Flat operational surfaces and fine blue-gray rules connect Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing as one system. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
 
 **Key Characteristics:**
 
 - Midnight-navy ground with amber actions and teal analytical signals.
-- Role-aware Today’s Brief owns the first viewport, with conversation available as an investigation path.
+- The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.
 - Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.
 - Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.
 - Compact rectangular controls and fine structural rules instead of decorative glass.
@@ -185,15 +185,15 @@ The palette resembles an exchange floor at night: deep navy structure, restraine
 
 ### Named Rules
 
-**The Brief Leads, Work Compresses Rule.** Today’s Brief opens with compact operational hierarchy; display-scale invitation type belongs only to deliberate conversational or narrative moments.
+**The Workspace Leads, Work Compresses Rule.** The assistant opens with one deliberate invitation; intelligence and workflow pages switch to compact operational hierarchy.
 
 **The Compact Copy Floor Rule.** Any compact text that explains a signal, source, action, owner, boundary, or state stays at least 10–11px and never relies on size alone to carry meaning.
 
 ## Layout
 
-Desktop uses a fixed 250px left rail and a fluid main shell. Today’s Brief fills the first viewport with a four-part attention strip, a changed-signal ledger, and a next-action rail. Watchlist, Decision Memory, Source Health, and Management Briefing reuse the same hairline-separated rhythm instead of switching to card grids.
+Desktop uses a fixed 250px left rail and a fluid main shell. The BursaIQ Assistant workspace fills the first viewport with the governed conversation entry point. Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing reuse the same hairline-separated rhythm instead of switching to card grids.
 
-When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. At 1280px, the sidebar and canvas reduce to 224px and 420px. Below 980px, navigation becomes a 280px off-canvas drawer, briefing side rails stack below their main ledgers, and the attention queue keeps three counts above a full-width action. Below 760px, the Decision Canvas stacks beneath the conversation, management metrics become rows, and signal ledgers reduce to a readable two-column form. At 520px, attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
+When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Below 980px, navigation becomes a 280px off-canvas drawer, briefing side rails stack below their main ledgers, and the attention queue keeps three counts above a full-width action. Below 760px, the Decision Canvas stacks beneath the conversation, management metrics become rows, and signal ledgers reduce to a readable two-column form. At 520px, attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
 
 Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44px minimum target even when the visible label or icon is small. Tables may scroll horizontally rather than crushing governed source metadata.
 
@@ -245,11 +245,11 @@ The form language is compact and mildly rounded. Structural panels remain square
 
 ### Navigation
 
-The desktop rail is a fixed black-navy column with 44px rows. Today’s Brief is the default entry; Watchlist remains available to every identity, while Management Briefing and Decision Memory appear only for GCMC, Market Reviewer, and Finance identities. Verification Centre and Source Health appear only for reviewer identities, and Ask Reg remains access-controlled. Active rows use Panel navy and a teal icon; history questions remain quieter until hover. On mobile, the rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
+The desktop rail is a fixed black-navy 72px icon column with 44px targets, ordered by task progression: Workspace, Intelligence, then Workflow. Thin rules distinguish the groups while compact; hovering the rail or moving keyboard focus into it reveals the full 250px names over the workspace without shifting the canvas. The top bar carries only the BursaIQ product name; the active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Watchlist remains available to every identity, while Management Briefing and Decision Memory appear only for GCMC, Market Reviewer, and Finance identities. Verification Centre and Source Health appear only for reviewer identities, and Ask Reg remains access-controlled. Active rows use Panel navy and a teal icon. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
 
 ### Intelligence & Workflow Ledgers
 
-Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents reviewer-scoped freshness and quality; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger.
+Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents reviewer-scoped freshness and quality; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger. Its instruction field and adjacent Print/Refresh controls regenerate the narrative through Copilot Studio, with a visibly labelled deterministic fallback when the agent cannot be reached.
 
 Watchlist and Decision Memory writes are role-scoped in local browser storage; preferences and access requests are also device-local. Verification uses the local audit queue, and no prototype action implies an external notification. Synthetic, restricted, and proposed-production boundaries remain adjacent to the affected workflow.
 
@@ -274,7 +274,7 @@ The right canvas is a persistent analytical plane with four keyboard-complete ta
 - **Don't** reintroduce luminous-blue primary actions or decorative glass panels.
 - **Don't** turn every information group into a floating card; use lines and tonal layers first.
 - **Don't** use amber and teal interchangeably or flood either accent across passive surfaces.
-- **Don't** restore conversation as the default entry; Today’s Brief must lead every role into current intelligence and accountable next steps.
+- **Don't** place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.
 - **Don't** shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.
 - **Don't** hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.
 - **Don't** animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.

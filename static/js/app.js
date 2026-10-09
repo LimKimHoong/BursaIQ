@@ -25,18 +25,25 @@
     refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10.1 0A7 7 0 0 0 6.4 7.7L4 12m16 0-2.4 4.3A7 7 0 0 1 4.9 12"/></svg>`
   };
 
+  const preferencesVersion = 2;
+
   const defaultPreferences = {
+    version: preferencesVersion,
     autoOpenInsights: true,
     chartMotion: true,
-    defaultWorkspace: "today-brief",
+    defaultWorkspace: "home",
     plugins: { webSearch: false, pdfTools: true, spreadsheetTools: true }
   };
 
   function loadPreferences() {
     try {
       const saved = JSON.parse(localStorage.getItem("bursaiq_preferences") || "{}");
-      const preferences = { ...defaultPreferences, ...saved, plugins: { ...defaultPreferences.plugins, ...(saved.plugins || {}) } };
-      if (!["today-brief", "home", "learn"].includes(preferences.defaultWorkspace)) preferences.defaultWorkspace = "today-brief";
+      const needsMigration = saved.version !== preferencesVersion;
+      const migrated = needsMigration ? { ...saved, version: preferencesVersion, defaultWorkspace: "home" } : saved;
+      const preferences = { ...defaultPreferences, ...migrated, plugins: { ...defaultPreferences.plugins, ...(migrated.plugins || {}) } };
+      const hasInvalidWorkspace = !["today-brief", "home", "learn"].includes(preferences.defaultWorkspace);
+      if (hasInvalidWorkspace) preferences.defaultWorkspace = "home";
+      if (needsMigration || hasInvalidWorkspace) localStorage.setItem("bursaiq_preferences", JSON.stringify(preferences));
       return preferences;
     } catch (_error) {
       return { ...defaultPreferences, plugins: { ...defaultPreferences.plugins } };
@@ -141,7 +148,17 @@
     accessRequests: loadAccessRequests(),
     watchlists: loadLocalMap("bursaiq_watchlists"),
     decisionMemories: loadLocalMap("bursaiq_decision_memories"),
-    accessRequestPanel: ""
+    accessRequestPanel: "",
+    managementBrief: {
+      instruction: "",
+      headline: "",
+      narrative: "",
+      priorities: null,
+      mode: "prepared",
+      generated: demo.intelligence.generated
+    },
+    managementRefreshing: false,
+    managementRefreshCount: 0
   };
 
   const dom = {};
@@ -254,7 +271,7 @@
     dom.workspace_heading.hidden = false;
     dom.workspace_title.textContent = config.title;
     dom.workspace_description.textContent = config.description;
-    dom.breadcrumb_label.textContent = config.title;
+    dom.breadcrumb_label.textContent = "BursaIQ";
     dom.asof_chip.style.display = config === workspaceConfig.market ? "flex" : "none";
     dom.open_report_button.style.display = "none";
   }
@@ -345,7 +362,7 @@
     state.conversationId = "";
     state.insightTab = "plot";
     dom.workspace_heading.hidden = true;
-    dom.breadcrumb_label.textContent = "BursaIQ Assistant";
+    dom.breadcrumb_label.textContent = "BursaIQ";
     dom.workspace_grid.className = "workspace-grid home-layout";
     dom.workspace_grid.innerHTML = conversationMarkup("market", true);
     selectNavigation("home");
@@ -456,7 +473,7 @@
     return `<article class="answer-card denied-answer"><div class="answer-meta"><span class="answer-logo">IQ</span>Access decision</div><div class="answer-body"><h3>I can’t open that workspace for this identity</h3><p>${escapeHtml(demo.identities[state.role].name)} does not have ${escapeHtml(config.title)} access. No restricted source or record was retrieved.</p></div></article>`;
   }
 
-  async function requestBackendAnswer(question, requestedWorkspace, role) {
+  async function requestBackendAnswer(question, requestedWorkspace, role, conversationId = state.conversationId) {
     if (!state.backend) return null;
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 45000);
@@ -468,7 +485,7 @@
           question,
           workspace: requestedWorkspace,
           role,
-          conversationId: state.conversationId,
+          conversationId,
           plugins: Object.entries(state.preferences.plugins).filter(([, enabled]) => enabled).map(([id]) => id)
         }),
         signal: controller.signal
@@ -743,7 +760,7 @@
     const signals = demo.intelligence?.signals || [];
     const openAlerts = (demo.intelligence?.alerts || []).filter((item) => item.status !== "Watching").length;
     const pendingDecisions = roleDecisionMemory().filter((item) => item.status !== "Recorded").length;
-    return `<div class="page-hero intelligence-hero"><div><h2>Today’s intelligence brief</h2><p>A role-aware opening view of the signals, decisions and governed sources that deserve attention now.</p></div><span class="brief-time">Prepared ${escapeHtml(demo.intelligence.generated)}</span></div>
+    return `<div class="page-toolbar"><span class="brief-time">Prepared ${escapeHtml(demo.intelligence.generated)}</span></div>
       <div class="attention-strip" aria-label="Attention queue"><div><span>Needs attention</span><strong>${openAlerts}</strong><small>active alert rules</small></div><div><span>Watching</span><strong>${roleWatchlist().length}</strong><small>signals in your watchlist</small></div><div><span>Decisions</span><strong>${pendingDecisions}</strong><small>awaiting closure</small></div><button type="button" data-go="watchlist"><strong>Open attention queue</strong><small>Review alerts and monitored signals</small>${icons.arrow}</button></div>
       <div class="brief-layout"><section class="brief-ledger"><div class="section-heading"><div><h3>Signals that changed</h3><p>Prioritised from the prepared synthetic market cut.</p></div><span>${signals.length} signals</span></div>
         ${signals.map((signal) => `<article class="signal-row is-${escapeHtml(signal.severity)}"><div class="signal-marker"><span></span>${escapeHtml(signal.topic)}</div><div class="signal-copy"><h4>${escapeHtml(signal.title)}</h4><p>${escapeHtml(signal.summary)}</p><div><button type="button" data-brief-question="${escapeHtml(signal.question)}">Ask BursaIQ</button><button type="button" data-watch-toggle="${escapeHtml(signal.id)}">${roleWatchlist().includes(signal.id) ? "Watching" : "Watch signal"}</button></div></div><div class="signal-value"><strong>${escapeHtml(signal.metric)}</strong><small>${escapeHtml(signal.change)}</small></div></article>`).join("")}
@@ -755,17 +772,156 @@
     const watchedIds = roleWatchlist();
     const watched = watchedIds.map(signalById).filter(Boolean);
     const alerts = demo.intelligence?.alerts || [];
-    return `<div class="page-hero"><div><h2>Watchlist &amp; alerts</h2><p>Monitor material changes without losing the source, threshold or accountable owner behind each alert.</p></div><span class="status-pill ${alerts.length ? "" : "approved"}">${alerts.length} alerts</span></div>
+    return `<div class="page-toolbar"><span class="status-pill ${alerts.length ? "" : "approved"}">${alerts.length} alerts</span></div>
       <div class="watch-layout"><section><div class="section-heading"><div><h3>Your monitored signals</h3><p>Stored locally for ${escapeHtml(demo.identities[state.role].name)}.</p></div><span>${watched.length} watching</span></div><div class="watch-ledger">${watched.length ? watched.map((signal) => `<div class="watch-row"><span class="watch-pulse is-${escapeHtml(signal.severity)}"></span><div><strong>${escapeHtml(signal.title)}</strong><small>${escapeHtml(signal.metric)} · ${escapeHtml(signal.change)}</small></div><button type="button" data-brief-question="${escapeHtml(signal.question)}">Investigate</button><button type="button" data-watch-toggle="${escapeHtml(signal.id)}" aria-label="Remove ${escapeHtml(signal.title)} from watchlist">Remove</button></div>`).join("") : `<div class="ledger-empty"><h3>No signals watched</h3><p>Add a signal from Today’s Brief or the Decision Canvas.</p><button class="button secondary" type="button" data-go="today-brief">Browse today’s signals</button></div>`}</div></section>
       <section><div class="section-heading"><div><h3>Alert activity</h3><p>Rules show why each item entered the queue.</p></div></div><div class="alert-ledger">${alerts.map((alert) => { const signal = signalById(alert.signalId); return `<article class="alert-row"><div><span class="status-pill ${alert.status === "Watching" ? "approved" : alert.status === "Review" ? "denied" : ""}">${escapeHtml(alert.status)}</span><time>${escapeHtml(alert.time)}</time></div><div><strong>${escapeHtml(signal?.title || "Source freshness threshold")}</strong><p>${escapeHtml(alert.rule)}</p><small>Owner · ${escapeHtml(alert.owner)}</small></div></article>`; }).join("")}</div></section></div>
       <div class="warning-block">Prototype alerts are generated from the local synthetic dataset. No live market notification or external message is sent.</div>`;
   }
 
+  function managementRefreshTimestamp() {
+    return `${new Intl.DateTimeFormat("en-MY", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kuala_Lumpur"
+    }).format(new Date()).replace(",", " ·")} MYT`;
+  }
+
+  function fallbackManagementBrief(instruction) {
+    const focus = instruction.toLowerCase();
+    const prepared = demo.intelligence.management;
+    let headline = prepared.headline;
+    let narrative = prepared.narrative;
+    let priorities = prepared.priorities.map((item) => ({ ...item }));
+
+    if (/(risk|governance|verification|source|control)/.test(focus)) {
+      headline = "Positive market momentum still requires disciplined publication and source oversight.";
+      narrative = "July’s activity and index gains remain constructive, but the management decision is not only about performance. The immediate control priorities are to complete briefing verification, confirm that the ADV uplift persists in the next market cut, and refresh the ageing learning source before wider reuse.";
+      priorities = [prepared.priorities[1], prepared.priorities[2], prepared.priorities[0]].map((item) => ({ ...item }));
+    } else if (/(investor|participation|flow|foreign|institution)/.test(focus)) {
+      headline = "Broader institutional and foreign participation supported July’s market advance.";
+      narrative = "Local institutions and foreign investors recorded RM704m of combined net buying in the prepared dataset, offset by local retail selling. Management should monitor whether this participation breadth continues alongside the higher 30-day ADV and keep the evidence attached to the July briefing.";
+      priorities = [
+        { title: "Monitor participation breadth", owner: "Market Intelligence", due: "Next market cut", status: "In progress" },
+        { ...prepared.priorities[0] },
+        { ...prepared.priorities[1] }
+      ];
+    } else if (/(sector|technology|concentration|driver)/.test(focus)) {
+      headline = "Technology led the advance, making concentration the key follow-up question.";
+      narrative = "Technology contributed 9.6 index points and was the largest positive sector driver in the prepared July dataset. Management should distinguish broad market strength from sector concentration, validate the activity uplift at the next cut, and retain the governed verification path before publication.";
+      priorities = [
+        { title: "Test technology concentration", owner: "Market Intelligence", due: "Next attribution cut", status: "In progress" },
+        { ...prepared.priorities[0] },
+        { ...prepared.priorities[1] }
+      ];
+    } else {
+      const variants = [
+        {
+          headline: "Market momentum improved, with sustained activity now the central management test.",
+          narrative: "The FBM KLCI ended July 2.4% higher month to date while 30-day ADV reached RM3.42bn. The refreshed view keeps management attention on whether the activity uplift persists, whether participation remains broad, and whether the July narrative completes verification before publication."
+        },
+        {
+          headline: "July’s stronger activity supports the outlook, but evidence readiness remains decisive.",
+          narrative: "Index performance, trading activity and institutional participation were constructive in the prepared market cut. The next management step is to validate the signal at the next cut, complete the outstanding review, and resolve the ageing source before the briefing is reused."
+        }
+      ];
+      const variant = variants[state.managementRefreshCount % variants.length];
+      headline = variant.headline;
+      narrative = variant.narrative;
+    }
+
+    return { instruction, headline, narrative, priorities, mode: "fallback", generated: managementRefreshTimestamp() };
+  }
+
+  function managementBriefFromAgent(answer, instruction) {
+    const prepared = demo.intelligence.management;
+    const raw = String(answer || "").trim();
+    const lines = raw.split(/\n+/).map((line) => line.replace(/^#{1,6}\s*/, "").trim()).filter(Boolean);
+    const labelledHeadline = lines[0]?.match(/^(?:headline|title)\s*:\s*(.+)$/i);
+    let headline = prepared.headline;
+    let narrative = raw;
+
+    if (labelledHeadline) {
+      headline = labelledHeadline[1].slice(0, 180);
+      narrative = lines.slice(1).join("\n\n") || raw;
+    } else if (lines.length > 1 && lines[0].length <= 140 && !lines[0].startsWith("-")) {
+      headline = lines[0].replace(/^\*\*(.+)\*\*$/, "$1");
+      narrative = lines.slice(1).join("\n\n");
+    }
+
+    return {
+      instruction,
+      headline,
+      narrative,
+      priorities: prepared.priorities.map((item) => ({ ...item })),
+      mode: "copilot-studio",
+      generated: managementRefreshTimestamp()
+    };
+  }
+
+  async function refreshManagementBrief(form) {
+    if (state.managementRefreshing) return;
+    const input = form.querySelector("[data-management-instruction]");
+    const button = form.querySelector("[data-management-refresh]");
+    const status = form.querySelector("[data-management-status]");
+    const instruction = String(input?.value || "").trim().slice(0, 500);
+    const defaultInstruction = "Create a concise senior-management briefing. Prioritise material market movements, decisions required, accountable owners, and any evidence or verification risks.";
+    const prompt = `Regenerate the BursaIQ management briefing using only governed market information available to the agent. Begin with a short headline on its own line, followed by a concise decision-ready narrative. Do not provide investment advice. Instruction: ${instruction || defaultInstruction}`;
+
+    state.managementRefreshing = true;
+    state.managementRefreshCount += 1;
+    if (button) {
+      button.disabled = true;
+      button.classList.add("is-loading");
+      button.setAttribute("aria-busy", "true");
+      button.innerHTML = `${icons.refresh}<span>Refreshing…</span>`;
+    }
+    if (input) input.disabled = true;
+    if (status) status.textContent = "Regenerating the management briefing…";
+
+    let nextBrief = null;
+    let usedFallback = false;
+    try {
+      const payload = state.backend ? await requestBackendAnswer(prompt, "market", state.role, "") : null;
+      if (payload && !payload.agentError && !payload.denied && String(payload.answer || "").trim()) {
+        nextBrief = managementBriefFromAgent(payload.answer, instruction);
+        if (payload.agent) state.agent = payload.agent;
+      } else {
+        usedFallback = true;
+        nextBrief = fallbackManagementBrief(instruction);
+      }
+    } catch (_error) {
+      usedFallback = true;
+      nextBrief = fallbackManagementBrief(instruction);
+    } finally {
+      state.managementRefreshing = false;
+    }
+
+    state.managementBrief = nextBrief;
+    renderPage("management-brief");
+    updateSystemIndicator(nextBrief.mode);
+    window.requestAnimationFrame(() => document.querySelector("[data-management-refresh]")?.focus());
+    toast("Management briefing refreshed", usedFallback ? "A data-grounded prototype version was generated because Copilot Studio was unavailable." : "A new management narrative was generated by Microsoft Copilot Studio.");
+  }
+
   function managementBriefPage() {
-    const management = demo.intelligence?.management;
+    const prepared = demo.intelligence?.management;
+    const generated = state.managementBrief;
+    const management = {
+      headline: generated.headline || prepared.headline,
+      narrative: generated.narrative || prepared.narrative,
+      priorities: generated.priorities || prepared.priorities
+    };
+    const sourceLabel = generated.mode === "copilot-studio" ? "Microsoft Copilot Studio" : generated.mode === "fallback" ? "Prepared demo fallback" : "Prepared baseline";
     const headline = demo.market.headline;
-    return `<div class="page-hero management-hero"><div><h2>Management briefing</h2><p>One decision-ready narrative with the supporting priorities, evidence state and next owners.</p></div><button class="button secondary" type="button" data-management-print>${icons.download}Print briefing</button></div>
-      <article class="management-narrative"><h3>${escapeHtml(management.headline)}</h3><p>${escapeHtml(management.narrative)}</p><div class="management-proof"><span>Evidence coverage <strong>96%</strong></span><span>Verification <strong>1 pending</strong></span><span>Source health <strong>2 of 5 healthy</strong></span></div></article>
+    return `<form class="management-generator" data-management-form>
+        <div class="page-toolbar management-toolbar"><span class="management-generation-status" role="status" aria-live="polite" data-management-status>${escapeHtml(sourceLabel)} · ${escapeHtml(generated.generated)}</span><div class="management-toolbar-actions"><button class="button secondary" type="button" data-management-print>${icons.download}<span>Print briefing</span></button><button class="button secondary" type="submit" data-management-refresh>${icons.refresh}<span>Refresh</span></button></div></div>
+        <label class="management-instruction-field" for="management-instruction"><span>Question or instruction</span><textarea id="management-instruction" rows="2" maxlength="500" data-management-instruction aria-describedby="management-instruction-hint" placeholder="For example: Focus on liquidity risks and decisions required this week.">${escapeHtml(generated.instruction)}</textarea><small id="management-instruction-hint">Optional · leave blank for a standard executive refresh · <span data-management-count>${generated.instruction.length}</span>/500</small></label>
+      </form>
+      <article class="management-narrative"><h3>${escapeHtml(management.headline)}</h3>${narrativeMarkup(management.narrative)}<div class="management-proof"><span>Evidence coverage <strong>96%</strong></span><span>Verification <strong>1 pending</strong></span><span>Source health <strong>2 of 5 healthy</strong></span></div></article>
       <dl class="management-metrics"><div><dt>FBM KLCI</dt><dd>${headline.fbmKLCI.toLocaleString("en-MY", { minimumFractionDigits: 1 })}</dd><small>+${headline.klciMtdPct.toFixed(1)}% MTD</small></div><div><dt>30-day ADV</dt><dd>RM${headline.adv30dBn.toFixed(2)}bn</dd><small>+${(((headline.adv30dBn / headline.advPrior30dBn) - 1) * 100).toFixed(1)}% vs prior</small></div><div><dt>Market capitalisation</dt><dd>RM${headline.marketCapBn.toLocaleString("en-MY")}bn</dd><small>+${headline.marketCapMtdPct.toFixed(1)}% MTD</small></div></dl>
       <section class="priority-section"><div class="section-heading"><div><h3>Management priorities</h3><p>Every item carries an owner and decision horizon.</p></div><span>${management.priorities.length} priorities</span></div><div class="priority-ledger">${management.priorities.map((item) => `<div class="priority-row"><span class="priority-status"></span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.owner)}</small></div><time>${escapeHtml(item.due)}</time><span class="status-pill ${item.status === "In progress" ? "approved" : item.status === "Pending review" ? "denied" : ""}">${escapeHtml(item.status)}</span></div>`).join("")}</div></section>
       <div class="management-footer"><span>${icons.shield}</span><p><strong>Management boundary</strong>This view summarises synthetic prototype data. Source citations and governed methods remain in the Decision Canvas.</p><button class="button ghost" type="button" data-brief-question="How did the market perform in July?">Open supporting analysis</button></div>`;
@@ -773,7 +929,7 @@
 
   function decisionMemoryPage() {
     const decisions = roleDecisionMemory();
-    return `<div class="page-hero"><div><h2>Decision Memory</h2><p>A searchable institutional record of what was decided, why it was reasonable, and which evidence supported it.</p></div><span class="status-pill approved">${decisions.length} records</span></div>
+    return `<div class="page-toolbar"><span class="status-pill approved">${decisions.length} records</span></div>
       <div class="memory-ledger">${decisions.map((item) => `<article class="memory-row"><div class="memory-date"><time>${escapeHtml(item.created)}</time><span></span></div><div class="memory-copy"><div><span>${escapeHtml(item.id)}</span><span class="status-pill ${item.status === "Recorded" ? "approved" : "denied"}">${escapeHtml(item.status)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.rationale)}</p><dl><div><dt>Owner</dt><dd>${escapeHtml(item.owner)}</dd></div><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Originating question</dt><dd>${escapeHtml(item.question)}</dd></div></dl><button type="button" data-brief-question="${escapeHtml(item.question)}">Reopen evidence trail ${icons.arrow}</button></div></article>`).join("")}</div><div class="warning-block">Local prototype record. Production Decision Memory would require an approved retention policy, access control and enterprise system of record.</div>`;
   }
 
@@ -912,7 +1068,7 @@
         </div></section>
         <section class="settings-section panel-access-section"><h3>Panel access</h3><p>Request a restricted workspace when it is relevant to your role. Requests require the panel owner’s approval.</p><div class="panel-access-list">${Object.keys(requestablePanels).map(panelAccessRow).join("")}<p class="panel-access-note">Stage 02 simulation: requests are stored on this device and do not change access automatically.</p></div></section>
         <section class="settings-section"><h3>Workspace behaviour</h3><p>Choose what opens first and how supporting analysis appears.</p>
-          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="today-brief" ${preferences.defaultWorkspace === "today-brief" ? "selected" : ""}>Today’s Brief</option><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
+          <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="today-brief" ${preferences.defaultWorkspace === "today-brief" ? "selected" : ""}>Today’s Brief</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
           ${settingSwitch("autoOpenInsights", "Open analysis automatically", "Show the right-side plot or evidence panel after an answer.", preferences.autoOpenInsights)}
           ${settingSwitch("chartMotion", "Animate market charts", "Draw chart lines and bars when the analysis panel opens.", preferences.chartMotion)}
         </section>
@@ -965,7 +1121,7 @@
     const sources = demo.documents.filter((source) => permittedWorkspaces.has(source.workspace));
     const healthy = sources.filter((source) => source.health === "Healthy").length;
     const averageQuality = Math.round(sources.reduce((total, source) => total + Number(source.qualityPct || 0), 0) / Math.max(sources.length, 1));
-    return `<div class="page-hero source-oversight-hero"><div><h2>Source Health</h2><p>Reviewer view of freshness, quality, usage and the accountable people behind every governed source.</p></div><span class="status-pill approved">${healthy} healthy</span></div>
+    return `<div class="page-toolbar"><span class="status-pill approved">${healthy} healthy</span></div>
       <div class="source-summary"><div><span>Visible sources</span><strong>${sources.length}</strong></div><div><span>Average quality</span><strong>${averageQuality}%</strong></div><div><span>Needs attention</span><strong>${sources.length - healthy}</strong></div><div><span>Review scope</span><strong>${escapeHtml(demo.identities[state.role].reviewerFor.join(", "))}</strong></div></div>
       <div class="data-table-wrap source-table-wrap"><table class="data-table source-table"><thead><tr><th>Data source</th><th>Freshness</th><th>Quality</th><th>Usage</th><th>Updated by</th><th>Health</th></tr></thead><tbody>${sources.map((source) => `<tr><td><span class="source-file-mark ${source.format.toLowerCase()}">${escapeHtml(source.format)}</span><span><strong>${escapeHtml(source.title)}</strong><small>${escapeHtml(workspaceConfig[source.workspace]?.title || source.workspace)} · ${escapeHtml(source.filename)}</small></span></td><td><time>${escapeHtml(source.updated)}</time><small>${escapeHtml(source.freshness || "Current")}</small></td><td><div class="quality-cell"><span><i style="width:${Number(source.qualityPct || 0)}%"></i></span><strong>${Number(source.qualityPct || 0)}%</strong></div></td><td>${escapeHtml(source.usage || "No recent use")}</td><td><strong>${escapeHtml(source.updatedBy || source.owner)}</strong><small>${escapeHtml(source.owner)}</small></td><td><span class="status-pill ${source.health === "Healthy" ? "approved" : "denied"}">${escapeHtml(source.health || source.status)}</span><small>Next · ${escapeHtml(source.nextReview || "Not scheduled")}</small></td></tr>`).join("")}</tbody></table></div>
       <div class="warning-block">Synthetic demonstration sources only. Health combines illustrative freshness and quality controls; “Updated by” identifies the accountable demo owner in the local manifest.</div>`;
@@ -1198,7 +1354,7 @@
   let navigationReturnFocus = null;
 
   function isMobileNavigation() {
-    return window.matchMedia("(max-width: 900px)").matches;
+    return window.matchMedia("(max-width: 980px)").matches;
   }
 
   function syncNavigationAccessibility() {
@@ -1353,11 +1509,31 @@
     });
     window.addEventListener("resize", syncNavigationAccessibility);
     dom.workspace_grid.addEventListener("click", handleWorkspaceClick);
-    dom.workspace_grid.addEventListener("submit", (event) => { if (event.target.id === "chat-form") { event.preventDefault(); ask(document.getElementById("question-input").value); } });
-    dom.workspace_grid.addEventListener("input", (event) => { if (event.target.id === "question-input") resizeInput(); });
+    dom.workspace_grid.addEventListener("submit", (event) => {
+      if (event.target.id === "chat-form") {
+        event.preventDefault();
+        ask(document.getElementById("question-input").value);
+      }
+      if (event.target.matches("[data-management-form]")) {
+        event.preventDefault();
+        refreshManagementBrief(event.target);
+      }
+    });
+    dom.workspace_grid.addEventListener("input", (event) => {
+      if (event.target.id === "question-input") resizeInput();
+      if (event.target.matches("[data-management-instruction]")) {
+        const count = event.target.form?.querySelector("[data-management-count]");
+        if (count) count.textContent = String(event.target.value.length);
+      }
+    });
     dom.workspace_grid.addEventListener("change", updateSetting);
     dom.workspace_grid.addEventListener("keydown", (event) => {
       if (event.target.id === "question-input" && event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        event.target.form.requestSubmit();
+        return;
+      }
+      if (event.target.matches("[data-management-instruction]") && event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         event.target.form.requestSubmit();
         return;
