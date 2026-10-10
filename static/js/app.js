@@ -22,7 +22,11 @@
     list: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 1 1 2-2m2 1h5m-10 6 1 1 2-2m2 1h5"/></svg>`,
     mail: `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>`,
     person: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>`,
-    refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10.1 0A7 7 0 0 0 6.4 7.7L4 12m16 0-2.4 4.3A7 7 0 0 1 4.9 12"/></svg>`
+    refresh: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5m10.1 0A7 7 0 0 0 6.4 7.7L4 12m16 0-2.4 4.3A7 7 0 0 1 4.9 12"/></svg>`,
+    search: `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></svg>`,
+    upload: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m0 0-4 4m4-4 4 4M5 20h14"/></svg>`,
+    spark: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.5 4.5L18 9l-4.5 1.5L12 15l-1.5-4.5L6 9l4.5-1.5zM18.5 15l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></svg>`,
+    trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 3h6l1 4H8zM7 7l1 14h8l1-14M10 11v6m4-6v6"/></svg>`
   };
 
   const preferencesVersion = 4;
@@ -151,23 +155,15 @@
     watchlists: loadLocalMap("bursaiq_watchlists"),
     decisionMemories: loadLocalMap("bursaiq_decision_memories"),
     accessRequestPanel: "",
-    managementBrief: {
-      instruction: "",
-      headline: "",
-      narrative: "",
-      priorities: null,
-      mode: "prepared",
-      generated: demo.intelligence.generated
-    },
-    managementRefreshing: false,
-    managementRefreshCount: 0,
+    research: { query: "", depth: "deep", scope: "governed", pending: false, result: null, conversationId: "" },
+    localAnalysis: { sessionId: "", documents: [], pending: false, uploading: false, question: "", result: null, useCopilot: false, conversationId: "" },
     guideOpen: false
   };
 
   const dom = {};
 
   function bindDom() {
-    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "watchlist-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "today-brief-nav", "watchlist-nav", "management-brief-nav", "workflow-nav-label", "verification-nav", "data-sources-nav", "decision-memory-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim", "theme-toggle", "guide-pet-shell", "guide-panel", "guide-pet-trigger", "guide-close", "guide-form", "guide-input", "guide-messages", "guide-suggestions"].forEach((id) => {
+    ["chat-thread", "suggestion-row", "chat-form", "question-input", "evidence-content", "evidence-badge", "workspace-grid", "workspace-heading", "workspace-title", "workspace-description", "breadcrumb-label", "asof-chip", "access-chip", "role-select", "identity-name", "identity-role", "avatar", "report-dialog", "report-title", "open-report-button", "verification-count", "watchlist-count", "verification-dialog", "verification-dialog-title", "verification-detail-content", "verification-flow-dialog", "verification-flow-dialog-title", "verification-flow-content", "access-request-dialog", "access-request-form", "access-request-panel-name", "access-request-reason", "access-request-reason-count", "access-request-error", "submit-access-request", "ask-reg-nav", "today-brief-nav", "research-nav", "local-analysis-nav", "watchlist-nav", "workflow-nav-label", "verification-nav", "data-sources-nav", "decision-memory-nav", "settings-nav", "new-thread-button", "menu-button", "mobile-scrim", "theme-toggle", "guide-pet-shell", "guide-panel", "guide-pet-trigger", "guide-close", "guide-form", "guide-input", "guide-messages", "guide-suggestions"].forEach((id) => {
       dom[id.replaceAll("-", "_")] = document.getElementById(id);
     });
   }
@@ -209,10 +205,6 @@
 
   function isReviewer() {
     return Boolean(demo.identities[state.role].reviewerFor?.length);
-  }
-
-  function hasManagementAccess() {
-    return ["gcmc", "securities", "finance"].includes(state.role);
   }
 
   function roleWatchlist() {
@@ -349,14 +341,13 @@
   }
 
   function guideDestinationAvailable(workspace) {
-    if (workspace === "management-brief") return hasManagementAccess();
     if (workspaceConfig[workspace]) return hasAccess(workspace);
     return true;
   }
 
   function guideReply(question) {
     const value = question.toLowerCase();
-    const currentLabels = { home: "BursaIQ Assistant", market: "Market Intelligence", learn: "Learn Bursa", reg: "Ask Reg", "today-brief": "Today’s Brief", watchlist: "Watchlist & Alerts", "management-brief": "Management Briefing", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
+    const currentLabels = { home: "BursaIQ Assistant", market: "Market Intelligence", learn: "Learn Bursa", reg: "Ask Reg", "today-brief": "Today’s Brief", research: "Research", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
     if (/(where am i|current panel|current page)/.test(value)) {
       return { text: `You’re in ${currentLabels[state.workspace] || "BursaIQ"}. Tell me the task you want to complete and I can recommend the next panel.` };
     }
@@ -366,8 +357,10 @@
       result = { workspace: "data-sources", label: "Open Source Health", text: "Use Source Health to check governed data sources, freshness, quality, recent usage, ownership and update dates." };
     } else if (/(verify|verification|review|approve|audit|human check)/.test(value)) {
       result = { workspace: "verification", label: "Open Verification Centre", text: "Use Verification Centre when an answer may inform a decision and needs a reviewer to inspect its narrative, calculation and evidence trail." };
-    } else if (/(management|leadership|executive|briefing|senior management)/.test(value)) {
-      result = { workspace: "management-brief", label: "Open Management Briefing", text: "Use Management Briefing to turn the current market truth into a concise leadership narrative, decisive metrics and owned priorities." };
+    } else if (/(research|investigate|deep dive|landscape|compare evidence|complete study)/.test(value)) {
+      result = { workspace: "research", label: "Open Research", text: "Use Research to turn a broad question into a structured dossier with evidence, counterpoints, implications and open questions." };
+    } else if (/(upload|my document|local file|analyse file|analyze file|document analysis|spreadsheet analysis)/.test(value)) {
+      result = { workspace: "local-analysis", label: "Open Local Analysis", text: "Use Local Analysis to inspect uploaded PDFs, spreadsheets and text files in a private in-memory workspace, then ask questions against their evidence." };
     } else if (/(decision memory|rationale|previous decision|decision history|why.*decid)/.test(value)) {
       result = { workspace: "decision-memory", label: "Open Decision Memory", text: "Use Decision Memory to revisit the question, evidence, rationale, owner and status behind a recorded decision." };
     } else if (/(watch|alert|monitor|threshold|notify|tracking)/.test(value)) {
@@ -907,7 +900,7 @@
         <button type="button" data-insight-action="watch" data-signal-id="${escapeHtml(signal?.id || "adv-momentum")}"><span>${icons.pulse}</span><span><strong>${watched ? "Remove from watchlist" : "Add to watchlist"}</strong><small>${watched ? "Stop monitoring this signal for the active identity." : "Monitor this signal and surface related alerts."}</small></span><em>${watched ? "Watching" : "Monitor"}</em></button>
         <button type="button" data-insight-action="memory"><span>${icons.list}</span><span><strong>${memorySaved ? "Saved to Decision Memory" : "Save to Decision Memory"}</strong><small>Record the question, answer rationale, owner and evidence trail.</small></span><em>${memorySaved ? "Saved" : "Record"}</em></button>
         <button type="button" data-insight-action="verify"><span>${icons.shield}</span><span><strong>Submit for verification</strong><small>Send the governed answer package to its assigned Data Owner.</small></span><em>Review</em></button>
-        ${hasManagementAccess() ? `<button type="button" data-insight-action="brief"><span>${icons.chart}</span><span><strong>Add to management briefing</strong><small>Carry this insight into the executive narrative and priority view.</small></span><em>Brief</em></button>` : ""}
+        <button type="button" data-insight-action="research"><span>${icons.search}</span><span><strong>Open a research thread</strong><small>Expand this answer into a sourced dossier with counterpoints and open questions.</small></span><em>Research</em></button>
       </div>
       <div class="action-boundary"><strong>Prototype workflow</strong><p>Watchlist and Decision Memory changes are stored on this device. Verification uses the local audit queue; no external notification is sent.</p></div>
     </div>`;
@@ -952,7 +945,7 @@
       <div class="attention-strip" aria-label="Attention queue"><div><span>Needs attention</span><strong>${openAlerts}</strong><small>active alert rules</small></div><div><span>Watching</span><strong>${roleWatchlist().length}</strong><small>signals in your watchlist</small></div><div><span>Decisions</span><strong>${pendingDecisions}</strong><small>awaiting closure</small></div><button type="button" data-go="watchlist"><strong>Open attention queue</strong><small>Review alerts and monitored signals</small>${icons.arrow}</button></div>
       <div class="brief-layout"><section class="brief-ledger"><div class="section-heading"><div><h3>Signals that changed</h3><p>Prioritised from the prepared synthetic market cut.</p></div><span>${signals.length} signals</span></div>
         ${signals.map((signal) => `<article class="signal-row is-${escapeHtml(signal.severity)}"><div class="signal-marker"><span></span>${escapeHtml(signal.topic)}</div><div class="signal-copy"><h4>${escapeHtml(signal.title)}</h4><p>${escapeHtml(signal.summary)}</p><div><button type="button" data-brief-question="${escapeHtml(signal.question)}">Ask BursaIQ</button><button type="button" data-watch-toggle="${escapeHtml(signal.id)}">${roleWatchlist().includes(signal.id) ? "Watching" : "Watch signal"}</button></div></div><div class="signal-value"><strong>${escapeHtml(signal.metric)}</strong><small>${escapeHtml(signal.change)}</small></div></article>`).join("")}
-      </section><aside class="brief-side"><div class="section-heading"><div><h3>What to do next</h3><p>Suggested workflow, not an automated decision.</p></div></div><ol class="next-action-list"><li><span>${icons.pulse}</span><div><strong>Check the next market cut</strong><small>Confirm whether the ADV uplift is sustained.</small></div></li><li><span>${icons.shield}</span><div><strong>Close the July review</strong><small>One briefing remains pending with the Data Owner.</small></div></li><li><span>${icons.file}</span><div><strong>Refresh ageing content</strong><small>The conduct guide is outside its freshness target.</small></div></li></ol><button class="button secondary" type="button" data-go="management-brief" ${hasManagementAccess() ? "" : "disabled"}>Open management view</button></aside></div>
+      </section><aside class="brief-side"><div class="section-heading"><div><h3>What to do next</h3><p>Suggested workflow, not an automated decision.</p></div></div><ol class="next-action-list"><li><span>${icons.pulse}</span><div><strong>Check the next market cut</strong><small>Confirm whether the ADV uplift is sustained.</small></div></li><li><span>${icons.shield}</span><div><strong>Close the July review</strong><small>One briefing remains pending with the Data Owner.</small></div></li><li><span>${icons.file}</span><div><strong>Refresh ageing content</strong><small>The conduct guide is outside its freshness target.</small></div></li></ol><button class="button secondary" type="button" data-go="research">Research a signal</button></aside></div>
       <p class="feature-footnote">Synthetic competition intelligence · signals are illustrative and do not constitute investment advice.</p>`;
   }
 
@@ -966,153 +959,152 @@
       <div class="warning-block">Prototype alerts are generated from the local synthetic dataset. No live market notification or external message is sent.</div>`;
   }
 
-  function managementRefreshTimestamp() {
-    return `${new Intl.DateTimeFormat("en-MY", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-      timeZone: "Asia/Kuala_Lumpur"
-    }).format(new Date()).replace(",", " ·")} MYT`;
-  }
-
-  function fallbackManagementBrief(instruction) {
-    const focus = instruction.toLowerCase();
-    const prepared = demo.intelligence.management;
-    let headline = prepared.headline;
-    let narrative = prepared.narrative;
-    let priorities = prepared.priorities.map((item) => ({ ...item }));
-
-    if (/(risk|governance|verification|source|control)/.test(focus)) {
-      headline = "Positive market momentum still requires disciplined publication and source oversight.";
-      narrative = "July’s activity and index gains remain constructive, but the management decision is not only about performance. The immediate control priorities are to complete briefing verification, confirm that the ADV uplift persists in the next market cut, and refresh the ageing learning source before wider reuse.";
-      priorities = [prepared.priorities[1], prepared.priorities[2], prepared.priorities[0]].map((item) => ({ ...item }));
-    } else if (/(investor|participation|flow|foreign|institution)/.test(focus)) {
-      headline = "Broader institutional and foreign participation supported July’s market advance.";
-      narrative = "Local institutions and foreign investors recorded RM704m of combined net buying in the prepared dataset, offset by local retail selling. Management should monitor whether this participation breadth continues alongside the higher 30-day ADV and keep the evidence attached to the July briefing.";
-      priorities = [
-        { title: "Monitor participation breadth", owner: "Market Intelligence", due: "Next market cut", status: "In progress" },
-        { ...prepared.priorities[0] },
-        { ...prepared.priorities[1] }
-      ];
-    } else if (/(sector|technology|concentration|driver)/.test(focus)) {
-      headline = "Technology led the advance, making concentration the key follow-up question.";
-      narrative = "Technology contributed 9.6 index points and was the largest positive sector driver in the prepared July dataset. Management should distinguish broad market strength from sector concentration, validate the activity uplift at the next cut, and retain the governed verification path before publication.";
-      priorities = [
-        { title: "Test technology concentration", owner: "Market Intelligence", due: "Next attribution cut", status: "In progress" },
-        { ...prepared.priorities[0] },
-        { ...prepared.priorities[1] }
-      ];
-    } else {
-      const variants = [
-        {
-          headline: "Market momentum improved, with sustained activity now the central management test.",
-          narrative: "The FBM KLCI ended July 2.4% higher month to date while 30-day ADV reached RM3.42bn. The refreshed view keeps management attention on whether the activity uplift persists, whether participation remains broad, and whether the July narrative completes verification before publication."
-        },
-        {
-          headline: "July’s stronger activity supports the outlook, but evidence readiness remains decisive.",
-          narrative: "Index performance, trading activity and institutional participation were constructive in the prepared market cut. The next management step is to validate the signal at the next cut, complete the outstanding review, and resolve the ageing source before the briefing is reused."
-        }
-      ];
-      const variant = variants[state.managementRefreshCount % variants.length];
-      headline = variant.headline;
-      narrative = variant.narrative;
-    }
-
-    return { instruction, headline, narrative, priorities, mode: "fallback", generated: managementRefreshTimestamp() };
-  }
-
-  function managementBriefFromAgent(answer, instruction) {
-    const prepared = demo.intelligence.management;
-    const raw = String(answer || "").trim();
-    const lines = raw.split(/\n+/).map((line) => line.replace(/^#{1,6}\s*/, "").trim()).filter(Boolean);
-    const labelledHeadline = lines[0]?.match(/^(?:headline|title)\s*:\s*(.+)$/i);
-    let headline = prepared.headline;
-    let narrative = raw;
-
-    if (labelledHeadline) {
-      headline = labelledHeadline[1].slice(0, 180);
-      narrative = lines.slice(1).join("\n\n") || raw;
-    } else if (lines.length > 1 && lines[0].length <= 140 && !lines[0].startsWith("-")) {
-      headline = lines[0].replace(/^\*\*(.+)\*\*$/, "$1");
-      narrative = lines.slice(1).join("\n\n");
-    }
-
-    return {
-      instruction,
-      headline,
-      narrative,
-      priorities: prepared.priorities.map((item) => ({ ...item })),
-      mode: "copilot-studio",
-      generated: managementRefreshTimestamp()
-    };
-  }
-
-  async function refreshManagementBrief(form) {
-    if (state.managementRefreshing) return;
-    const input = form.querySelector("[data-management-instruction]");
-    const button = form.querySelector("[data-management-refresh]");
-    const status = form.querySelector("[data-management-status]");
-    const instruction = String(input?.value || "").trim().slice(0, 500);
-    const defaultInstruction = "Create a concise senior-management briefing. Prioritise material market movements, decisions required, accountable owners, and any evidence or verification risks.";
-    const prompt = `Regenerate the BursaIQ management briefing using only governed market information available to the agent. Begin with a short headline on its own line, followed by a concise decision-ready narrative. Do not provide investment advice. Instruction: ${instruction || defaultInstruction}`;
-
-    state.managementRefreshing = true;
-    state.managementRefreshCount += 1;
-    if (button) {
-      button.disabled = true;
-      button.classList.add("is-loading");
-      button.setAttribute("aria-busy", "true");
-      button.innerHTML = `${icons.refresh}<span>Refreshing…</span>`;
-    }
-    if (input) input.disabled = true;
-    if (status) status.textContent = "Regenerating the management briefing…";
-
-    let nextBrief = null;
-    let usedFallback = false;
-    try {
-      const payload = state.backend ? await requestBackendAnswer(prompt, "market", state.role, "") : null;
-      if (payload && !payload.agentError && !payload.denied && String(payload.answer || "").trim()) {
-        nextBrief = managementBriefFromAgent(payload.answer, instruction);
-        if (payload.agent) state.agent = payload.agent;
-      } else {
-        usedFallback = true;
-        nextBrief = fallbackManagementBrief(instruction);
-      }
-    } catch (_error) {
-      usedFallback = true;
-      nextBrief = fallbackManagementBrief(instruction);
-    } finally {
-      state.managementRefreshing = false;
-    }
-
-    state.managementBrief = nextBrief;
-    renderPage("management-brief");
-    updateSystemIndicator(nextBrief.mode);
-    window.requestAnimationFrame(() => document.querySelector("[data-management-refresh]")?.focus());
-    toast("Management briefing refreshed", usedFallback ? "A data-grounded prototype version was generated because Copilot Studio was unavailable." : "A new management narrative was generated by Microsoft Copilot Studio.");
-  }
-
-  function managementBriefPage() {
-    const prepared = demo.intelligence?.management;
-    const generated = state.managementBrief;
-    const management = {
-      headline: generated.headline || prepared.headline,
-      narrative: generated.narrative || prepared.narrative,
-      priorities: generated.priorities || prepared.priorities
-    };
-    const sourceLabel = generated.mode === "copilot-studio" ? "Microsoft Copilot Studio" : generated.mode === "fallback" ? "Prepared demo fallback" : "Prepared baseline";
+  function fallbackResearchResult(query, depth, scope) {
+    const visibleSources = demo.documents.filter((source) => hasAccess(source.workspace)).slice(0, depth === "deep" ? 5 : 3);
     const headline = demo.market.headline;
-    return `<form class="management-generator" data-management-form>
-        <div class="page-toolbar management-toolbar"><span class="management-generation-status" role="status" aria-live="polite" data-management-status>${escapeHtml(sourceLabel)} · ${escapeHtml(generated.generated)}</span><div class="management-toolbar-actions"><button class="button secondary" type="button" data-management-print>${icons.download}<span>Print briefing</span></button><button class="button secondary" type="submit" data-management-refresh>${icons.refresh}<span>Refresh</span></button></div></div>
-        <label class="management-instruction-field" for="management-instruction"><span>Question or instruction</span><textarea id="management-instruction" rows="2" maxlength="500" data-management-instruction aria-describedby="management-instruction-hint" placeholder="For example: Focus on liquidity risks and decisions required this week.">${escapeHtml(generated.instruction)}</textarea><small id="management-instruction-hint">Optional · leave blank for a standard executive refresh · <span data-management-count>${generated.instruction.length}</span>/500</small></label>
-      </form>
-      <article class="management-narrative"><h3>${escapeHtml(management.headline)}</h3>${narrativeMarkup(management.narrative)}<div class="management-proof"><span>Evidence coverage <strong>96%</strong></span><span>Verification <strong>1 pending</strong></span><span>Source health <strong>2 of 5 healthy</strong></span></div></article>
-      <dl class="management-metrics"><div><dt>FBM KLCI</dt><dd>${headline.fbmKLCI.toLocaleString("en-MY", { minimumFractionDigits: 1 })}</dd><small>+${headline.klciMtdPct.toFixed(1)}% MTD</small></div><div><dt>30-day ADV</dt><dd>RM${headline.adv30dBn.toFixed(2)}bn</dd><small>+${(((headline.adv30dBn / headline.advPrior30dBn) - 1) * 100).toFixed(1)}% vs prior</small></div><div><dt>Market capitalisation</dt><dd>RM${headline.marketCapBn.toLocaleString("en-MY")}bn</dd><small>+${headline.marketCapMtdPct.toFixed(1)}% MTD</small></div></dl>
-      <section class="priority-section"><div class="section-heading"><div><h3>Management priorities</h3><p>Every item carries an owner and decision horizon.</p></div><span>${management.priorities.length} priorities</span></div><div class="priority-ledger">${management.priorities.map((item) => `<div class="priority-row"><span class="priority-status"></span><div><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.owner)}</small></div><time>${escapeHtml(item.due)}</time><span class="status-pill ${item.status === "In progress" ? "approved" : item.status === "Pending review" ? "denied" : ""}">${escapeHtml(item.status)}</span></div>`).join("")}</div></section>
-      <div class="management-footer"><span>${icons.shield}</span><p><strong>Management boundary</strong>This view summarises synthetic prototype data. Source citations and governed methods remain in the Decision Canvas.</p><button class="button ghost" type="button" data-brief-question="How did the market perform in July?">Open supporting analysis</button></div>`;
+    const isMarket = /(market|klci|adv|liquidity|sector|trading|investor)/i.test(query);
+    return {
+      query,
+      depth,
+      scope,
+      mode: "prepared-research-fallback",
+      generatedAt: new Date().toISOString(),
+      answer: isMarket
+        ? `The prepared evidence indicates a constructive July market backdrop. The FBM KLCI closed at ${headline.fbmKLCI.toFixed(1)}, up ${headline.klciMtdPct.toFixed(1)}% month to date, while 30-day ADV reached RM${headline.adv30dBn.toFixed(2)}bn. The conclusion remains conditional on whether activity and participation breadth persist in the next market cut.`
+        : `BursaIQ assembled the governed sources most relevant to “${query}”. This offline dossier can frame the question and identify accountable sources, but it does not add current external facts. Connect the published Research agent or enable an approved current-information source before treating the work as complete.`,
+      findings: isMarket
+        ? [`Index direction improved by ${headline.klciMtdPct.toFixed(1)}% month to date.`, `30-day ADV reached RM${headline.adv30dBn.toFixed(2)}bn versus RM${headline.advPrior30dBn.toFixed(2)}bn previously.`, "Persistence and sector concentration remain the decisive follow-up tests."]
+        : ["The governed source pack establishes Bursa context and ownership.", "Time-sensitive external claims still require an approved current-information connection.", "The evidence trail should remain attached if this work enters a decision workflow."],
+      counterpoints: ["The demonstration evidence is synthetic and intentionally bounded.", "Research output is not treated as verified until its citations and method are reviewed."],
+      nextQuestions: ["Which assumption would change the conclusion most?", "What additional source would resolve the largest uncertainty?", "Which finding needs human verification?"],
+      sources: visibleSources.map((source) => ({ id: source.id, title: source.title, filename: source.filename, workspace: source.workspace, owner: source.owner, excerpt: source.excerpt }))
+    };
+  }
+
+  function researchSourceRows(sources = []) {
+    if (!sources.length) return `<div class="research-empty-evidence"><strong>No governed match yet</strong><p>Refine the question or add an approved source connection.</p></div>`;
+    return sources.map((source, index) => `<article class="research-source-row"><span>${String(index + 1).padStart(2, "0")}</span><div><strong>${escapeHtml(source.title)}</strong><small>${escapeHtml(source.owner || source.workspace || "Governed source")}</small><p>${escapeHtml(source.excerpt || source.filename || "Source selected for the research trail.")}</p></div><em>${escapeHtml(source.workspace || "BursaIQ")}</em></article>`).join("");
+  }
+
+  function researchResultMarkup(result) {
+    const modeLabel = result.mode === "copilot-studio-research" ? "Microsoft Copilot Studio" : "Prepared governed fallback";
+    const generated = new Intl.DateTimeFormat("en-MY", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Asia/Kuala_Lumpur" }).format(new Date(result.generatedAt || Date.now()));
+    return `<section class="research-dossier" aria-live="polite">
+      <header class="research-dossier-head"><div><span class="provenance-chip ${result.mode === "copilot-studio-research" ? "copilot" : "fallback"}">${modeLabel}</span><h2>Research dossier</h2><p>${escapeHtml(result.query)}</p></div><div><span>Generated</span><strong>${escapeHtml(generated)} MYT</strong><small>${result.depth === "deep" ? "Deep research" : "Focused scan"}</small></div></header>
+      <div class="research-dossier-grid"><article class="research-synthesis"><h3>Executive finding</h3>${narrativeMarkup(result.answer)}</article><aside class="research-method"><strong>Research method</strong><ol><li>Frame the decision question</li><li>Retrieve permitted evidence</li><li>Test counterpoints</li><li>Synthesise with a source trail</li></ol></aside></div>
+      <div class="research-findings"><section><h3>Evidence-led findings</h3><ol>${(result.findings || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ol></section><section><h3>Counterpoints &amp; uncertainty</h3><ul>${(result.counterpoints || []).map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul></section></div>
+      <section class="research-evidence"><div class="section-heading"><div><h3>Source trail</h3><p>Governed material retrieved for this run.</p></div><span>${(result.sources || []).length} sources</span></div>${researchSourceRows(result.sources)}</section>
+      <section class="research-next"><h3>Continue the investigation</h3><div>${(result.nextQuestions || []).map((question) => `<button type="button" data-research-prompt="${escapeHtml(question)}">${icons.arrow}<span>${escapeHtml(question)}</span></button>`).join("")}</div></section>
+    </section>`;
+  }
+
+  function researchPage() {
+    const research = state.research;
+    const expandedAvailable = state.preferences.plugins.webSearch;
+    const working = research.pending ? `<div class="research-progress" role="status" aria-live="polite"><span></span><div><strong>Building the dossier</strong><small>Framing · retrieving · testing · synthesising</small></div></div>` : "";
+    const result = research.result ? researchResultMarkup(research.result) : `<section class="research-start"><div class="research-routes"><button type="button" data-research-prompt="Assess whether July’s higher market activity appears broad and sustainable"><span class="research-route-icon">${icons.chart}</span><span class="research-route-copy"><strong>Market &amp; liquidity</strong><small>Test momentum, participation and concentration.</small></span>${icons.arrow}</button><button type="button" data-research-prompt="Research the evidence, obligations and escalation path for continuous disclosure"><span class="research-route-icon">${icons.shield}</span><span class="research-route-copy"><strong>Policy &amp; regulation</strong><small>Map obligations, boundaries and accountable owners.</small></span>${icons.arrow}</button><button type="button" data-research-prompt="Compare Bursa product categories and identify the most important learning gaps for a new joiner"><span class="research-route-icon">${icons.learn}</span><span class="research-route-copy"><strong>Products &amp; landscape</strong><small>Build a structured view from approved material.</small></span>${icons.arrow}</button></div><div class="research-principles"><span>${icons.search}</span><div><strong>Complete means contestable</strong><p>Every dossier separates evidence, counterpoints, implications and open questions. External claims appear only when an approved connector is enabled.</p></div></div></section>`;
+    return `<section class="research-command"><div><h2>Turn a broad question into a research dossier</h2><p>Set the depth and evidence boundary. BursaIQ keeps the source trail visible from first question to final finding.</p></div><form data-research-form><label for="research-query">Research question or instruction</label><textarea id="research-query" name="query" rows="3" maxlength="1200" required placeholder="For example: Assess whether July’s increase in market activity was broad, sustainable and decision-relevant.">${escapeHtml(research.query)}</textarea><div class="research-controls"><label><span>Depth</span><select name="depth"><option value="focused" ${research.depth === "focused" ? "selected" : ""}>Focused scan</option><option value="deep" ${research.depth === "deep" ? "selected" : ""}>Deep research</option></select></label><label><span>Evidence boundary</span><select name="scope"><option value="governed" ${research.scope === "governed" ? "selected" : ""}>Governed BursaIQ sources</option><option value="expanded" ${research.scope === "expanded" ? "selected" : ""} ${expandedAvailable ? "" : "disabled"}>Governed + approved public sources</option></select></label><button class="button primary research-run" type="submit" ${research.pending ? "disabled" : ""}>${research.pending ? icons.refresh : icons.spark}<span>${research.pending ? "Researching…" : "Start research"}</span></button></div>${expandedAvailable ? "" : `<small class="research-connector-note">Enable Web Search in Settings to make the expanded evidence boundary available.</small>`}</form></section>${working}${result}<p class="feature-footnote">Research output uses synthetic prototype evidence and is not investment advice. Verify material findings before decision use.</p>`;
+  }
+
+  async function runResearch(form) {
+    if (state.research.pending) return;
+    const data = new FormData(form);
+    const query = String(data.get("query") || "").trim();
+    if (!query) return;
+    const depth = String(data.get("depth") || "deep");
+    const scope = String(data.get("scope") || "governed");
+    state.research = { ...state.research, query, depth, scope, pending: true };
+    renderPage("research");
+    try {
+      if (!state.backend) throw new Error("Backend unavailable");
+      const response = await fetch("/api/research", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query, depth, scope, role: state.role, conversationId: state.research.conversationId }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Research service unavailable");
+      state.research = { ...state.research, pending: false, result: payload, conversationId: payload.conversationId || state.research.conversationId };
+    } catch (_error) {
+      state.research = { ...state.research, pending: false, result: fallbackResearchResult(query, depth, scope) };
+      toast("Prepared research fallback", "Copilot Studio was unavailable, so BursaIQ built a transparent dossier from the governed demo evidence.");
+    }
+    renderPage("research");
+    document.querySelector(".research-dossier")?.scrollIntoView({ block: "start", behavior: state.preferences.chartMotion ? "smooth" : "auto" });
+  }
+
+  function formatFileSize(bytes) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function localDocumentRows(documents) {
+    return documents.map((document) => `<article class="local-document-row"><span class="source-file-mark ${String(document.format || "file").toLowerCase()}">${escapeHtml(document.format || "FILE")}</span><div><strong>${escapeHtml(document.name)}</strong><small>${escapeHtml(document.detail || `${formatFileSize(document.size || 0)} · ready`)}</small></div><span>${formatFileSize(document.size || 0)}</span></article>`).join("");
+  }
+
+  function localAnalysisResultMarkup(result) {
+    const assisted = result.mode === "copilot-assisted-local-analysis";
+    return `<article class="local-answer" aria-live="polite"><header><span class="provenance-chip ${assisted ? "copilot" : ""}">${assisted ? "Copilot-assisted" : "Local extractive analysis"}</span><small>${result.documentCount} document${result.documentCount === 1 ? "" : "s"} analysed</small></header><h3>Analysis</h3>${narrativeMarkup(result.answer)}<section><div class="section-heading"><div><h3>Evidence used</h3><p>Exact passages selected for this answer.</p></div><span>${(result.citations || []).length} extracts</span></div>${(result.citations || []).map((citation) => `<article class="local-citation"><span>${citation.index}</span><div><strong>${escapeHtml(citation.name)}</strong><p>${escapeHtml(citation.excerpt)}</p></div></article>`).join("")}</section></article>`;
+  }
+
+  function localAnalysisPage() {
+    const analysis = state.localAnalysis;
+    const hasDocuments = analysis.documents.length > 0;
+    const status = analysis.uploading ? "Reading documents…" : hasDocuments ? `${analysis.documents.length} document${analysis.documents.length === 1 ? "" : "s"} ready` : "No documents loaded";
+    return `<div class="local-analysis-layout"><section class="local-intake"><header><div><h2>Private document bench</h2><p>Files are parsed by the local Python service and held in memory only for this running session.</p></div>${hasDocuments ? `<button class="button ghost" type="button" data-local-clear>${icons.trash}<span>Clear</span></button>` : ""}</header><input id="local-file-input" data-local-files type="file" accept=".pdf,.xlsx,.csv,.json,.txt,.md" multiple hidden><button class="local-dropzone${analysis.uploading ? " is-loading" : ""}" type="button" data-local-browse ${analysis.uploading ? "disabled" : ""}>${icons.upload}<strong>${analysis.uploading ? "Reading your documents" : "Drop documents here"}</strong><span>or choose files from this device</span><small>PDF, XLSX, CSV, JSON, TXT or MD · up to 5 MB each · maximum 6 files</small></button><div class="local-file-status"><span></span><strong>${status}</strong><small>Nothing is added to BursaIQ’s governed source library.</small></div>${hasDocuments ? `<div class="local-document-list">${localDocumentRows(analysis.documents)}</div>` : ""}</section><section class="local-dialogue"><header><span>${icons.spark}</span><div><h2>Ask against the evidence</h2><p>Give a question, comparison or transformation instruction.</p></div></header><div class="local-suggestions"><button type="button" data-local-question="Summarise the most important findings and decisions">Summarise findings</button><button type="button" data-local-question="Compare the documents and identify contradictions or gaps">Find contradictions</button><button type="button" data-local-question="Extract the key numbers, dates and accountable owners">Extract facts</button></div>${analysis.result ? localAnalysisResultMarkup(analysis.result) : `<div class="local-empty-result">${icons.file}<strong>${hasDocuments ? "Your documents are ready" : "Add evidence to begin"}</strong><p>${hasDocuments ? "Ask a question below. Every local answer will show the passages it used." : "Upload documents on the left, then ask BursaIQ to summarise, compare or extract."}</p></div>`}<form data-local-analysis-form><label class="sr-only" for="local-analysis-question">Question or instruction for the uploaded documents</label><textarea id="local-analysis-question" name="question" rows="3" maxlength="1200" placeholder="Ask a question or describe the analysis you need…" ${hasDocuments ? "" : "disabled"}>${escapeHtml(analysis.question)}</textarea><div><label class="local-copilot-choice"><input type="checkbox" name="useCopilot" ${analysis.useCopilot ? "checked" : ""} ${state.agent.available ? "" : "disabled"}><span><strong>Copilot-assisted synthesis</strong><small>${state.agent.available ? "Send only the selected evidence extracts to the published agent." : "Available when the Copilot Studio agent is connected."}</small></span></label><button class="button primary" type="submit" ${!hasDocuments || analysis.pending ? "disabled" : ""}>${analysis.pending ? icons.refresh : icons.arrow}<span>${analysis.pending ? "Analysing…" : "Analyse"}</span></button></div></form></section></div><div class="local-privacy-note">${icons.lock}<p><strong>Local by default.</strong> Use only sanitized files approved for this prototype. Uploads stay in server memory and are cleared when the Python process stops. Evidence leaves the local service only if you explicitly enable Copilot-assisted synthesis for a question.</p></div>`;
+  }
+
+  async function uploadLocalFiles(fileList) {
+    const files = [...(fileList || [])];
+    if (!files.length || state.localAnalysis.uploading) return;
+    if (!state.backend) {
+      toast("Local server required", "Run python server.py before uploading documents for Local Analysis.");
+      return;
+    }
+    state.localAnalysis = { ...state.localAnalysis, uploading: true, result: null };
+    renderPage("local-analysis");
+    try {
+      const body = new FormData();
+      files.forEach((file) => body.append("files", file));
+      if (state.localAnalysis.sessionId) body.append("sessionId", state.localAnalysis.sessionId);
+      const response = await fetch("/api/local-analysis/upload", { method: "POST", body });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "The documents could not be read.");
+      state.localAnalysis = { ...state.localAnalysis, uploading: false, sessionId: payload.sessionId, documents: payload.documents, result: null };
+      toast("Documents ready", `${files.length} file${files.length === 1 ? " was" : "s were"} added to the in-memory analysis workspace.`);
+    } catch (error) {
+      state.localAnalysis = { ...state.localAnalysis, uploading: false };
+      toast("Upload not completed", error.message || "Check the file type and size, then try again.");
+    }
+    renderPage("local-analysis");
+  }
+
+  async function askLocalDocuments(form) {
+    if (state.localAnalysis.pending || !state.localAnalysis.sessionId) return;
+    const data = new FormData(form);
+    const question = String(data.get("question") || "").trim();
+    if (!question) return;
+    const useCopilot = data.get("useCopilot") === "on";
+    state.localAnalysis = { ...state.localAnalysis, question, useCopilot, pending: true };
+    renderPage("local-analysis");
+    try {
+      const response = await fetch("/api/local-analysis/query", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ sessionId: state.localAnalysis.sessionId, question, useCopilot, role: state.role, conversationId: state.localAnalysis.conversationId }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "Analysis could not be completed.");
+      state.localAnalysis = { ...state.localAnalysis, pending: false, result: payload, conversationId: payload.conversationId || state.localAnalysis.conversationId };
+      if (payload.agentFallback) toast("Local analysis used", "Copilot Studio was unavailable, so the answer stayed local and extractive.");
+    } catch (error) {
+      state.localAnalysis = { ...state.localAnalysis, pending: false };
+      toast("Analysis unavailable", error.message || "Upload the documents again and retry.");
+    }
+    renderPage("local-analysis");
+  }
+
+  async function clearLocalAnalysis() {
+    const sessionId = state.localAnalysis.sessionId;
+    state.localAnalysis = { sessionId: "", documents: [], pending: false, uploading: false, question: "", result: null, useCopilot: false, conversationId: "" };
+    renderPage("local-analysis");
+    if (state.backend && sessionId) {
+      try { await fetch(`/api/local-analysis/${encodeURIComponent(sessionId)}`, { method: "DELETE" }); } catch (_error) { /* memory expires with the server */ }
+    }
+    toast("Local workspace cleared", "Uploaded evidence and the current analysis were removed from server memory.");
   }
 
   function decisionMemoryPage() {
@@ -1126,16 +1118,12 @@
     state.pending = false;
     state.workspace = page;
     state.currentAnswer = null;
-    if (page === "management-brief" && !hasManagementAccess()) {
-      renderHome();
-      toast("Management access required", "This view is available to the GCMC, Market Reviewer and Finance demo identities.");
-      return;
-    }
-    const labels = { "today-brief": "Today’s Brief", watchlist: "Watchlist & Alerts", "management-brief": "Management Briefing", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
+    const labels = { "today-brief": "Today’s Brief", research: "Research", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
     const descriptions = {
       "today-brief": "The signals, decisions and source issues that need attention now.",
+      research: "A complete, evidence-led investigation from question to source trail.",
+      "local-analysis": "Analyse documents from this device without adding them to the governed source library.",
       watchlist: "Monitored signals and transparent alert rules.",
-      "management-brief": "A concise decision-ready view for leadership conversations.",
       "decision-memory": "The evidence and rationale behind prior decisions.",
       verification: isReviewer() ? "Review assigned cases and track the status of requests you submitted." : "Track the latest status of requests you submitted.",
       "data-sources": "Freshness, quality, usage and ownership of governed demo sources.",
@@ -1145,7 +1133,7 @@
     dom.asof_chip.style.display = "none";
     selectNavigation(page);
     dom.workspace_grid.className = "workspace-grid";
-    const pageRenderers = { "today-brief": todayBriefPage, watchlist: watchlistPage, "management-brief": managementBriefPage, "decision-memory": decisionMemoryPage, verification: verificationPage, "data-sources": dataSourcesPage, settings: settingsPage };
+    const pageRenderers = { "today-brief": todayBriefPage, research: researchPage, "local-analysis": localAnalysisPage, watchlist: watchlistPage, "decision-memory": decisionMemoryPage, verification: verificationPage, "data-sources": dataSourcesPage, settings: settingsPage };
     const content = (pageRenderers[page] || settingsPage)();
     dom.workspace_grid.innerHTML = `<section class="page-panel">${content}</section>`;
     closeNavigation();
@@ -1324,9 +1312,6 @@
     const regAllowed = hasAccess("reg");
     dom.ask_reg_nav.hidden = !regAllowed;
     dom.ask_reg_nav.setAttribute("aria-hidden", String(!regAllowed));
-    const managementAllowed = hasManagementAccess();
-    dom.management_brief_nav.hidden = !managementAllowed;
-    dom.management_brief_nav.setAttribute("aria-hidden", String(!managementAllowed));
     dom.workflow_nav_label.hidden = false;
     dom.verification_nav.hidden = false;
     dom.verification_nav.setAttribute("aria-hidden", "false");
@@ -1649,16 +1634,39 @@
       if (command === "watch") toggleWatch(insightAction.dataset.signalId);
       if (command === "memory") saveCurrentDecision();
       if (command === "verify") submitVerification(insightAction);
-      if (command === "brief") {
-        switchWorkspace("management-brief");
-        toast("Added to management view", "The current insight is represented in the prototype briefing narrative.");
+      if (command === "research") {
+        const question = state.currentQuestion || "Investigate this insight and test the evidence behind it";
+        state.research = { ...state.research, query: question, result: null };
+        switchWorkspace("research");
+        window.requestAnimationFrame(() => document.getElementById("research-query")?.focus());
+        toast("Research thread prepared", "The originating question is ready for a deeper evidence-led investigation.");
         return;
       }
       if (command !== "verify") renderEvidence();
       return;
     }
-    if (event.target.closest("[data-management-print]")) {
-      window.print();
+    const researchPrompt = event.target.closest("[data-research-prompt]");
+    if (researchPrompt) {
+      state.research = { ...state.research, query: researchPrompt.dataset.researchPrompt, result: null };
+      renderPage("research");
+      window.requestAnimationFrame(() => document.getElementById("research-query")?.focus());
+      return;
+    }
+    if (event.target.closest("[data-local-browse]")) {
+      document.getElementById("local-file-input")?.click();
+      return;
+    }
+    if (event.target.closest("[data-local-clear]")) {
+      clearLocalAnalysis();
+      return;
+    }
+    const localQuestion = event.target.closest("[data-local-question]");
+    if (localQuestion) {
+      const input = document.getElementById("local-analysis-question");
+      if (input) {
+        input.value = localQuestion.dataset.localQuestion;
+        input.focus();
+      }
       return;
     }
     const question = event.target.closest("[data-question]");
@@ -1732,26 +1740,46 @@
         event.preventDefault();
         ask(document.getElementById("question-input").value);
       }
-      if (event.target.matches("[data-management-form]")) {
+      if (event.target.matches("[data-research-form]")) {
         event.preventDefault();
-        refreshManagementBrief(event.target);
+        runResearch(event.target);
+      }
+      if (event.target.matches("[data-local-analysis-form]")) {
+        event.preventDefault();
+        askLocalDocuments(event.target);
       }
     });
     dom.workspace_grid.addEventListener("input", (event) => {
       if (event.target.id === "question-input") resizeInput();
-      if (event.target.matches("[data-management-instruction]")) {
-        const count = event.target.form?.querySelector("[data-management-count]");
-        if (count) count.textContent = String(event.target.value.length);
-      }
     });
-    dom.workspace_grid.addEventListener("change", updateSetting);
+    dom.workspace_grid.addEventListener("change", (event) => {
+      if (event.target.matches("[data-local-files]")) {
+        uploadLocalFiles(event.target.files);
+        return;
+      }
+      updateSetting(event);
+    });
+    dom.workspace_grid.addEventListener("dragover", (event) => {
+      const dropzone = event.target.closest(".local-dropzone");
+      if (!dropzone) return;
+      event.preventDefault();
+      dropzone.classList.add("is-dragging");
+    });
+    dom.workspace_grid.addEventListener("dragleave", (event) => event.target.closest(".local-dropzone")?.classList.remove("is-dragging"));
+    dom.workspace_grid.addEventListener("drop", (event) => {
+      const dropzone = event.target.closest(".local-dropzone");
+      if (!dropzone) return;
+      event.preventDefault();
+      dropzone.classList.remove("is-dragging");
+      uploadLocalFiles(event.dataTransfer?.files);
+    });
     dom.workspace_grid.addEventListener("keydown", (event) => {
       if (event.target.id === "question-input" && event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         event.target.form.requestSubmit();
         return;
       }
-      if (event.target.matches("[data-management-instruction]") && event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      if ((event.target.id === "research-query" || event.target.id === "local-analysis-question") && event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
         event.target.form.requestSubmit();
         return;

@@ -103,17 +103,8 @@ window.BURSAIQ_DEMO = {
       { id: "alert-tech", signalId: "sector-concentration", status: "Watching", time: "31 Jul · 18:05", rule: "Single-sector contribution exceeds 8 pts", owner: "Market Intelligence" },
       { id: "alert-source", signalId: "source-freshness", status: "Review", time: "31 Jul · 17:40", rule: "Learning source exceeds freshness target", owner: "Learning & Development" }
     ],
-    management: {
-      headline: "Momentum improved, participation broadened, and source governance remains visible.",
-      narrative: "July closed with the FBM KLCI up 2.4% month to date and 30-day ADV at RM3.42bn. Technology and Financial Services provided most of the positive index contribution. The immediate management focus is to validate whether the activity uplift is sustained and to keep the July market briefing inside the governed review path.",
-      priorities: [
-        { title: "Validate the activity uplift", owner: "Market Intelligence", due: "Next market cut", status: "In progress" },
-        { title: "Complete July briefing verification", owner: "Market Intelligence Lead", due: "Before publication", status: "Pending review" },
-        { title: "Refresh ageing learning content", owner: "Learning & Development", due: "5 Aug 2026", status: "Planned" }
-      ]
-    },
     decisions: [
-      { id: "DEC-260731-01", title: "Use July activity uplift in the management market narrative", rationale: "ADV and velocity both improved in the prepared dataset.", owner: "Nadia Karim", workspace: "Market Intelligence", status: "Awaiting verification", created: "31 Jul 2026 · 18:16 MYT", question: "How did the market perform in July?" },
+      { id: "DEC-260731-01", title: "Use July activity uplift in the verified market narrative", rationale: "ADV and velocity both improved in the prepared dataset.", owner: "Nadia Karim", workspace: "Market Intelligence", status: "Awaiting verification", created: "31 Jul 2026 · 18:16 MYT", question: "How did the market perform in July?" },
       { id: "DEC-260728-02", title: "Retain plain-language ADV definition for onboarding", rationale: "The approved primer supports the simplified explanation used in Learn Bursa.", owner: "Learning & Development", workspace: "Learn Bursa", status: "Recorded", created: "28 Jul 2026 · 10:05 MYT", question: "Explain ADV in plain language" }
     ]
   },

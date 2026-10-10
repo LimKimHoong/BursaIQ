@@ -10,9 +10,10 @@ Every included figure and document is synthetic. Nothing in this repository is o
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
 - **Today’s Intelligence Brief:** a role-aware opening brief prioritises changed signals, active alerts, pending decisions and next actions.
 - **Watchlist & Alerts:** demo identities can monitor signals, see the rule behind each alert and reopen the related evidence trail. Watchlists persist locally per identity.
-- **Actions in the Decision Canvas:** an answer can move directly into monitoring, Decision Memory, human verification or the management briefing view.
+- **Research:** a dedicated research agent turns a broad question into a structured dossier with an executive finding, evidence-led findings, counterpoints, open questions and a role-filtered source trail. It uses Copilot Studio when available and a transparent governed fallback otherwise.
+- **Local Analysis:** users can upload PDF, XLSX, CSV, JSON, TXT or Markdown documents into an in-memory workspace, ask interactive questions, inspect exact evidence extracts and explicitly opt in to Copilot-assisted synthesis.
+- **Actions in the Decision Canvas:** an answer can move directly into monitoring, Decision Memory, human verification or a deeper Research thread.
 - **Decision Memory:** every identity can inspect the decision records permitted to them, including the question, rationale, owner, evidence context and status; new records persist locally per identity.
-- **Management Briefing:** a printable executive narrative combines the market headline, governed metrics, evidence state and named management priorities.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
 - **Copilot Studio conversations:** the Flask gateway obtains short-lived Direct Line tokens and keeps tokens and Copilot conversation IDs server-side; no credential is exposed to browser JavaScript.
@@ -39,7 +40,7 @@ cp .env.example .env
 
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
 
-No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
+No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, Local Analysis uploads, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
 
 ## Suggested five-minute showcase
 
@@ -47,9 +48,10 @@ No user sign-in is required. The HTML still opens as a visual preview if the ser
 2. **Open Today’s Brief (45 seconds).** Show the role-aware attention queue, investigate the ADV signal, then add it to the Watchlist.
 3. **Ask the hero question (60 seconds).** Ask: `How did the market perform in July?` Open the Decision Canvas and use Actions to save the answer to Decision Memory.
 4. **Close the workflow (45 seconds).** Submit the answer for verification, show its status under My submitted requests, then switch to Arif Rahman to show the separate reviewer-only pending queue.
-5. **Brief management (35 seconds).** Return as Nadia and open Management Briefing to show the executive narrative, evidence state, priorities and print view.
-6. **Show adoption value (35 seconds).** Open Learn Bursa and ask: `Explain ADV in plain language.` Point to the raw-source evidence.
-7. **Close (30 seconds).** “BursaIQ turns a question into monitored intelligence, a traceable decision and a management-ready briefing—without losing its evidence.”
+5. **Research the signal (40 seconds).** Open Research with the originating question and show the dossier’s finding, counterpoints, source trail and next questions.
+6. **Analyse local evidence (40 seconds).** Open Local Analysis, upload a sanitized demo document and ask BursaIQ to extract the key decisions and owners.
+7. **Show adoption value (30 seconds).** Open Learn Bursa and ask: `Explain ADV in plain language.` Point to the raw-source evidence.
+8. **Close (25 seconds).** “BursaIQ turns a question into monitored intelligence, complete research and a traceable decision—without losing its evidence.”
 
 The script leaves roughly 45 seconds for transitions and judge reaction. All three team members can own a segment: problem/vision, GCMC intelligence, and responsible workflow/scale.
 
@@ -57,10 +59,10 @@ The script leaves roughly 45 seconds for transitions and judge reaction. All thr
 
 | Identity | Department | Demonstrated access |
 |---|---|---|
-| Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Verification Centre, Source Health, Decision Memory, Management Briefing |
-| Arif Rahman | Securities Market | BursaIQ Assistant, Learn Bursa, Ask Reg, market review queue, Source Health, Decision Memory, Management Briefing |
-| Farah Lee | HR | BursaIQ Assistant, Learn Bursa, Verification Centre, Source Health, Decision Memory |
-| Mei Tan | Finance | BursaIQ Assistant, Learn Bursa, Today’s Brief, Watchlist, Verification Centre, Source Health, Decision Memory, Management Briefing |
+| Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa, Today’s Brief, Research, Local Analysis, Watchlist, Verification Centre, Source Health, Decision Memory |
+| Arif Rahman | Securities Market | BursaIQ Assistant, Learn Bursa, Ask Reg, Research, Local Analysis, market review queue, Source Health, Decision Memory |
+| Farah Lee | HR | BursaIQ Assistant, Learn Bursa, Research, Local Analysis, Verification Centre, Source Health, Decision Memory |
+| Mei Tan | Finance | BursaIQ Assistant, Learn Bursa, Today’s Brief, Research, Local Analysis, Watchlist, Verification Centre, Source Health, Decision Memory |
 
 Verification cases are filtered in both the UI and API: identities receive their own submitted requests, reviewers additionally receive assigned cases, and only assigned reviewers can record a decision. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
 

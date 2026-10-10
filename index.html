@@ -28,9 +28,9 @@
   <!--
   THESIS: BursaIQ is a compact exchange desk, not a generic card dashboard or decorative AI chat screen.
   OWN-WORLD: Midnight navy, flat blue-gray rules, warm amber actions, market-teal signals, compact rectangular controls and dense operational typography.
-  STORY: Open in the BursaIQ Assistant workspace; ask across governed sources; carry the answer into monitoring, decision memory, human review, or a management-ready narrative.
-  FIRST VIEWPORT: The conversational Workspace owns the main field on every viewport, with Intelligence and Workflow one navigation step away.
-  FORM: Reference-led Midnight Market Desk, preserving the supplied prototype’s three-column cockpit and sidebar motion — seed 342aab3f.
+  STORY: Open in the BursaIQ Assistant workspace; ask across governed sources; move into complete research, private document analysis, monitoring, decision memory, or human review.
+  FIRST VIEWPORT: The conversational Workspace owns the main field; Research unfolds as a sourced dossier and Local Analysis as a private two-pane evidence bench.
+  FORM: User-pinned Research Map plus Private Analysis Bench, an established-world extension; surface seed 7f11c161 (the brief overrides the dealt hand).
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
   -->
   <a class="skip-link" href="#main-content">Skip to workspace</a>
@@ -61,13 +61,17 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 3v4m8-4v4M4 10h16M8 14h3m2 0h3m-8 3h5"/></svg>
           <span>Today’s Brief</span><em>Live</em>
         </button>
+        <button class="nav-item" data-workspace="research" id="research-nav" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6m-3-3v6"/></svg>
+          <span>Research</span><em>Agent</em>
+        </button>
+        <button class="nav-item" data-workspace="local-analysis" id="local-analysis-nav" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 14h8m-8 4h5"/><path d="m16 13 2 2 3-4"/></svg>
+          <span>Local Analysis</span>
+        </button>
         <button class="nav-item" data-workspace="watchlist" id="watchlist-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s8-4.5 8-11V5l-8-3-8 3v5c0 6.5 8 11 8 11zM8 12h3l1.5-3 2 6 1.5-3H19"/></svg>
           <span>Watchlist &amp; Alerts</span><b id="watchlist-count">0</b>
-        </button>
-        <button class="nav-item" data-workspace="management-brief" id="management-brief-nav" type="button" hidden aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V9m5 10V5m5 14v-7m5 7V3M2 19h20"/></svg>
-          <span>Management Briefing</span>
         </button>
 
         <p class="nav-label nav-label-spaced" id="workflow-nav-label"><span>Workflow</span></p>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -210,6 +211,53 @@ class WorkflowTests(unittest.TestCase):
                     response = client.post("/api/metrics/query", json={"question": "How did ADV change?", "role": role})
                     self.assertEqual(response.status_code, 200)
                     self.assertEqual(response.get_json()["calculationMode"], "deterministic")
+
+    def test_research_returns_a_sourced_fallback_without_agent_credentials(self) -> None:
+        from server import app
+
+        with patch("server.copilot.status", return_value={"available": False, "configured": False}):
+            with app.test_client() as client:
+                response = client.post("/api/research", json={
+                    "query": "Assess July market liquidity and participation",
+                    "role": "gcmc",
+                    "depth": "deep",
+                    "scope": "governed",
+                })
+        payload = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["mode"], "prepared-research-fallback")
+        self.assertTrue(payload["sources"])
+        self.assertTrue(payload["findings"])
+        self.assertEqual(payload["classification"], "SYNTHETIC_DEMO_ONLY")
+
+    def test_local_analysis_upload_query_and_clear_stays_in_memory(self) -> None:
+        from server import app
+
+        with app.test_client() as client:
+            uploaded = client.post(
+                "/api/local-analysis/upload",
+                data={"files": (io.BytesIO(b"Owner,Decision,Amount\nMarket Intelligence,Monitor ADV,3420000000\n"), "analysis.csv")},
+                content_type="multipart/form-data",
+            )
+            self.assertEqual(uploaded.status_code, 201)
+            workspace = uploaded.get_json()
+            self.assertEqual(workspace["storage"], "memory-only")
+            self.assertEqual(workspace["documents"][0]["name"], "analysis.csv")
+
+            analysed = client.post("/api/local-analysis/query", json={
+                "sessionId": workspace["sessionId"],
+                "question": "Who owns the ADV decision?",
+                "useCopilot": False,
+            })
+            result = analysed.get_json()
+            self.assertEqual(analysed.status_code, 200)
+            self.assertEqual(result["mode"], "local-extractive")
+            self.assertIn("Market Intelligence", result["answer"])
+            self.assertEqual(result["citations"][0]["name"], "analysis.csv")
+
+            cleared = client.delete(f"/api/local-analysis/{workspace['sessionId']}")
+            self.assertEqual(cleared.status_code, 200)
+            self.assertTrue(cleared.get_json()["cleared"])
 
     def test_verification_workspace_separates_assigned_and_submitted_cases(self) -> None:
         from server import app

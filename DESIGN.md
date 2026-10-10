@@ -1,6 +1,6 @@
 ---
 name: BursaIQ
-description: A two-mode liquid-glass market desk for role-aware intelligence, governed answers, and accountable action.
+description: A two-mode liquid-glass exchange desk for governed answers, complete research, private document analysis, and accountable action.
 colors:
   ink: "#f5f7fa"
   ink-soft: "#aeb8ca"
@@ -118,23 +118,27 @@ components:
 
 **Creative North Star: "The Midnight Market Desk"**
 
-BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into intelligence and accountable workflow panels.
+BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into Intelligence workspaces—Today’s Brief, Research, Local Analysis, and Watchlist—and accountable workflow panels.
 
 The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Appearance sits directly above Settings in the rail and uses the same complete 44px tile in compact mode; the demo identity remains an unboxed avatar-and-name control. A selective liquid-glass layer gives the conversational entry point, navigation chrome, and Decision Canvas a tactile sense of depth; dense ledgers remain line-led and optically quiet. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Muted violet appears only as refracted material light. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
+
+The Research Map and Private Analysis Bench are established-world extensions corroborated by surface seed `7f11c161`. The built implementation remains authoritative: Research expands a question into a contestable dossier, while Local Analysis keeps sanitized uploads in a visibly separate, memory-only evidence boundary.
 
 **Key Characteristics:**
 
 - A persistent Light / Dark appearance choice: violet midnight glass after dark and pearl-lilac glass in daylight.
 - An animated IQ Guide pet provides local, role-aware wayfinding without becoming a second answer engine.
 - The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.
-- Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.
+- Research and Local Analysis sit together under Intelligence as complementary paths for governed investigation and private evidence work.
+- Research moves from a liquid-glass command surface into a line-led dossier with method, findings, counterpoints, source trail, and follow-up questions.
+- Local Analysis pairs a private document intake with an evidence dialogue and never presents uploaded files as governed library sources.
 - Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.
 - Liquid glass for floating, interactive surfaces; fine structural rules for evidence-heavy operational content.
 - Prepared questions and answers remain clearly labelled when Copilot is unavailable.
 - Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.
 - Motion communicates spatial state and stops under reduced-motion preferences.
 
-## Themes & Colors
+## Colors
 
 The shared accent logic resembles an exchange floor: amber action, teal market feedback, and restrained violet refraction. Dark mode uses deep navy structure and cool light ink. Light mode uses a pearl-blue ground, dark navy ink, translucent white-lilac material, and darker teal/gold variants so status and action remain readable. The choice is stored on the device, applied before first paint, and available from the navigation rail directly above Settings as well as from the Settings page.
 
@@ -191,7 +195,7 @@ The shared accent logic resembles an exchange floor: amber action, teal market f
 
 ### Hierarchy
 
-- **Display** (760, responsive 29–44px, 1.08): Reserved for exceptional invitation or management-narrative moments, never the default intelligence brief.
+- **Display** (760, responsive 29–44px, 1.08): Reserved for exceptional invitation and Research entry moments, never the default intelligence brief.
 - **Headline** (700, 22px, 1.2): Briefing, page, and reviewer-workflow headings.
 - **Title** (700, 16px, 1.3): Answer titles, plot titles, and panel hierarchy.
 - **Body** (400, 12.5px, 1.62): Answers and analytical explanation, kept to readable card widths.
@@ -205,9 +209,9 @@ The shared accent logic resembles an exchange floor: amber action, teal market f
 
 ## Layout
 
-Desktop uses a fixed 250px left rail and a fluid main shell. The BursaIQ Assistant workspace fills the first viewport with the governed conversation entry point. Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing reuse the same hairline-separated rhythm instead of switching to card grids.
+Desktop uses a fixed 250px left rail and a fluid main shell. The BursaIQ Assistant workspace fills the first viewport with the governed conversation entry point. Today’s Brief, Watchlist, Decision Memory, and Source Health reuse the same hairline-separated rhythm instead of switching to card grids. Research and Local Analysis deliberately expand that grammar: the former becomes a research map and dossier; the latter becomes a private evidence bench.
 
-When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Below 980px, navigation becomes a 280px off-canvas drawer, briefing side rails stack below their main ledgers, and the attention queue keeps three counts above a full-width action. Below 760px, the Decision Canvas stacks beneath the conversation, management metrics become rows, and signal ledgers reduce to a readable two-column form. At 520px, attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
+When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Research starts with a two-column command area and a 1.45/0.55 route-and-principle split; its result uses a synthesis/method split, paired findings, and a full-width source trail. Local Analysis uses a 0.72/1.28 intake-and-dialogue split with a sticky glass question form. At 980px the navigation becomes a 280px off-canvas drawer, Research’s entry sections and Local Analysis both stack, with intake above dialogue. At 760px the Decision Canvas stacks beneath the conversation. At 680px Research controls, dossier sections, findings, and follow-up actions become single-column; the Local Analysis form also stacks and its action becomes full-width. At 520px attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
 
 Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44px minimum target even when the visible label or icon is small. Tables may scroll horizontally rather than crushing governed source metadata.
 
@@ -227,17 +231,17 @@ Depth follows interaction. The composer is the clearest glass object: violet-tin
 
 ## Shapes
 
-The outer application shell uses a 30px curve on desktop. Navigation and compact controls use 8–13px corners; answer cards use 22px; the composer uses 26px; suggestion and status chips remain pills. The asymmetric question bubble keeps a tighter lower-right corner to communicate direction without adding a speech-tail ornament. Mobile drops the outer-shell inset while preserving 22px composer and drawer geometry.
+The outer application shell uses a 30px curve on desktop. Navigation and compact controls use 8–13px corners; answer cards use 22px; the assistant composer uses 26px; the Research command uses 20px; and the Local Analysis question form uses 18px. Suggestion and status chips remain pills. The asymmetric question bubble keeps a tighter lower-right corner to communicate direction without adding a speech-tail ornament. Mobile drops the outer-shell inset while preserving the rounded composer and drawer geometry.
 
 ## Components
 
 ### IQ Guide Pet
 
-The supplied white two-eye character sits at the bottom-left beside the compact rail. Its idle motion is a restrained three-pixel drift; hover produces one short greeting tilt, and opening the directory gives it a listening posture. The character is a transparent raster cutout rather than a redrawn icon, preserving the user-supplied expression in both themes. All looping motion stops under reduced-motion preferences.
+The supplied white two-eye character sits at the bottom-right of the workspace, clear of the navigation rail. Its tooltip and liquid-glass directory open inward toward the content so neither can overflow the viewport. Its idle motion is a restrained three-pixel drift; hover produces one short greeting tilt, and opening the directory gives it a listening posture. The character is a transparent raster cutout rather than a redrawn icon, preserving the user-supplied expression in both themes. All looping motion stops under reduced-motion preferences.
 
 Clicking the pet opens a non-modal liquid-glass directory anchored to the character. The guide recommends the correct BursaIQ workspace or workflow, explains role boundaries, and offers one direct navigation action. It is intentionally local and deterministic, so wayfinding remains available when Copilot Studio cannot be reached and no question is sent outside the device. `/Close` hides the entire pet; Settings → Appearance restores it. Escape closes only the panel. The saved visibility preference is applied before first paint.
 
-The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mode. It never obscures access rules: unavailable reviewer, management, or regulatory destinations resolve to a permitted alternative with an explicit explanation.
+The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mode. It never obscures access rules: unavailable reviewer or regulatory destinations resolve to a permitted alternative with an explicit explanation.
 
 ### Buttons
 
@@ -267,11 +271,19 @@ The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mod
 
 ### Navigation
 
-The desktop rail is a fixed 72px icon column with complete 44px square targets, ordered by task progression: Workspace, Intelligence, then Workflow. It uses black-violet glass in Dark mode and pearl-lilac glass in Light mode. Active and hover surfaces keep all four corners visible while compact, then widen into full rows as the rail reveals its 250px labels over the workspace. Thin rules distinguish the groups while compact. The rail begins directly with the unboxed New conversation action—there is no prototype badge—and always returns to the single landing-page composer. The top bar carries only the BursaIQ product name and service state; the matching Light / Dark and Settings tiles sit together at the foot of the rail, above the unboxed identity control. The active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Verification Centre, Source Health, and Decision Memory are available to every identity, Management Briefing remains role-aware, and Ask Reg remains access-controlled. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
+The desktop rail is a fixed 72px icon column with complete 44px square targets, ordered by task progression: Workspace, Intelligence, then Workflow. It uses black-violet glass in Dark mode and pearl-lilac glass in Light mode. Active and hover surfaces keep all four corners visible while compact, then widen into full rows as the rail reveals its 250px labels over the workspace. Thin rules distinguish the groups while compact. The rail begins directly with the unboxed New conversation action—there is no prototype badge—and always returns to the single landing-page composer. The top bar carries only the BursaIQ product name and service state; the matching Light / Dark and Settings tiles sit together at the foot of the rail, above the unboxed identity control. The active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Research and Local Analysis live under Intelligence beside Today’s Brief and Watchlist; Verification Centre, Source Health, and Decision Memory remain under Workflow; Ask Reg remains access-controlled. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
 
-### Intelligence & Workflow Ledgers
+### Intelligence Workspaces
 
-Today’s Brief, Watchlist, Decision Memory, Source Health, and Management Briefing are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents freshness and quality for sources permitted to the active identity; Management Briefing turns the same truth into a narrative, three decisive metrics, and an owned priority ledger. Its instruction field and adjacent Print/Refresh controls regenerate the narrative through Copilot Studio, with a visibly labelled deterministic fallback when the agent cannot be reached.
+Research opens with a large invitation beside a 20px liquid-glass command surface. Depth and evidence-boundary selects retain 44px targets, and the Exchange Gold “Start research” control is the single dominant action. Prepared routes remain line-led rather than carded. Once run, the page settles into a dossier: provenance and generation metadata, executive finding and numbered method, evidence-led findings beside counterpoints, a source trail, and three follow-up questions. Market Teal marks sources and analytical movement; Exchange Gold marks the method, working state, and run action. The dossier animation is removed under reduced motion.
+
+Local Analysis is a Private Analysis Bench. The left intake holds the dropzone, session status, and uploaded-document rows; the right dialogue holds suggested tasks, local result, exact evidence extracts, and a sticky 18px liquid-glass question form. The service accepts sanitized PDF, XLSX, CSV, JSON, TXT, and MD files, up to six files and 5 MB each. Files are parsed by the local Python service, held only in server memory, never added to the governed source library, and cleared explicitly or when the process stops. Local extractive analysis is the default. Only an explicit per-question “Copilot-assisted synthesis” opt-in sends the selected evidence extracts to the published agent.
+
+**The Private Means Ephemeral Rule.** Never describe Local Analysis uploads as indexed, retained, governed-library content, or automatically shared. Their implemented boundary is memory-only, session-scoped, and local unless the per-question Copilot option is enabled.
+
+### Workflow Ledgers
+
+Today’s Brief, Watchlist, Decision Memory, and Source Health are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents freshness and quality for sources permitted to the active identity.
 
 Verification Centre separates two responsibilities without mixing their authority. Every identity sees My submitted requests and the latest status of each request. Reviewer identities additionally see Pending my review, which contains only outstanding cases assigned to their review queue and is the sole surface that exposes approval or change-request actions. Both sections use the same line-led case grammar, but the reviewer panel carries an explicit access label.
 
@@ -279,7 +291,7 @@ Watchlist and Decision Memory writes are role-scoped in local browser storage; p
 
 ### Decision Canvas
 
-The right canvas is a persistent analytical plane with four keyboard-complete tabs: Plot, Analysis, Sources, and Actions. Plot uses teal lines or bars with sparse amber emphasis; Analysis exposes the narrative and governed method; Sources names the evidence and coverage; Actions bridges the answer into Watchlist, Decision Memory, verification, or—when the role allows—Management Briefing. It opens at 520px, reduces at narrower desktops, collapses into a 54px labelled rail, and stacks below the answer on small screens.
+The right canvas is a persistent analytical plane with four keyboard-complete tabs: Plot, Analysis, Sources, and Actions. Plot uses teal lines or bars with sparse amber emphasis; Analysis exposes the narrative and governed method; Sources names the evidence and coverage; Actions bridges the answer into Watchlist, Decision Memory, verification, or Research. It opens at 520px, reduces at narrower desktops, collapses into a 54px labelled rail, and stacks below the answer on small screens.
 
 ## Do's and Don'ts
 
@@ -294,6 +306,8 @@ The right canvas is a persistent analytical plane with four keyboard-complete ta
 - **Do** preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.
 - **Do** preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.
 - **Do** keep IQ Guide answers about navigation, panel purpose, workflow and access boundaries; route substantive Bursa questions to BursaIQ Assistant.
+- **Do** reserve the gold Research action for starting or progressing the investigation while teal continues to identify sources, focus, and analytical state.
+- **Do** keep the Local Analysis memory-only boundary and per-question Copilot opt-in adjacent to the question form.
 
 ### Don't:
 
@@ -306,3 +320,4 @@ The right canvas is a persistent analytical plane with four keyboard-complete ta
 - **Don't** animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.
 - **Don't** make Light mode a flat white recolour; retain refracted violet, white rims, layered translucency, and cool structural shadows.
 - **Don't** let the pet block primary work, bypass role gates, imitate Copilot Studio, or keep moving when reduced motion is requested.
+- **Don't** imply that Local Analysis uploads persist, join the governed source library, or leave the local service without explicit question-level consent.

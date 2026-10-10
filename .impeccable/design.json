@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-09T23:05:00+08:00",
+  "generatedAt": "2026-10-10T15:00:00+08:00",
   "title": "Design System: BursaIQ",
   "extensions": {
     "colorMeta": {
@@ -98,7 +98,7 @@
     "typographyMeta": {
       "display": {
         "displayName": "Exceptional Display",
-        "purpose": "Deliberate conversational invitations and management-narrative moments, never the default intelligence brief."
+        "purpose": "Deliberate conversational invitations and Research entry moments, never the default intelligence brief."
       },
       "headline": {
         "displayName": "Workflow Headline",
@@ -126,7 +126,17 @@
       {
         "name": "amber-action-lift",
         "value": "0 8px 18px rgba(242, 184, 75, 0.14)",
-        "purpose": "Reserved for the send action."
+        "purpose": "Reserved for scarce gold actions, including send and Start research."
+      },
+      {
+        "name": "research-command-float",
+        "value": "0 22px 58px rgba(2, 5, 16, 0.30)",
+        "purpose": "Separates the Research command form from the line-led route map."
+      },
+      {
+        "name": "local-question-float",
+        "value": "0 20px 48px rgba(2, 5, 16, 0.27)",
+        "purpose": "Keeps the sticky Local Analysis question form visibly interactive above the evidence dialogue."
       },
       {
         "name": "mobile-drawer-depth",
@@ -159,6 +169,11 @@
         "name": "drawer",
         "value": "260ms cubic-bezier(0.2, 0.75, 0.25, 1)",
         "purpose": "Moves the mobile navigation fully on and off the viewport."
+      },
+      {
+        "name": "research-settle",
+        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Settles a completed Research dossier; removed under reduced-motion preferences."
       }
     ],
     "breakpoints": [
@@ -167,12 +182,16 @@
         "value": "1280px"
       },
       {
-        "name": "drawer-navigation",
+        "name": "drawer-and-intelligence-stack",
         "value": "980px"
       },
       {
         "name": "stacked-canvas",
         "value": "760px"
+      },
+      {
+        "name": "intelligence-phone",
+        "value": "680px"
       },
       {
         "name": "phone-spacing",
@@ -202,11 +221,11 @@
       "css": ".ds-nav-active { display:grid; width:222px; min-height:44px; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:10px; border:0; border-radius:8px; padding:0 9px; color:#f5f7fa; background:#141f38; box-shadow:inset 0 0 0 1px rgba(53,208,186,.1); font:650 11px/1.3 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-nav-active svg { width:16px; fill:none; stroke:#35d0ba; stroke-width:1.7; } .ds-nav-active:hover { background:#1b294a; } .ds-nav-active:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; }"
     },
     {
-      "name": "Today’s Brief Attention Strip",
+      "name": "Research Command",
       "kind": "custom",
-      "description": "The role-aware first-viewport summary of alerts, watched signals, open decisions, and the next queue action.",
-      "html": "<section class=\"ds-attention\" aria-label=\"Attention queue\"><div><span>Needs attention</span><strong>2</strong><small>active alert rules</small></div><div><span>Watching</span><strong>2</strong><small>signals in your watchlist</small></div><div><span>Decisions</span><strong>1</strong><small>awaiting closure</small></div><button type=\"button\"><span><strong>Open attention queue</strong><small>Review alerts and monitored signals</small></span><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M5 12h14m-5-5 5 5-5 5\"/></svg></button></section>",
-      "css": ".ds-attention { display:grid; width:min(900px,100%); grid-template-columns:repeat(3,minmax(120px,1fr)) minmax(220px,1.25fr); border-block:1px solid #27354f; color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-attention > div { border-right:1px solid #27354f; padding:17px 16px; } .ds-attention span,.ds-attention strong,.ds-attention small { display:block; } .ds-attention > div span { color:#738099; font-size:10px; letter-spacing:.08em; text-transform:uppercase; } .ds-attention > div strong { margin-top:4px; color:#f2b84b; font-size:20px; font-variant-numeric:tabular-nums; font-weight:560; } .ds-attention small { color:#738099; font-size:10px; } .ds-attention button { display:grid; min-height:78px; grid-template-columns:1fr 16px; align-items:center; gap:12px; border:0; padding:12px 16px; color:#f5f7fa; background:rgba(53,208,186,.035); text-align:left; cursor:pointer; } .ds-attention button strong { font-size:11px; } .ds-attention button svg { width:16px; fill:none; stroke:#35d0ba; stroke-width:1.7; } .ds-attention button:hover { color:#35d0ba; background:rgba(53,208,186,.07); } .ds-attention button:focus-visible { outline:2px solid #66e1cf; outline-offset:-2px; }"
+      "description": "The liquid-glass Research entry surface with depth, evidence boundary, and a scarce Exchange Gold run action.",
+      "html": "<section class=\"ds-research-command\"><div><h2>Turn a broad question into a research dossier</h2><p>Keep the source trail visible from first question to final finding.</p></div><form><label for=\"ds-research-query\">Research question or instruction</label><textarea id=\"ds-research-query\" rows=\"3\" placeholder=\"Assess whether July’s market activity was broad and sustainable.\"></textarea><div><select aria-label=\"Research depth\"><option>Deep research</option></select><select aria-label=\"Evidence boundary\"><option>Governed BursaIQ sources</option></select><button type=\"button\">Start research</button></div></form></section>",
+      "css": ".ds-research-command { display:grid; width:min(920px,100%); grid-template-columns:minmax(250px,.78fr) minmax(430px,1.22fr); gap:42px; align-items:center; padding:28px 30px 30px; color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-research-command h2 { max-width:13ch; margin:0; color:#f5f7fa; font-size:clamp(26px,2.8vw,42px); font-weight:620; letter-spacing:-.035em; line-height:1.06; } .ds-research-command p { max-width:48ch; margin:14px 0 0; font-size:12px; line-height:1.68; } .ds-research-command form { overflow:hidden; border:1px solid rgba(238,221,255,.24); border-radius:20px; padding:18px; background:linear-gradient(145deg,rgba(108,72,132,.25),rgba(26,31,55,.76) 50%,rgba(13,23,43,.84)); box-shadow:0 22px 58px rgba(2,5,16,.3),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(28px) saturate(150%); } .ds-research-command label { display:block; margin-bottom:8px; font-size:10px; font-weight:700; } .ds-research-command textarea { width:100%; min-height:94px; resize:vertical; border:0; outline:0; padding:3px 0 16px; color:#f5f7fa; background:transparent; font:450 14px/1.55 \"Segoe UI\",sans-serif; } .ds-research-command form > div { display:grid; grid-template-columns:minmax(118px,.7fr) minmax(190px,1.15fr) auto; gap:10px; border-top:1px solid rgba(226,207,244,.11); padding-top:13px; } .ds-research-command select,.ds-research-command button { min-height:44px; border-radius:10px; padding:0 10px; font:650 10px/1.3 \"Segoe UI\",sans-serif; } .ds-research-command select { border:1px solid rgba(219,200,237,.14); color:#aeb8ca; background:rgba(9,15,30,.54); } .ds-research-command button { border:0; padding-inline:14px; color:#0b1221; background:#f2b84b; box-shadow:0 8px 22px rgba(242,184,75,.18); cursor:pointer; } .ds-research-command button:hover { background:#f7d78f; } .ds-research-command :is(textarea,select,button):focus-visible { outline:2px solid #66e1cf; outline-offset:2px; } @media (max-width:980px) { .ds-research-command { grid-template-columns:1fr; gap:24px; } } @media (max-width:680px) { .ds-research-command form > div { grid-template-columns:1fr; } .ds-research-command button { width:100%; } }"
     },
     {
       "name": "Suggestion Chip",
@@ -236,16 +255,16 @@
       "name": "Decision Canvas Tabs",
       "kind": "custom",
       "refersTo": "decision-canvas",
-      "description": "The keyboard-complete Plot, Analysis, Sources, and Actions switcher; Actions carries an answer into monitoring, memory, review, or briefing.",
-      "html": "<div class=\"ds-canvas\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Analysis views\"><button role=\"tab\" aria-selected=\"false\">Plot</button><button role=\"tab\" aria-selected=\"false\">Analysis</button><button role=\"tab\" aria-selected=\"false\">Sources <span>3</span></button><button class=\"is-active\" role=\"tab\" aria-selected=\"true\">Actions</button></div><div class=\"ds-action\"><span>↗</span><div><strong>Add to watchlist</strong><p>Monitor this signal and keep its evidence attached.</p></div><em>Monitor</em></div></div>",
+      "description": "The keyboard-complete Plot, Analysis, Sources, and Actions switcher; Actions carries an answer into monitoring, memory, review, or Research.",
+      "html": "<div class=\"ds-canvas\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Analysis views\"><button role=\"tab\" aria-selected=\"false\">Plot</button><button role=\"tab\" aria-selected=\"false\">Analysis</button><button role=\"tab\" aria-selected=\"false\">Sources <span>3</span></button><button class=\"is-active\" role=\"tab\" aria-selected=\"true\">Actions</button></div><div class=\"ds-action\"><span>↗</span><div><strong>Open a research thread</strong><p>Expand this answer into a sourced dossier with counterpoints and open questions.</p></div><em>Research</em></div></div>",
       "css": ".ds-canvas { width:420px; overflow:hidden; border-left:1px solid #27354f; color:#aeb8ca; background:#0e1a33; font-family:\"Segoe UI\",sans-serif; } .ds-tabs { display:grid; grid-template-columns:repeat(4,1fr); height:54px; border-bottom:1px solid #27354f; padding:5px 12px; } .ds-tabs button { min-height:44px; border:0; border-radius:8px; color:#78869c; background:transparent; font-size:9.5px; cursor:pointer; } .ds-tabs button.is-active { color:#f2b84b; background:#141f38; } .ds-tabs button:focus-visible { outline:2px solid #66e1cf; outline-offset:-2px; } .ds-tabs span { color:#35d0ba; } .ds-action { display:grid; min-height:82px; grid-template-columns:32px 1fr auto; align-items:center; gap:12px; margin:16px; border-block:1px solid #27354f; padding:12px 2px; } .ds-action > span { display:grid; width:32px; height:32px; place-items:center; border:1px solid #27354f; border-radius:8px; color:#f2b84b; background:#0b1221; } .ds-action strong { color:#f5f7fa; font-size:10.5px; } .ds-action p { margin:4px 0 0; color:#738099; font-size:10.5px; line-height:1.45; } .ds-action em { color:#35d0ba; font-size:10px; font-style:normal; letter-spacing:.08em; text-transform:uppercase; }"
     },
     {
-      "name": "Line-led Intelligence Ledger",
+      "name": "Private Analysis Bench",
       "kind": "custom",
-      "description": "The shared row grammar for changed signals, monitored alerts, decision memory, source health, and management priorities.",
-      "html": "<article class=\"ds-ledger\"><span class=\"ds-marker\"><i></i>Activity</span><div><strong>ADV momentum remains elevated</strong><p>Activity is above the prior 30-day cut; investigate before carrying the signal into review or briefing.</p><button type=\"button\">Ask BursaIQ</button></div><div class=\"ds-value\"><strong>RM2.41bn</strong><small>+8.7% vs prior</small></div></article>",
-      "css": ".ds-ledger { display:grid; width:min(760px,100%); grid-template-columns:100px minmax(0,1fr) 120px; gap:18px; border-top:1px solid #27354f; padding:17px 0; color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-marker { color:#738099; font-size:10px; letter-spacing:.07em; text-transform:uppercase; } .ds-marker i { display:inline-block; width:7px; height:7px; margin-right:6px; border-radius:50%; background:#f2b84b; } .ds-ledger div > strong { color:#f5f7fa; font-size:12px; } .ds-ledger p { max-width:65ch; margin:5px 0 0; font-size:11px; line-height:1.55; } .ds-ledger button { min-height:44px; border:0; padding:0; color:#35d0ba; background:transparent; font-size:10px; cursor:pointer; } .ds-ledger button:hover { color:#66e1cf; text-decoration:underline; text-underline-offset:3px; } .ds-ledger button:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; } .ds-value { text-align:right; } .ds-value strong { color:#f2b84b!important; font-size:13px!important; font-variant-numeric:tabular-nums; font-weight:560; } .ds-value small { display:block; margin-top:3px; color:#738099; font-size:10px; }"
+      "description": "The two-pane Local Analysis surface: private memory-only intake on the left, evidence dialogue and explicit Copilot opt-in on the right.",
+      "html": "<section class=\"ds-local-bench\"><div class=\"ds-local-intake\"><h2>Private document bench</h2><p>Files are parsed locally and held in memory only for this running session.</p><button type=\"button\"><strong>Drop documents here</strong><span>PDF, XLSX, CSV, JSON, TXT or MD</span></button><small>Nothing is added to the governed source library.</small></div><div class=\"ds-local-dialogue\"><h2>Ask against the evidence</h2><p>Every local answer shows the passages it used.</p><form><textarea rows=\"3\" placeholder=\"Ask a question or describe the analysis you need…\"></textarea><div><label><input type=\"checkbox\"><span><strong>Copilot-assisted synthesis</strong><small>Send only selected evidence extracts.</small></span></label><button type=\"button\">Analyse</button></div></form><aside><strong>Local by default.</strong> Evidence leaves the local service only with explicit question-level consent.</aside></div></section>",
+      "css": ".ds-local-bench { display:grid; width:min(920px,100%); grid-template-columns:minmax(300px,.72fr) minmax(440px,1.28fr); color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-local-bench h2 { margin:0; color:#f5f7fa; font-size:17px; letter-spacing:-.02em; } .ds-local-bench p { margin:7px 0 0; color:#738099; font-size:11px; line-height:1.55; } .ds-local-intake { border-right:1px solid #27354f; padding:28px 24px; background:rgba(5,11,24,.22); } .ds-local-intake > button { display:grid; width:100%; min-height:190px; place-items:center; align-content:center; gap:6px; margin-top:24px; border:1px dashed rgba(132,150,181,.42); border-radius:14px; padding:24px; color:#aeb8ca; background:linear-gradient(145deg,rgba(101,68,123,.13),rgba(17,27,48,.42)); cursor:pointer; } .ds-local-intake > button strong { color:#f5f7fa; font-size:12px; } .ds-local-intake > button span,.ds-local-intake > small { color:#738099; font-size:10px; } .ds-local-intake > button:hover { border-color:#35d0ba; transform:translateY(-2px); } .ds-local-dialogue { display:flex; min-width:0; flex-direction:column; padding:28px 30px; } .ds-local-dialogue form { margin-top:28px; border:1px solid rgba(238,221,255,.24); border-radius:18px; padding:14px; background:linear-gradient(145deg,rgba(97,68,117,.25),rgba(19,28,50,.82)); box-shadow:0 20px 48px rgba(2,5,16,.27),inset 0 1px rgba(255,255,255,.17); backdrop-filter:blur(26px) saturate(145%); } .ds-local-dialogue textarea { width:100%; min-height:62px; resize:vertical; border:0; outline:0; color:#f5f7fa; background:transparent; font:450 13px/1.55 \"Segoe UI\",sans-serif; } .ds-local-dialogue form > div { display:flex; align-items:center; justify-content:space-between; gap:14px; border-top:1px solid rgba(226,207,244,.11); padding-top:11px; } .ds-local-dialogue label { display:flex; align-items:center; gap:9px; font-size:10px; } .ds-local-dialogue label small { display:block; color:#738099; } .ds-local-dialogue form button { min-height:44px; border:0; border-radius:13px; padding:0 14px; color:#0b1221; background:#f2b84b; cursor:pointer; } .ds-local-dialogue form button:hover { background:#f7d78f; } .ds-local-dialogue aside { margin-top:18px; border-top:1px solid #27354f; padding-top:18px; color:#738099; font-size:10px; line-height:1.55; } .ds-local-dialogue :is(textarea,input,button):focus-visible,.ds-local-intake > button:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; } @media (max-width:980px) { .ds-local-bench { grid-template-columns:1fr; } .ds-local-intake { border-right:0; border-bottom:1px solid #27354f; } } @media (max-width:680px) { .ds-local-dialogue form > div { display:grid; } .ds-local-dialogue form button { width:100%; } }"
     },
     {
       "name": "Governed Status Pill",
@@ -259,21 +278,21 @@
       "kind": "custom",
       "description": "A device-local, role-aware BursaIQ directory anchored to the supplied animated white character. It recommends a permitted panel, exposes one direct navigation action, hides with /Close, and can be restored from Settings.",
       "html": "<section class=\"ds-guide\"><div class=\"ds-guide-panel\"><strong>IQ Guide</strong><p>Tell me what you need to do and I’ll point you to the right workspace or workflow.</p><button type=\"button\">Open Today’s Brief</button></div><button class=\"ds-guide-pet\" type=\"button\" aria-label=\"Open IQ Guide\"><img src=\"/static/assets/bursaiq-guide-pet.png\" alt=\"\"></button></section>",
-      "css": ".ds-guide { position:relative; width:68px; height:68px; } .ds-guide-pet { width:68px; height:68px; overflow:visible; border:0; border-radius:50%; padding:0; background:transparent; cursor:pointer; } .ds-guide-pet img { width:112px; height:100px; object-fit:contain; filter:drop-shadow(0 9px 13px rgba(0,0,0,.22)); } .ds-guide-panel { position:absolute; bottom:78px; left:0; width:360px; border:1px solid rgba(226,209,242,.18); border-radius:22px; padding:14px; color:#f5f7fa; background:linear-gradient(145deg,rgba(75,50,91,.88),rgba(9,16,31,.96)); box-shadow:0 30px 84px rgba(1,3,12,.5),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(32px) saturate(155%); } .ds-guide-panel button { min-height:44px; border:1px solid rgba(53,208,186,.22); border-radius:10px; color:#66e1cf; background:rgba(53,208,186,.07); }"
+      "css": ".ds-guide { position:relative; width:68px; height:68px; } .ds-guide-pet { width:68px; height:68px; overflow:visible; border:0; border-radius:50%; padding:0; background:transparent; cursor:pointer; } .ds-guide-pet img { width:112px; height:100px; object-fit:contain; filter:drop-shadow(0 9px 13px rgba(0,0,0,.22)); } .ds-guide-panel { position:absolute; right:0; bottom:78px; width:360px; border:1px solid rgba(226,209,242,.18); border-radius:22px; padding:14px; color:#f5f7fa; background:linear-gradient(145deg,rgba(75,50,91,.88),rgba(9,16,31,.96)); box-shadow:0 30px 84px rgba(1,3,12,.5),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(32px) saturate(155%); } .ds-guide-panel button { min-height:44px; border:1px solid rgba(53,208,186,.22); border-radius:10px; color:#66e1cf; background:rgba(53,208,186,.07); }"
     }
   ],
   "narrative": {
-    "northStar": "The Adaptive Market Desk",
-    "overview": "BursaIQ is a compact exchange workstation with two deliberate environments: the established violet Midnight Market Desk and a daylight Pearl Exchange. The BursaIQ Assistant workspace is the single conversational landing page, giving every role one governed composer before moving into intelligence and accountable workflow panels.\n\nThe fixed 72px icon rail reveals its full navigation names over the fluid workspace on hover or keyboard focus; it begins directly with an unboxed plus action that returns to the landing-page composer. Matching Light / Dark and Settings controls sit together as complete 44px tiles at the foot of the rail, while the identity remains an unboxed avatar-and-name control. Verification Centre separates every identity's submitted-request status from the reviewer-only pending queue, while Source Health and Decision Memory remain visible to everyone within their permitted data. A bottom-left IQ Guide pet turns the supplied white two-eye character into a local, role-aware directory: it recommends the correct workspace or workflow, explains unavailable destinations, and never impersonates the answer engine. Its /Close command and Settings preference keep the flourish optional. The collapsible Decision Canvas keeps the operating model visible without competing for attention. Selective liquid glass gives the composer, navigation chrome, chat exchanges, dialogs, IQ Guide, and Decision Canvas tactile depth in both themes; dense ledgers and tables remain line-led and optically quiet. Every interactive target remains at least 44px, and motion stops under reduced-motion preferences.",
+    "northStar": "The Midnight Market Desk",
+    "overview": "BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into Intelligence workspaces—Today’s Brief, Research, Local Analysis, and Watchlist—and accountable workflow panels.\n\nThe fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Appearance sits directly above Settings in the rail and uses the same complete 44px tile in compact mode; the demo identity remains an unboxed avatar-and-name control. A selective liquid-glass layer gives the conversational entry point, navigation chrome, and Decision Canvas a tactile sense of depth; dense ledgers remain line-led and optically quiet. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Muted violet appears only as refracted material light. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.\n\nThe Research Map and Private Analysis Bench are established-world extensions corroborated by surface seed `7f11c161`. The built implementation remains authoritative: Research expands a question into a contestable dossier, while Local Analysis keeps sanitized uploads in a visibly separate, memory-only evidence boundary.",
     "keyCharacteristics": [
-      "Persistent Light and Dark modes with equivalent liquid-glass depth: violet midnight and pearl-lilac daylight.",
-      "An animated, optional IQ Guide pet provides local role-aware wayfinding and direct panel navigation.",
+      "A persistent Light / Dark appearance choice: violet midnight glass after dark and pearl-lilac glass in daylight.",
+      "An animated IQ Guide pet provides local, role-aware wayfinding without becoming a second answer engine.",
       "The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.",
-      "Verification Centre gives everyone their own request status and adds a separate outstanding queue only for assigned reviewers.",
-      "Watchlist, Decision Memory, Source Health, and Management Briefing share a compact line-led ledger grammar.",
-      "Management Briefing accepts optional generation instructions beside its Print and Refresh controls, and labels Copilot Studio versus prepared fallback output.",
-      "Fixed icon-first navigation that reveals labels without shifting the fluid workspace, plus a collapsible right Decision Canvas.",
-      "Theme-aware liquid glass for floating interactive surfaces, with fine structural rules for evidence-heavy operational content.",
+      "Research and Local Analysis sit together under Intelligence as complementary paths for governed investigation and private evidence work.",
+      "Research moves from a liquid-glass command surface into a line-led dossier with method, findings, counterpoints, source trail, and follow-up questions.",
+      "Local Analysis pairs a private document intake with an evidence dialogue and never presents uploaded files as governed library sources.",
+      "Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.",
+      "Liquid glass for floating, interactive surfaces; fine structural rules for evidence-heavy operational content.",
       "Prepared questions and answers remain clearly labelled when Copilot is unavailable.",
       "Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.",
       "Motion communicates spatial state and stops under reduced-motion preferences."
@@ -290,16 +309,6 @@
         "section": "colors"
       },
       {
-        "name": "The Material Survives the Theme Rule",
-        "body": "Light mode is not a flat white recolour: preserve refraction, translucent layers, a bright upper rim, cool shadows, and the same amber-action and teal-analysis semantics used in Dark mode.",
-        "section": "colors"
-      },
-      {
-        "name": "The Pet Directs, It Does Not Decide Rule",
-        "body": "IQ Guide answers only workspace, panel, workflow and access-boundary questions. It routes substantive market, learning and regulatory questions to the governed BursaIQ Assistant experience.",
-        "section": "components"
-      },
-      {
         "name": "The Workspace Leads, Work Compresses Rule",
         "body": "The assistant opens with one deliberate invitation; intelligence and workflow pages switch to compact operational hierarchy.",
         "section": "typography"
@@ -313,6 +322,11 @@
         "name": "The Weight Follows Area Rule",
         "body": "Large glass surfaces receive stronger blur and deeper shadows; compact controls receive lighter material and almost no independent elevation.",
         "section": "elevation"
+      },
+      {
+        "name": "The Private Means Ephemeral Rule",
+        "body": "Never describe Local Analysis uploads as indexed, retained, governed-library content, or automatically shared. Their implemented boundary is memory-only, session-scoped, and local unless the per-question Copilot option is enabled.",
+        "section": "components"
       }
     ],
     "dos": [
@@ -324,7 +338,9 @@
       "Do label synthetic, predefined, and restricted content at the point of use.",
       "Do preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.",
       "Do preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.",
-      "Do keep IQ Guide local, role-aware, optional and focused on wayfinding."
+      "Do keep IQ Guide answers about navigation, panel purpose, workflow and access boundaries; route substantive Bursa questions to BursaIQ Assistant.",
+      "Do reserve the gold Research action for starting or progressing the investigation while teal continues to identify sources, focus, and analytical state.",
+      "Do keep the Local Analysis memory-only boundary and per-question Copilot opt-in adjacent to the question form."
     ],
     "donts": [
       "Don't apply glass indiscriminately to tables, ledgers, or every information group; material must communicate a floating or interactive plane.",
@@ -334,8 +350,9 @@
       "Don't shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.",
       "Don't hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.",
       "Don't animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.",
-      "Don't make Light mode a flat white recolour; retain pearl translucency, restrained violet refraction, white rims, and cool structural shadows.",
-      "Don't let IQ Guide bypass role gates, answer substantive intelligence questions, block primary work, or loop motion under reduced-motion preferences."
+      "Don't make Light mode a flat white recolour; retain refracted violet, white rims, layered translucency, and cool structural shadows.",
+      "Don't let the pet block primary work, bypass role gates, imitate Copilot Studio, or keep moving when reduced motion is requested.",
+      "Don't imply that Local Analysis uploads persist, join the governed source library, or leave the local service without explicit question-level consent."
     ]
   }
 }

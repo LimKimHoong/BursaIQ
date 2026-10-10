@@ -98,7 +98,7 @@
         ],
         formula: "30D ADV change = (RM3.42bn ÷ RM3.08bn − 1) × 100 = 11.04%",
         context: { "Latest window": "18 Jun–31 Jul 2026", "Prior window": "6 May–17 Jun 2026", "Trading days": "30 per window", "Scope": "On-market value" },
-        followups: ["Show investor participation", "What is trading velocity?", "Create a management briefing"]
+        followups: ["Show investor participation", "What is trading velocity?", "Research whether the activity uplift is sustainable"]
       }
     );
   }

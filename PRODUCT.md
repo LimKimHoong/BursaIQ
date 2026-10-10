@@ -19,7 +19,7 @@ Delegated: modular HTML, CSS, and JavaScript with a lightweight Python Flask ser
 
 ## Product Purpose
 
-BursaIQ gives Bursa employees one conversational interface for asking questions across approved structured data and documents. It turns a question into a traceable answer with context, calculations, evidence, and a reusable report. Stage 02 success means proving this experience convincingly in a five-minute competition showcase.
+BursaIQ gives Bursa employees one governed interface for asking questions, conducting complete evidence-led research, and analysing sanitized documents from their own device. It turns a question into a traceable answer with context, calculations, evidence, and a reusable report. Stage 02 success means proving this experience convincingly in a five-minute competition showcase.
 
 ## Positioning
 
@@ -38,6 +38,8 @@ BursaIQ connects a Microsoft Copilot Studio agent to a governed evidence and wor
 - Preserve the BursaIQ name and recognizable dark exchange-intelligence identity.
 - Use local synthetic files now; allow sanitized representative files to replace them later through the `Input/` folder.
 - Prioritize GCMC market intelligence: market value, ADV, market performance, market drivers, investor participation, and selected international comparisons.
+- Include a Research workspace that expands a question into findings, counterpoints, implications, open questions, and a visible source trail through the published Copilot Studio agent.
+- Include a Local Analysis workspace for sanitized PDF, spreadsheet, structured-data, and text uploads. Files remain in server memory by default, and evidence is sent to Copilot Studio only through an explicit per-question opt-in.
 - Include a Learn Bursa workspace where new joiners can read source material, request summaries, and ask grounded follow-up questions.
 - Include a permissioned Ask Reg workspace with visible information boundaries and access-request controls for every identity.
 - Keep employee, candidate, recruitment and other people-related information outside the prototype; direct those questions to the approved HR channel.
