@@ -33,7 +33,8 @@
 
   const defaultPreferences = {
     version: preferencesVersion,
-    autoOpenInsights: true,
+    autoOpenInsights: false,
+    assistantMode: "local",
     chartMotion: true,
     theme: "dark",
     showPet: true,
@@ -47,6 +48,7 @@
       const needsMigration = saved.version !== preferencesVersion;
       const migrated = needsMigration ? { ...saved, version: preferencesVersion, defaultWorkspace: "home" } : saved;
       const preferences = { ...defaultPreferences, ...migrated, plugins: { ...defaultPreferences.plugins, ...(migrated.plugins || {}) } };
+      if (!["live", "local"].includes(preferences.assistantMode)) preferences.assistantMode = "local";
       const hasInvalidWorkspace = !["today-brief", "home", "learn"].includes(preferences.defaultWorkspace);
       if (hasInvalidWorkspace) preferences.defaultWorkspace = "home";
       if (needsMigration || hasInvalidWorkspace) localStorage.setItem("bursaiq_preferences", JSON.stringify(preferences));
@@ -154,6 +156,7 @@
     accessRequests: loadAccessRequests(),
     watchlists: loadLocalMap("bursaiq_watchlists"),
     decisionMemories: loadLocalMap("bursaiq_decision_memories"),
+    automation: { editor: null, errors: {}, message: "", preview: "" },
     accessRequestPanel: "",
     research: { query: "", depth: "deep", scope: "governed", pending: false, result: null, conversationId: "" },
     localAnalysis: { sessionId: "", documents: [], pending: false, uploading: false, question: "", result: null, useCopilot: false, conversationId: "" },
@@ -347,7 +350,7 @@
 
   function guideReply(question) {
     const value = question.toLowerCase();
-    const currentLabels = { home: "BursaIQ Assistant", market: "Market Intelligence", learn: "Learn Bursa", reg: "Ask Reg", "today-brief": "Today’s Brief", research: "Research", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
+const currentLabels = { home: "BursaIQ Assistant", market: "Market Intelligence", learn: "Learn Bursa", reg: "Ask Reg", "today-brief": "Today’s Brief", research: "Research Lab", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
     if (/(where am i|current panel|current page)/.test(value)) {
       return { text: `You’re in ${currentLabels[state.workspace] || "BursaIQ"}. Tell me the task you want to complete and I can recommend the next panel.` };
     }
@@ -358,11 +361,13 @@
     } else if (/(verify|verification|review|approve|audit|human check)/.test(value)) {
       result = { workspace: "verification", label: "Open Verification Centre", text: "Use Verification Centre when an answer may inform a decision and needs a reviewer to inspect its narrative, calculation and evidence trail." };
     } else if (/(research|investigate|deep dive|landscape|compare evidence|complete study)/.test(value)) {
-      result = { workspace: "research", label: "Open Research", text: "Use Research to turn a broad question into a structured dossier with evidence, counterpoints, implications and open questions." };
+      result = { workspace: "research", label: "Open Research Lab", text: "Use Research Lab to turn a broad question into a structured dossier with evidence, counterpoints, implications and open questions." };
     } else if (/(upload|my document|local file|analyse file|analyze file|document analysis|spreadsheet analysis)/.test(value)) {
       result = { workspace: "local-analysis", label: "Open Local Analysis", text: "Use Local Analysis to inspect uploaded PDFs, spreadsheets and text files in a private in-memory workspace, then ask questions against their evidence." };
     } else if (/(decision memory|rationale|previous decision|decision history|why.*decid)/.test(value)) {
       result = { workspace: "decision-memory", label: "Open Decision Memory", text: "Use Decision Memory to revisit the question, evidence, rationale, owner and status behind a recorded decision." };
+    } else if (/(automation|email|schedule|repeat|recurring)/.test(value)) {
+      result = { workspace: "automation", label: "Open Automation", text: "Use Automation to plan recurring intelligence emails, choose recipients and days, and preview the content. This demo saves schedules on this device but sends no emails." };
     } else if (/(watch|alert|monitor|threshold|notify|tracking)/.test(value)) {
       result = { workspace: "watchlist", label: "Open Watchlist & Alerts", text: "Use Watchlist & Alerts to monitor signals over time and see the rule that caused each alert." };
     } else if (/(today|daily brief|what changed|attention|priority|signal)/.test(value)) {
@@ -457,6 +462,31 @@
     dom.open_report_button.style.display = "none";
   }
 
+  function chatModeHelp() {
+    if (state.preferences.assistantMode === "local") return "Prepared answers on this device. No question is sent to Copilot; a local trained model is planned, not connected.";
+    return state.backend && state.agent.available
+      ? "Uses Microsoft Copilot Studio. Your next question is sent to the connected agent."
+      : "Copilot is unavailable in this demo. Supported questions use a clearly labelled local fallback.";
+  }
+
+  function chatModeMarkup() {
+    return `<label class="chat-mode-control"><span class="sr-only">Answer mode</span><select name="assistant-mode" aria-label="Answer mode" aria-describedby="chat-mode-help" title="${escapeHtml(chatModeHelp())}">${["local", "live"].map((mode) => `<option value="${mode}" ${state.preferences.assistantMode === mode ? "selected" : ""}>${mode === "live" ? "Live" : "Local"}</option>`).join("")}</select><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></label>`;
+  }
+
+  function syncChatMode() {
+    document.querySelectorAll('select[name="assistant-mode"]').forEach((select) => {
+      select.value = state.preferences.assistantMode;
+      select.disabled = state.pending;
+      select.title = chatModeHelp();
+    });
+    const help = document.getElementById("chat-mode-help");
+    if (help) help.textContent = state.preferences.assistantMode === "local"
+      ? "Local · Prepared demo answers on this device."
+      : state.backend && state.agent.available ? "Live · Microsoft Copilot Studio." : "Live unavailable · Prepared local fallback.";
+    const badge = document.getElementById("assistant-mode-badge");
+    if (badge) badge.textContent = state.preferences.assistantMode === "live" ? "Live" : "Local";
+  }
+
   function composerMarkup(placeholder, isHome = false) {
     const pluginCount = Object.values(state.preferences.plugins).filter(Boolean).length;
     const pluginLabel = pluginCount ? ` · ${pluginCount} plugin${pluginCount === 1 ? "" : "s"} enabled` : "";
@@ -467,9 +497,10 @@
         <textarea id="question-input" rows="1" maxlength="1000" placeholder="${escapeHtml(placeholder)}"></textarea>
         <div class="composer-footer">
           <div class="composer-meta"><span class="grounding-dot"></span>${isHome ? "Routes within your permitted workspaces" : "Uses approved demo sources"}${pluginLabel}</div>
-          <button class="send-button" type="submit" aria-label="Send question"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-2-5zM5 12l7 2"/></svg></button>
+          <div class="composer-controls">${isHome ? chatModeMarkup() : ""}<button class="send-button" type="submit" aria-label="Send question"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-2-5zM5 12l7 2"/></svg></button></div>
         </div>
       </form>
+      ${isHome ? '<p class="chat-mode-help" id="chat-mode-help" role="status"></p>' : ""}
       <p class="demo-disclaimer">Synthetic competition data</p>
     </div>`;
   }
@@ -520,7 +551,6 @@
 
   function evidenceMarkup() {
     return `<aside class="evidence-panel insight-panel" id="evidence-panel" aria-label="Full answer analysis">
-      <button class="insight-rail" type="button" data-open-insight aria-label="Open answer canvas"><span>‹</span><strong>Answer canvas</strong></button>
       <div class="insight-expanded">
         <div class="insight-header"><div><span>Decision canvas</span><strong>Evidence &amp; analysis</strong></div><button class="canvas-toggle" type="button" data-close-insight aria-label="Collapse analysis panel">›</button></div>
         <div class="evidence-tabs" role="tablist" aria-label="Analysis views">
@@ -549,6 +579,7 @@
     selectNavigation("home");
     bindDom();
     renderSuggestions(workspaceConfig.market.suggestions);
+    syncChatMode();
     closeNavigation();
   }
 
@@ -618,6 +649,7 @@
   }
 
   function answerProvenance(result) {
+    if (result.narrativeMode === "local-demo") return '<span class="provenance-chip">Local · Prepared demo</span>';
     if (result.narrativeMode === "copilot-studio") return `<span class="provenance-chip copilot">Microsoft Copilot Studio</span>`;
     if (result.narrativeMode === "fallback") return `<span class="provenance-chip fallback">Predefined demo answer</span>`;
     return `<span class="provenance-chip">BursaIQ local preview</span>`;
@@ -627,7 +659,10 @@
     const label = document.querySelector(".system-state strong");
     const container = document.querySelector(".system-state");
     if (!label || !container) return;
-    if (mode === "fallback") {
+    if (mode === "local-demo" || (!mode && state.workspace === "home" && state.preferences.assistantMode === "local")) {
+      label.textContent = "Local demo";
+      container.title = "Prepared browser answers; no chat request is sent to Copilot and no local trained model is connected";
+    } else if (mode === "fallback") {
       label.textContent = "Demo fallback active";
       container.title = "A predefined local answer is being used because Copilot Studio is unavailable";
     } else if (!state.backend) {
@@ -682,6 +717,22 @@
 
   async function resolveAnswer(question, selectedWorkspace, role) {
     const localWorkspace = selectedWorkspace === "home" ? routeQuestion(question) : selectedWorkspace;
+    if (selectedWorkspace !== "home" || state.preferences.assistantMode === "local") {
+      if (!hasAccess(localWorkspace)) return { denied: true, workspace: localWorkspace };
+      const supported = new Set([
+        ...predefinedDemoQuestions,
+        ...Object.values(workspaceConfig).flatMap((config) => config.suggestions.map((item) => item.toLowerCase())),
+        ...Object.values(learningPaths).flatMap((path) => path.questions.map((item) => item.toLowerCase())),
+        ...(state.currentAnswer?.followups || []).map((item) => item.toLowerCase())
+      ]);
+      if (!supported.has(question.toLowerCase().trim())) return {
+        localError: true,
+        message: "This local prototype has prepared answers, not a trained model. Choose a suggested question, or select Live in BursaIQ Assistant for a connected Copilot response."
+      };
+      const result = engine.respond(localWorkspace, question);
+      result.narrativeMode = "local-demo";
+      return { workspace: localWorkspace, result };
+    }
     if (!state.backend) {
       if (!hasAccess(localWorkspace)) return { denied: true, workspace: localWorkspace };
       if (!predefinedDemoQuestions.has(question.toLowerCase().trim())) {
@@ -737,6 +788,7 @@
     state.answerWorkspace = localWorkspace;
     state.currentQuestion = cleanQuestion;
     state.pending = true;
+    syncChatMode();
     document.querySelector(".home-empty, .workspace-empty, .feature-view")?.remove();
     document.querySelector(".conversation-panel")?.classList.add("has-messages");
     dom.chat_thread.insertAdjacentHTML("beforeend", `<div class="question-card">${escapeHtml(cleanQuestion)}</div>`);
@@ -750,13 +802,20 @@
       return;
     }
 
-    const activity = "Asking your Microsoft Copilot Studio agent…";
+    const activity = selectedWorkspace !== "home" || state.preferences.assistantMode === "local"
+      ? "Preparing a local demo answer…"
+      : state.backend ? "Asking your Microsoft Copilot Studio agent…" : "Live is unavailable; checking the prepared demo fallback…";
     dom.chat_thread.insertAdjacentHTML("beforeend", `<div class="typing-indicator" id="typing"><div class="typing-dots"><i></i><i></i><i></i></div>${activity}</div>`);
     dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
     const [resolution] = await Promise.all([resolveAnswer(cleanQuestion, selectedWorkspace, requestRole), new Promise((resolve) => window.setTimeout(resolve, 360))]);
     if (requestId !== state.requestId || state.role !== requestRole || !requestThread.isConnected || dom.chat_thread !== requestThread) return;
     state.pending = false;
+    syncChatMode();
     document.getElementById("typing")?.remove();
+    if (resolution.localError) {
+      dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-body"><h3>Outside the local demo coverage</h3><p>${escapeHtml(resolution.message)}</p></div></article>`);
+      return;
+    }
     if (resolution.denied) {
       dom.chat_thread.insertAdjacentHTML("beforeend", accessDeniedMarkup(resolution.workspace));
       dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
@@ -777,12 +836,19 @@
     const defaultInsightTab = targetWorkspace === "market" ? "plot" : "analysis";
     const narrative = result.agentNarrative ? narrativeMarkup(result.agentNarrative) : firstParagraph(result.html);
     const answerLabel = selectedWorkspace === "home" ? "BursaIQ Assistant" : `BursaIQ · ${workspaceConfig[targetWorkspace].title}`;
-    const answerNote = result.narrativeMode === "fallback" ? `Predefined local demo response · Synthetic output · ${demo.meta.asOf}` : `Synthetic output · ${demo.meta.asOf}`;
-    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}<button class="analysis-link" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}">${targetWorkspace === "market" ? `${icons.chart}Explore chart and governed analysis` : `${icons.file}Read full answer and sources`}</button><div class="answer-actions"><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div><div class="answer-note">${answerNote}</div></div></article>`);
+    const answerNote = result.narrativeMode === "local-demo"
+      ? `Local processing · Prepared answer, not model-generated · ${demo.meta.asOf}`
+      : result.narrativeMode === "fallback" ? `Live unavailable · Predefined local fallback · Synthetic output · ${demo.meta.asOf}` : `Live · Microsoft Copilot Studio · Synthetic output · ${demo.meta.asOf}`;
+    dom.chat_thread.insertAdjacentHTML("beforeend", `<article class="answer-card"><div class="answer-meta"><span class="answer-logo">IQ</span>${answerLabel}${answerProvenance(result)}</div><div class="answer-body"><div class="answer-title-row"><h3>${result.title}</h3><button class="more-button" type="button" data-answer-action="insight" data-insight-tab="${defaultInsightTab}" aria-label="Open full analysis" title="Open full analysis"><i></i><i></i><i></i></button></div>${narrative}${answerActionsMarkup(defaultInsightTab)}<div class="answer-note">${answerNote}</div></div></article>`);
     renderSuggestions(result.followups.slice(0, 3));
-    if (state.preferences.autoOpenInsights && targetWorkspace === "market") showEvidence("plot", false);
-    else if (state.preferences.autoOpenInsights && document.getElementById("evidence-panel")) showEvidence("analysis", false);
+    const existingCanvas = document.getElementById("evidence-panel");
+    if (existingCanvas && !existingCanvas.classList.contains("is-collapsed")) showEvidence(defaultInsightTab, false);
     dom.chat_thread.scrollTop = dom.chat_thread.scrollHeight;
+  }
+
+  function answerActionsMarkup(tabName) {
+    const expanded = Boolean(document.getElementById("evidence-panel") && !document.getElementById("evidence-panel").classList.contains("is-collapsed"));
+    return `<div class="answer-actions"><button class="action-button answer-canvas-action" type="button" data-answer-action="canvas" data-insight-tab="${tabName}" aria-controls="evidence-panel" aria-expanded="${expanded}">${icons.chart}<span>Decision Canvas</span></button><button class="action-button" type="button" data-answer-action="verify" aria-label="Submit this answer for verification">${icons.shield}Verify</button><button class="action-button" type="button" data-answer-action="report">${icons.download}Create PDF</button></div>`;
   }
 
   function showEvidence(tabName, shouldScroll = true) {
@@ -795,8 +861,9 @@
     document.getElementById("evidence-panel")?.classList.remove("is-collapsed");
     state.insightTab = tabName || (state.answerWorkspace === "market" ? "plot" : "analysis");
     dom.workspace_grid.classList.remove("evidence-collapsed");
+    document.querySelectorAll(".answer-canvas-action").forEach((button) => button.setAttribute("aria-expanded", "true"));
     renderEvidence();
-    if (shouldScroll && window.innerWidth <= 900) document.getElementById("evidence-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (shouldScroll) document.querySelector("[data-close-insight]")?.focus({ preventScroll: true });
   }
 
   function closeEvidence() {
@@ -804,6 +871,9 @@
     if (!panel) return;
     panel.classList.add("is-collapsed");
     dom.workspace_grid.classList.add("evidence-collapsed");
+    const canvasButtons = [...document.querySelectorAll(".answer-canvas-action")];
+    canvasButtons.forEach((button) => button.setAttribute("aria-expanded", "false"));
+    canvasButtons[canvasButtons.length - 1]?.focus({ preventScroll: true });
   }
 
   function chartSpec() {
@@ -899,8 +969,9 @@
       <div class="action-ledger">
         <button type="button" data-insight-action="watch" data-signal-id="${escapeHtml(signal?.id || "adv-momentum")}"><span>${icons.pulse}</span><span><strong>${watched ? "Remove from watchlist" : "Add to watchlist"}</strong><small>${watched ? "Stop monitoring this signal for the active identity." : "Monitor this signal and surface related alerts."}</small></span><em>${watched ? "Watching" : "Monitor"}</em></button>
         <button type="button" data-insight-action="memory"><span>${icons.list}</span><span><strong>${memorySaved ? "Saved to Decision Memory" : "Save to Decision Memory"}</strong><small>Record the question, answer rationale, owner and evidence trail.</small></span><em>${memorySaved ? "Saved" : "Record"}</em></button>
-        <button type="button" data-insight-action="verify"><span>${icons.shield}</span><span><strong>Submit for verification</strong><small>Send the governed answer package to its assigned Data Owner.</small></span><em>Review</em></button>
-        <button type="button" data-insight-action="research"><span>${icons.search}</span><span><strong>Open a research thread</strong><small>Expand this answer into a sourced dossier with counterpoints and open questions.</small></span><em>Research</em></button>
+        <button type="button" data-insight-action="automate"><span>${icons.mail}</span><span><strong>Automate by email</strong><small>Repeat this question on your schedule with a refreshed source snapshot.</small></span><em>Schedule</em></button>
+        <button type="button" data-insight-action="verify"><span>${icons.shield}</span><span><strong>Submit for verification</strong><small>Send the governed answer package to its assigned Data Owner.</small></span><em>Verify</em></button>
+        <button type="button" data-insight-action="research"><span>${icons.search}</span><span><strong>Open a research thread</strong><small>Expand this answer into a sourced dossier with counterpoints and open questions.</small></span><em>Research Lab</em></button>
       </div>
       <div class="action-boundary"><strong>Prototype workflow</strong><p>Watchlist and Decision Memory changes are stored on this device. Verification uses the local audit queue; no external notification is sent.</p></div>
     </div>`;
@@ -1113,17 +1184,60 @@
       <div class="memory-ledger">${decisions.map((item) => `<article class="memory-row"><div class="memory-date"><time>${escapeHtml(item.created)}</time><span></span></div><div class="memory-copy"><div><span>${escapeHtml(item.id)}</span><span class="status-pill ${item.status === "Recorded" ? "approved" : "denied"}">${escapeHtml(item.status)}</span></div><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.rationale)}</p><dl><div><dt>Owner</dt><dd>${escapeHtml(item.owner)}</dd></div><div><dt>Workspace</dt><dd>${escapeHtml(item.workspace)}</dd></div><div><dt>Originating question</dt><dd>${escapeHtml(item.question)}</dd></div></dl><button type="button" data-brief-question="${escapeHtml(item.question)}">Reopen evidence trail ${icons.arrow}</button></div></article>`).join("")}</div><div class="warning-block">Local prototype record. Production Decision Memory would require an approved retention policy, access control and enterprise system of record.</div>`;
   }
 
+  function automationPage() {
+    const automation = window.BursaIQAutomation;
+    if (!state.automation.editor) state.automation.editor = automation.draft();
+    return automation.page({ rows: automation.load(localStorage, state.role), ...state.automation });
+  }
+
+  function startAutomation(seed = {}) {
+    state.automation = { editor: window.BursaIQAutomation.draft(seed), errors: {}, message: "", preview: "" };
+    renderPage("automation");
+    document.getElementById("automation-title")?.focus();
+  }
+
+  function submitAutomation(form, action) {
+    const automation = window.BursaIQAutomation;
+    const editor = automation.read(form, state.automation.editor);
+    const errors = automation.validate(editor);
+    state.automation = { editor, errors, message: "", preview: action === "save" ? state.automation.preview : "" };
+    if (Object.keys(errors).length) {
+      renderPage("automation");
+      document.getElementById(`automation-${Object.keys(errors)[0]}`)?.focus();
+      return;
+    }
+    if (action === "preview") {
+      const workspace = editor.workspace === "reg" ? "reg" : routeQuestion(editor.question);
+      const supported = new Set([...predefinedDemoQuestions, ...Object.values(workspaceConfig).flatMap((config) => config.suggestions.map((item) => item.toLowerCase())), ...Object.values(learningPaths).flatMap((path) => path.questions.map((item) => item.toLowerCase()))]);
+      const error = !hasAccess(workspace) ? "This question is outside the active identity’s permitted workspaces. No restricted evidence was retrieved." : !supported.has(editor.question.toLowerCase().trim()) ? "This question is outside the prepared demo coverage. Edit it to a suggested question, such as ‘How did the market perform in July?’. A connected model is required for arbitrary questions." : "";
+      const answer = error ? null : engine.respond(workspace, editor.question);
+      state.automation.preview = automation.preview(editor, { answer, error, asOf: demo.meta.asOf, generatedAt: new Date().toLocaleString("en-MY", { dateStyle: "medium", timeStyle: "short" }), url: new URL("/", window.location.href).href });
+      renderPage("automation");
+      document.getElementById("automation-preview")?.focus();
+      return;
+    }
+    const result = automation.save(localStorage, state.role, editor);
+    if (result.error) state.automation.message = result.error;
+    else {
+      state.automation.editor = result.item;
+      state.automation.message = "Schedule saved on this device. Demo only — no email will be sent.";
+    }
+    renderPage("automation");
+    document.getElementById("automation-title")?.focus();
+  }
+
   function renderPage(page) {
     state.requestId += 1;
     state.pending = false;
     state.workspace = page;
     state.currentAnswer = null;
-    const labels = { "today-brief": "Today’s Brief", research: "Research", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
+    const labels = { "today-brief": "Today’s Brief", research: "Research Lab", "local-analysis": "Local Analysis", watchlist: "Watchlist & Alerts", automation: "Automation", "decision-memory": "Decision Memory", verification: "Verification Centre", "data-sources": "Source Health", settings: "Settings" };
     const descriptions = {
       "today-brief": "The signals, decisions and source issues that need attention now.",
       research: "A complete, evidence-led investigation from question to source trail.",
       "local-analysis": "Analyse documents from this device without adding them to the governed source library.",
       watchlist: "Monitored signals and transparent alert rules.",
+      automation: "Recurring intelligence emails, configured and previewed on this device.",
       "decision-memory": "The evidence and rationale behind prior decisions.",
       verification: isReviewer() ? "Review assigned cases and track the status of requests you submitted." : "Track the latest status of requests you submitted.",
       "data-sources": "Freshness, quality, usage and ownership of governed demo sources.",
@@ -1133,7 +1247,7 @@
     dom.asof_chip.style.display = "none";
     selectNavigation(page);
     dom.workspace_grid.className = "workspace-grid";
-    const pageRenderers = { "today-brief": todayBriefPage, research: researchPage, "local-analysis": localAnalysisPage, watchlist: watchlistPage, "decision-memory": decisionMemoryPage, verification: verificationPage, "data-sources": dataSourcesPage, settings: settingsPage };
+    const pageRenderers = { "today-brief": todayBriefPage, research: researchPage, "local-analysis": localAnalysisPage, watchlist: watchlistPage, automation: automationPage, "decision-memory": decisionMemoryPage, verification: verificationPage, "data-sources": dataSourcesPage, settings: settingsPage };
     const content = (pageRenderers[page] || settingsPage)();
     dom.workspace_grid.innerHTML = `<section class="page-panel">${content}</section>`;
     closeNavigation();
@@ -1244,7 +1358,6 @@
         <section class="settings-section panel-access-section"><h3>Panel access</h3><p>Request a restricted workspace when it is relevant to your role. Requests require the panel owner’s approval.</p><div class="panel-access-list">${Object.keys(requestablePanels).map(panelAccessRow).join("")}<p class="panel-access-note">Stage 02 simulation: requests are stored on this device and do not change access automatically.</p></div></section>
         <section class="settings-section"><h3>Workspace behaviour</h3><p>Choose what opens first and how supporting analysis appears.</p>
           <label class="setting-row setting-select"><span><strong>Default workspace</strong><small>Used the next time BursaIQ opens.</small></span><select data-setting="defaultWorkspace" aria-label="Default workspace"><option value="home" ${preferences.defaultWorkspace === "home" ? "selected" : ""}>BursaIQ Assistant</option><option value="today-brief" ${preferences.defaultWorkspace === "today-brief" ? "selected" : ""}>Today’s Brief</option><option value="learn" ${preferences.defaultWorkspace === "learn" ? "selected" : ""}>Learn Bursa</option></select></label>
-          ${settingSwitch("autoOpenInsights", "Open analysis automatically", "Show the right-side plot or evidence panel after an answer.", preferences.autoOpenInsights)}
           ${settingSwitch("chartMotion", "Animate market charts", "Draw chart lines and bars when the analysis panel opens.", preferences.chartMotion)}
         </section>
         <section class="settings-section settings-note"><h3>Demo boundaries</h3><p>Identity permissions, source access and governed calculations cannot be changed here. Copilot Studio does not bypass BursaIQ’s server-side workspace policy.</p><div><span>${icons.shield}</span><strong>Access rules remain enforced</strong></div></section>
@@ -1323,6 +1436,7 @@
 
   async function updateIdentity() {
     state.role = dom.role_select.value;
+    state.automation = { editor: null, errors: {}, message: "", preview: "" };
     const identity = demo.identities[state.role];
     dom.avatar.textContent = identity.initials;
     dom.identity_name.textContent = identity.name;
@@ -1564,6 +1678,11 @@
   }
 
   function closeNavigation({ restoreFocus = true } = {}) {
+    const sidebar = document.getElementById("primary-sidebar");
+    if (!isMobileNavigation() && sidebar && (sidebar.contains(document.activeElement) || sidebar.matches(":hover"))) {
+      sidebar.classList.add("is-auto-closed");
+      if (sidebar.contains(document.activeElement)) document.getElementById("main-content")?.focus({ preventScroll: true });
+    }
     const wasOpen = document.body.classList.contains("nav-open");
     document.body.classList.remove("nav-open");
     dom.menu_button?.setAttribute("aria-expanded", "false");
@@ -1578,6 +1697,16 @@
   }
 
   function handleWorkspaceClick(event) {
+    if (event.target.closest("[data-automation-new], [data-automation-template]")) {
+      startAutomation();
+      return;
+    }
+    const automationEdit = event.target.closest("[data-automation-edit]");
+    if (automationEdit) {
+      const item = window.BursaIQAutomation.load(localStorage, state.role).find((row) => row.id === automationEdit.dataset.automationEdit);
+      if (item) startAutomation(item);
+      return;
+    }
     if (event.target.closest("[data-open-pulse]")) {
       dom.chat_thread.innerHTML = marketPulseMarkup();
       dom.chat_thread.scrollTop = 0;
@@ -1634,6 +1763,10 @@
       if (command === "watch") toggleWatch(insightAction.dataset.signalId);
       if (command === "memory") saveCurrentDecision();
       if (command === "verify") submitVerification(insightAction);
+      if (command === "automate") {
+        startAutomation({ title: (state.currentAnswer?.title || "BursaIQ intelligence email").slice(0, 120), question: state.currentQuestion, workspace: state.answerWorkspace });
+        return;
+      }
       if (command === "research") {
         const question = state.currentQuestion || "Investigate this insight and test the evidence behind it";
         state.research = { ...state.research, query: question, result: null };
@@ -1687,6 +1820,11 @@
     if (event.target.closest("[data-open-insight]")) return showEvidence(state.insightTab, false);
     const action = event.target.closest("[data-answer-action]")?.dataset.answerAction;
     if (action === "insight") showEvidence(event.target.closest("[data-answer-action]")?.dataset.insightTab);
+    if (action === "canvas") {
+      const panel = document.getElementById("evidence-panel");
+      if (panel && !panel.classList.contains("is-collapsed")) closeEvidence();
+      else showEvidence(event.target.closest("[data-answer-action]")?.dataset.insightTab);
+    }
     if (action === "verify") submitVerification(event.target.closest('[data-answer-action="verify"]'));
     if (action === "report") openReportDialog();
     const verificationDetails = event.target.closest("[data-verification-details]");
@@ -1705,6 +1843,9 @@
   }
 
   function bindEvents() {
+    const sidebar = document.getElementById("primary-sidebar");
+    sidebar?.addEventListener("pointerenter", () => sidebar.classList.remove("is-auto-closed"));
+    sidebar?.addEventListener("focusin", () => sidebar.classList.remove("is-auto-closed"));
     document.querySelectorAll("[data-workspace]").forEach((item) => item.addEventListener("click", () => switchWorkspace(item.dataset.workspace)));
     dom.role_select.addEventListener("change", updateIdentity);
     dom.open_report_button.addEventListener("click", openReportDialog);
@@ -1731,11 +1872,21 @@
         closeGuide();
         return;
       }
+      const canvas = document.getElementById("evidence-panel");
+      if (canvas && !canvas.classList.contains("is-collapsed")) {
+        closeEvidence();
+        return;
+      }
       if (document.body.classList.contains("nav-open")) closeNavigation({ restoreFocus: true });
     });
     window.addEventListener("resize", syncNavigationAccessibility);
     dom.workspace_grid.addEventListener("click", handleWorkspaceClick);
     dom.workspace_grid.addEventListener("submit", (event) => {
+      if (event.target.matches("[data-automation-form]")) {
+        event.preventDefault();
+        submitAutomation(event.target, event.submitter?.value || "save");
+        return;
+      }
       if (event.target.id === "chat-form") {
         event.preventDefault();
         ask(document.getElementById("question-input").value);
@@ -1751,8 +1902,43 @@
     });
     dom.workspace_grid.addEventListener("input", (event) => {
       if (event.target.id === "question-input") resizeInput();
+      if (event.target.closest("[data-automation-form]")) {
+        state.automation.editor = window.BursaIQAutomation.read(event.target.form, state.automation.editor);
+        state.automation.preview = "";
+        const preview = document.getElementById("automation-preview");
+        if (preview) preview.innerHTML = '<h3>Email preview <span>Not sent</span></h3><p>Settings changed. Refresh the preview to see the current draft.</p>';
+        const next = document.querySelector(".automation-next strong");
+        if (next) next.textContent = window.BursaIQAutomation.planned(state.automation.editor);
+      }
     });
     dom.workspace_grid.addEventListener("change", (event) => {
+      if (event.target.id === "automation-frequency") {
+        const days = document.getElementById("automation-days");
+        days.hidden = days.disabled = event.target.value === "daily";
+        state.automation.editor = window.BursaIQAutomation.read(event.target.form, state.automation.editor);
+        document.querySelector(".automation-next strong").textContent = window.BursaIQAutomation.planned(state.automation.editor);
+        return;
+      }
+      if (event.target.matches("[data-automation-toggle]")) {
+        const automation = window.BursaIQAutomation;
+        const item = automation.load(localStorage, state.role).find((row) => row.id === event.target.dataset.automationToggle);
+        if (!item) return;
+        const result = automation.save(localStorage, state.role, { ...item, enabled: event.target.checked });
+        state.automation.message = result.error || `Schedule ${event.target.checked ? "enabled (demo)" : "paused"}. No emails are sent.`;
+        if (result.item && state.automation.editor?.id === item.id) state.automation.editor.enabled = result.item.enabled;
+        renderPage("automation");
+        document.querySelector(`[data-automation-toggle="${item.id}"]`)?.focus();
+        return;
+      }
+      if (event.target.matches('select[name="assistant-mode"]')) {
+        if (state.pending) return;
+        state.preferences.assistantMode = event.target.value === "live" ? "live" : "local";
+        state.conversationId = "";
+        localStorage.setItem("bursaiq_preferences", JSON.stringify(state.preferences));
+        syncChatMode();
+        updateSystemIndicator();
+        return;
+      }
       if (event.target.matches("[data-local-files]")) {
         uploadLocalFiles(event.target.files);
         return;
@@ -1828,6 +2014,7 @@
     if (workspaceConfig[initialWorkspace] && hasAccess(initialWorkspace)) renderWorkspace(initialWorkspace);
     else if (initialWorkspace === "today-brief") renderPage("today-brief");
     else renderHome();
+    syncChatMode();
     updateSystemIndicator();
   }
 

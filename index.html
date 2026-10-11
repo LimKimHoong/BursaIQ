@@ -22,9 +22,29 @@
     })();
   </script>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/css/app.css">
+  <link rel="stylesheet" href="/static/css/app.css?v=20261011-research-lab-1">
 </head>
 <body>
+  <!-- Answer Canvas refinement contract (code-led; incumbent world retained).
+  THESIS: Keep evidence access beside each answer, not duplicated in the global header.
+  OWN-WORLD: Existing violet/navy and pearl glass, identical operational action buttons.
+  STORY: Read an answer; open or close Decision Canvas before Verify and Create PDF.
+  FIRST VIEWPORT: Unchanged shell; every chat answer carries the same three-button row.
+  FORM: Precisely specified incumbent extension; no roll under new-work section 3.
+  Signature: explicit inline disclosure, synchronized expanded state and Escape focus return.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  <!-- Automation extension contract (code-led; incumbent world retained).
+  THESIS: Turn a grounded question into a repeatable email plan, not a decorative dashboard.
+  OWN-WORLD: Existing violet/navy and pearl glass, operational system type, restrained teal state.
+  STORY: Seed from Decision Canvas, set recipients and timing, preview evidence, save or pause.
+  FIRST VIEWPORT: Page title and demo boundary above a quiet schedule ledger on the left;
+  a glass inline editor on the right, New automation at upper right. Portrait stacks both.
+  FORM: Incumbent list/editor form, shaped directly for this precisely specified extension.
+  No concept roll or seed key applies under new-work section 3's narrow-request exemption.
+  Signature: seeded question becomes an editable schedule; native state changes, no new entrance motion.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
   <!--
   THESIS: BursaIQ is a compact exchange desk, not a generic card dashboard or decorative AI chat screen.
   OWN-WORLD: Midnight navy, flat blue-gray rules, warm amber actions, market-teal signals, compact rectangular controls and dense operational typography.
@@ -45,29 +65,29 @@
         <p class="nav-label"><span>Workspace</span></p>
         <button class="nav-item is-active" data-workspace="home" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z"/></svg>
-          <span class="nav-copy"><strong>BursaIQ Assistant</strong><small>Ask across workspaces</small></span>
+          <span class="nav-copy"><strong>BursaIQ Assistant</strong><small>Ask across workspaces</small></span><em id="assistant-mode-badge" title="Selected chat route; change it in the composer">Local</em>
         </button>
         <button class="nav-item" data-workspace="learn" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
-          <span class="nav-copy"><strong>Learn Bursa</strong><small>Learning &amp; onboarding</small></span><em>New</em>
+          <span class="nav-copy"><strong>Learn Bursa</strong><small>Learning &amp; onboarding</small></span><em title="Prepared local learning demo; no trained model connected">Local</em>
         </button>
         <button class="nav-item" data-workspace="reg" id="ask-reg-nav" type="button" hidden aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>
-          <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em>Pilot</em>
+          <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em title="Prepared local guidance; reviewer verification required">Local</em>
         </button>
 
         <p class="nav-label nav-label-spaced"><span>Intelligence</span></p>
         <button class="nav-item" data-workspace="today-brief" id="today-brief-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 3v4m8-4v4M4 10h16M8 14h3m2 0h3m-8 3h5"/></svg>
-          <span>Today’s Brief</span><em>Live</em>
+          <span>Today’s Brief</span><em title="Prepared synthetic source data, not a live market feed">Local</em>
         </button>
         <button class="nav-item" data-workspace="research" id="research-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6m-3-3v6"/></svg>
-          <span>Research</span><em>Agent</em>
+          <span>Research Lab</span><em title="Copilot route; prepared demo fallback when disconnected">Live</em>
         </button>
         <button class="nav-item" data-workspace="local-analysis" id="local-analysis-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 14h8m-8 4h5"/><path d="m16 13 2 2 3-4"/></svg>
-          <span>Local Analysis</span>
+          <span>Local Analysis</span><em title="Local document processing; Copilot synthesis only by explicit opt-in">Local</em>
         </button>
         <button class="nav-item" data-workspace="watchlist" id="watchlist-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s8-4.5 8-11V5l-8-3-8 3v5c0 6.5 8 11 8 11zM8 12h3l1.5-3 2 6 1.5-3H19"/></svg>
@@ -75,6 +95,10 @@
         </button>
 
         <p class="nav-label nav-label-spaced" id="workflow-nav-label"><span>Workflow</span></p>
+        <button class="nav-item" data-workspace="automation" id="automation-nav" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 5l9 7 9-7"/><path d="M15 15h4m-2-2v4"/></svg>
+          <span>Automation</span>
+        </button>
         <button class="nav-item" data-workspace="verification" id="verification-nav" type="button">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
           <span>Verification Centre</span><b id="verification-count">0</b>
@@ -237,6 +261,7 @@
 
   <script src="/static/js/demo-data.js" defer></script>
   <script src="/static/js/engine.js" defer></script>
-  <script src="/static/js/app.js" defer></script>
+  <script src="/static/js/automation.js?v=20261011-automation-2" defer></script>
+  <script src="/static/js/app.js?v=20261011-research-lab-1" defer></script>
 </body>
 </html>

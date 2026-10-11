@@ -4,15 +4,18 @@ BursaIQ is a decision-intelligence prototype for the Bursa Prompt-a-thon final. 
 
 Every included figure and document is synthetic. Nothing in this repository is official Bursa Malaysia information.
 
+Email Automation is a browser-local demo: no email delivery, scheduler, live refresh or model instruction execution is connected. Email previews read the current prepared dataset and show source dates. Optional Dashboard and Report sections are inline evidence and calculation summaries, not real attachments. Use demo recipient addresses; browser storage is not a secure mailbox or account database.
+
 ## What is implemented
 
 - **BursaIQ Assistant:** the main conversation handles market questions directly, backed by governed market performance, 30-day ADV, market capitalisation, trading velocity, sector/constituent drivers, investor participation and selected international comparisons.
 - **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
 - **Today’s Intelligence Brief:** a role-aware opening brief prioritises changed signals, active alerts, pending decisions and next actions.
 - **Watchlist & Alerts:** demo identities can monitor signals, see the rule behind each alert and reopen the related evidence trail. Watchlists persist locally per identity.
+- **Automation:** the first Workflow page plans recurring intelligence emails with daily or selected-day schedules, Malaysia/UTC time, up to ten recipients, instructions, and optional Link, Dashboard and Report sections. “Automate by email” in Decision Canvas seeds the originating question. Schedules can be edited, paused and resumed, and persist per demo identity on this browser.
 - **Research:** a dedicated research agent turns a broad question into a structured dossier with an executive finding, evidence-led findings, counterpoints, open questions and a role-filtered source trail. It uses Copilot Studio when available and a transparent governed fallback otherwise.
 - **Local Analysis:** users can upload PDF, XLSX, CSV, JSON, TXT or Markdown documents into an in-memory workspace, ask interactive questions, inspect exact evidence extracts and explicitly opt in to Copilot-assisted synthesis.
-- **Actions in the Decision Canvas:** an answer can move directly into monitoring, Decision Memory, human verification or a deeper Research thread.
+- **Actions in the Decision Canvas:** an answer can move directly into monitoring, email Automation, Decision Memory, human verification or a deeper Research thread.
 - **Decision Memory:** every identity can inspect the decision records permitted to them, including the question, rationale, owner, evidence context and status; new records persist locally per identity.
 - **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
 - **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
@@ -92,6 +95,14 @@ Verification cases are filtered in both the UI and API: identities receive their
 `Input/Regulatory/Market_Regulation_Guide_Demo.json` contains controlled synthetic topics with an `id`, `title`, `summary` and `actions`. It is demonstration guidance rather than legal advice or an official interpretation of Bursa Malaysia rules.
 
 ## Microsoft Copilot Studio setup
+
+### Hybrid demo routing
+
+The BursaIQ Assistant composer has a persisted **Local / Live** dropdown beside Send. Local is the default and uses prepared browser answers without sending the question to Copilot. Live uses the existing Flask-to-Copilot connection; disconnected supported questions are explicitly labelled as local fallbacks. Switching modes clears the Copilot conversation ID without forwarding earlier local messages. The selector is disabled while a turn is pending.
+
+Sidebar route labels are **Live** or **Local** only: Research is Live; Learn Bursa, Ask Reg, Today's Brief, and Local Analysis are Local. Assistant follows the selected mode. These describe demo routing, not real-time data or an installed local model. Local Analysis retains its separate explicit Copilot-synthesis opt-in. Workflow panels retain their task labels and counts rather than model badges.
+
+No open-source model is trained or deployed in this prototype. The public Sites edition remains frontend-only; selecting Live there demonstrates the disclosed fallback behavior. Run `node --test tests/test_chat_modes.cjs` to verify mode routing alongside the Python test suite.
 
 This prototype uses Copilot Studio's Mobile app channel and the Bot Framework Direct Line API, so visitors do not need a Microsoft account.
 

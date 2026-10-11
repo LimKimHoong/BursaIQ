@@ -172,7 +172,7 @@ The shared accent logic resembles an exchange floor: amber action, teal market f
 ### Neutral
 
 - **Midnight Ground:** Page field and conversation background.
-- **Decision Canvas:** Right-side analysis surface and its collapsed rail.
+- **Decision Canvas:** Analysis surface beside the conversation on desktop or in a bounded overlay on portrait and narrow screens.
 - **Panel / Active Panel:** Nested answers, composer, selected navigation, and table rows.
 - **Ink / Soft Ink / Faint Ink:** Three deliberate text levels for decisions, explanation, and metadata.
 - **Hairline:** The default structural boundary between zones and rows.
@@ -211,7 +211,7 @@ The shared accent logic resembles an exchange floor: amber action, teal market f
 
 Desktop uses a fixed 250px left rail and a fluid main shell. The BursaIQ Assistant workspace fills the first viewport with the governed conversation entry point. Today’s Brief, Watchlist, Decision Memory, and Source Health reuse the same hairline-separated rhythm instead of switching to card grids. Research and Local Analysis deliberately expand that grammar: the former becomes a research map and dossier; the latter becomes a private evidence bench.
 
-When analysis is open, the working area becomes a two-column conversation/canvas grid with a 520px canvas; collapsing it preserves a 54px labelled rail so the spatial model never disappears. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Research starts with a two-column command area and a 1.45/0.55 route-and-principle split; its result uses a synthesis/method split, paired findings, and a full-width source trail. Local Analysis uses a 0.72/1.28 intake-and-dialogue split with a sticky glass question form. At 980px the navigation becomes a 280px off-canvas drawer, Research’s entry sections and Local Analysis both stack, with intake above dialogue. At 760px the Decision Canvas stacks beneath the conversation. At 680px Research controls, dossier sections, findings, and follow-up actions become single-column; the Local Analysis form also stacks and its action becomes full-width. At 520px attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
+When analysis is open on desktop, the working area becomes a two-column conversation/canvas grid with a 520px canvas. Closing it removes the canvas completely and restores the full conversation width. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Research starts with a two-column command area and a 1.45/0.55 route-and-principle split; its result uses a synthesis/method split, paired findings, and a full-width source trail. Local Analysis uses a 0.72/1.28 intake-and-dialogue split with a sticky glass question form. At 980px the navigation becomes a 280px off-canvas drawer, Research’s entry sections and Local Analysis both stack, with intake above dialogue. At widths at or below 980px or in portrait orientation, the Decision Canvas opens as a bounded overlay below the header with independent scrolling; the surrounding app uses natural document scrolling. At 680px Research controls, dossier sections, findings, and follow-up actions become single-column; the Local Analysis form also stacks and its action becomes full-width. At 520px attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
 
 Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44px minimum target even when the visible label or icon is small. Tables may scroll horizontally rather than crushing governed source metadata.
 
@@ -265,11 +265,15 @@ The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mod
 
 ### Inputs / Fields
 
+The Assistant composer includes a compact native Local / Live dropdown beside Send, with an accessible Answer mode label, a 44px touch target, and a short processing status below the composer. Its tooltip explains the selected route. Selection persists on the device and updates the Assistant sidebar badge. Local is a prepared browser demo, not trained-model inference; disconnected Live responses remain explicitly labelled as fallbacks. Mode changes apply to the next question and reset Copilot context without forwarding earlier Local messages.
+
 - **Style:** The signature composer is a 26px liquid-glass panel with a bright rim, 14px desktop text, and 16px mobile text.
 - **Focus:** Border shifts to Market Teal with a quiet three-pixel teal wash.
 - **Error / Disabled:** Connection failures appear as explicit content, never as silent disabled controls.
 
 ### Navigation
+
+At desktop widths, the rail is anchored inside the positioned app shell rather than fixed independently to the viewport. Its zero inset shares the shell's rounded origin and height, keeping one aligned edge during focus-driven scrolling and zoom. The mobile drawer remains viewport-fixed.
 
 The desktop rail is a fixed 72px icon column with complete 44px square targets, ordered by task progression: Workspace, Intelligence, then Workflow. It uses black-violet glass in Dark mode and pearl-lilac glass in Light mode. Active and hover surfaces keep all four corners visible while compact, then widen into full rows as the rail reveals its 250px labels over the workspace. Thin rules distinguish the groups while compact. The rail begins directly with the unboxed New conversation action—there is no prototype badge—and always returns to the single landing-page composer. The top bar carries only the BursaIQ product name and service state; the matching Light / Dark and Settings tiles sit together at the foot of the rail, above the unboxed identity control. The active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Research and Local Analysis live under Intelligence beside Today’s Brief and Watchlist; Verification Centre, Source Health, and Decision Memory remain under Workflow; Ask Reg remains access-controlled. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
 
@@ -291,7 +295,11 @@ Watchlist and Decision Memory writes are role-scoped in local browser storage; p
 
 ### Decision Canvas
 
-The right canvas is a persistent analytical plane with four keyboard-complete tabs: Plot, Analysis, Sources, and Actions. Plot uses teal lines or bars with sparse amber emphasis; Analysis exposes the narrative and governed method; Sources names the evidence and coverage; Actions bridges the answer into Watchlist, Decision Memory, verification, or Research. It opens at 520px, reduces at narrower desktops, collapses into a 54px labelled rail, and stacks below the answer on small screens.
+Every chat workspace and answer mode uses the same inline answer action row at every width: Decision Canvas, Verify, Create PDF. All three share the same button styling and remain together even on narrow phones. The Decision Canvas button toggles the analysis surface and exposes its synchronized expanded state through `aria-expanded`. The global header has no Canvas control, and answer cards have no separate Read full answer, sources/resources, or Explore chart links. Closing the canvas removes it completely; Escape also closes it and restores focus to the latest inline Decision Canvas button. The four keyboard-complete tabs remain Plot, Analysis, Sources, and Actions. Desktop uses a side-by-side analytical plane. At widths at or below 980px or in portrait orientation, the canvas opens as a bounded, independently scrollable overlay below the header. The surrounding app uses natural document scrolling so long conversations and every workspace remain reachable; dynamic viewport units account for mobile browser chrome.
+
+### Automation Ledger and Editor
+
+Automation pairs a quiet, hairline-divided schedule ledger on the left with an inline violet-navy glass editor in Dark mode and pearl glass in Light mode. The editor has a bright inset rim, a soft curve (16px), and grouped native fields with 44px minimum targets; portrait layouts and widths at or below 900px stack the ledger above the editor, while narrow phones stack inclusion choices and stretch form actions. Teal identifies selected rows, native check states, and focus; the existing scarce gold action saves the schedule. An Assistant answer's Decision Canvas action seeds its question into the editable schedule. The adjacent boundary and preview status remain visible: these role-scoped browser records are demo plans, with no emails or background runs, and previews use prepared evidence. Link returns to BursaIQ, Dashboard is an evidence snapshot, and Report is an inline summary rather than a PDF attachment; saved briefing instructions are displayed without arbitrary execution.
 
 ## Do's and Don'ts
 
@@ -299,7 +307,7 @@ The right canvas is a persistent analytical plane with four keyboard-complete ta
 
 - **Do** use amber for scarce actions, fallback provenance, and the value that deserves immediate attention.
 - **Do** use teal for analysis, focus, healthy status, and interactive intent.
-- **Do** preserve the three-zone desk and the labelled collapsed-canvas rail.
+- **Do** keep Decision Canvas beside Verify and Create PDF in every chat answer, and restore the full conversation width when the canvas closes.
 - **Do** keep working controls at least 44px and support reduced motion and increased contrast.
 - **Do** keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.
 - **Do** label synthetic, predefined, and restricted content at the point of use.

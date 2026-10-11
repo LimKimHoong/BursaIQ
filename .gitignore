@@ -8,3 +8,4 @@ venv/
 runtime/*.sqlite3
 output/pdf/*.pdf
 !output/pdf/.gitkeep
+output/video/
