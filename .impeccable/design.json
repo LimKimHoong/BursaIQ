@@ -1,366 +1,419 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T15:00:00+08:00",
+  "generatedAt": "2026-10-18T11:12:38Z",
   "title": "Design System: BursaIQ",
   "extensions": {
     "colorMeta": {
+      "midnight-rail": {
+        "role": "neutral",
+        "displayName": "Midnight Rail",
+        "canonical": "#06152c",
+        "tonalRamp": ["#020817", "#041022", "#06152c", "#081c38", "#0d2c54", "#31547b", "#7290b4", "#d9e5f2"]
+      },
+      "deep-rail": {
+        "role": "neutral",
+        "displayName": "Deep Rail",
+        "canonical": "#081c38",
+        "tonalRamp": ["#020817", "#041022", "#06152c", "#081c38", "#0d2c54", "#31547b", "#7290b4", "#d9e5f2"]
+      },
+      "rail-highlight": {
+        "role": "neutral",
+        "displayName": "Rail Highlight",
+        "canonical": "#0d2c54",
+        "tonalRamp": ["#020817", "#041022", "#06152c", "#081c38", "#0d2c54", "#31547b", "#7290b4", "#d9e5f2"]
+      },
       "ink": {
         "role": "neutral",
-        "displayName": "Decision Ink",
-        "canonical": "#f5f7fa",
-        "tonalRamp": ["oklch(15% 0.008 255)", "oklch(28% 0.008 255)", "oklch(42% 0.008 255)", "oklch(56% 0.008 255)", "oklch(70% 0.008 255)", "oklch(82% 0.008 255)", "oklch(90% 0.008 255)", "oklch(97% 0.008 255)"]
+        "displayName": "Command Ink",
+        "canonical": "#0b1835",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "ink-soft": {
+      "ink-secondary": {
         "role": "neutral",
-        "displayName": "Operational Ink",
-        "canonical": "#aeb8ca",
-        "tonalRamp": ["oklch(15% 0.018 255)", "oklch(28% 0.018 255)", "oklch(42% 0.018 255)", "oklch(56% 0.018 255)", "oklch(70% 0.018 255)", "oklch(82% 0.018 255)", "oklch(90% 0.018 255)", "oklch(95% 0.018 255)"]
+        "displayName": "Secondary Ink",
+        "canonical": "#2f4165",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "ink-faint": {
+      "muted": {
         "role": "neutral",
-        "displayName": "Metadata Ink",
-        "canonical": "#738099",
-        "tonalRamp": ["oklch(15% 0.025 255)", "oklch(28% 0.025 255)", "oklch(42% 0.025 255)", "oklch(56% 0.025 255)", "oklch(70% 0.025 255)", "oklch(82% 0.025 255)", "oklch(90% 0.025 255)", "oklch(95% 0.025 255)"]
+        "displayName": "Operational Muted",
+        "canonical": "#6a7895",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "midnight-ground": {
+      "faint": {
         "role": "neutral",
-        "displayName": "Midnight Ground",
-        "canonical": "#0b1221",
-        "tonalRamp": ["oklch(15% 0.030 255)", "oklch(28% 0.030 255)", "oklch(42% 0.030 255)", "oklch(56% 0.030 255)", "oklch(70% 0.030 255)", "oklch(82% 0.030 255)", "oklch(90% 0.030 255)", "oklch(95% 0.030 255)"]
+        "displayName": "Faint Metadata",
+        "canonical": "#91a0b8",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "decision-canvas": {
+      "canvas": {
         "role": "neutral",
-        "displayName": "Decision Canvas",
-        "canonical": "#0e1a33",
-        "tonalRamp": ["oklch(15% 0.045 255)", "oklch(28% 0.045 255)", "oklch(42% 0.045 255)", "oklch(56% 0.045 255)", "oklch(70% 0.045 255)", "oklch(82% 0.045 255)", "oklch(90% 0.045 255)", "oklch(95% 0.045 255)"]
+        "displayName": "Cool Command Canvas",
+        "canonical": "#f3f7fc",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "panel": {
+      "paper": {
         "role": "neutral",
-        "displayName": "Panel Navy",
-        "canonical": "#141f38",
-        "tonalRamp": ["oklch(15% 0.050 255)", "oklch(28% 0.050 255)", "oklch(42% 0.050 255)", "oklch(56% 0.050 255)", "oklch(70% 0.050 255)", "oklch(82% 0.050 255)", "oklch(90% 0.050 255)", "oklch(95% 0.050 255)"]
+        "displayName": "Working Paper",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#071225", "#1f3150", "#526581", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc", "#ffffff"]
       },
-      "active-panel": {
+      "paper-blue": {
         "role": "neutral",
-        "displayName": "Active Panel",
-        "canonical": "#1b294a",
-        "tonalRamp": ["oklch(15% 0.058 255)", "oklch(28% 0.058 255)", "oklch(42% 0.058 255)", "oklch(56% 0.058 255)", "oklch(70% 0.058 255)", "oklch(82% 0.058 255)", "oklch(90% 0.058 255)", "oklch(95% 0.058 255)"]
+        "displayName": "Quiet Blue Paper",
+        "canonical": "#f7faff",
+        "tonalRamp": ["#071225", "#1f3150", "#526581", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc", "#f7faff"]
       },
-      "glass-violet": {
-        "role": "secondary",
-        "displayName": "Refracted Violet",
-        "canonical": "#a96ee8",
-        "tonalRamp": ["oklch(15% 0.095 310)", "oklch(28% 0.095 310)", "oklch(42% 0.095 310)", "oklch(56% 0.095 310)", "oklch(70% 0.095 310)", "oklch(82% 0.095 310)", "oklch(90% 0.095 310)", "oklch(95% 0.095 310)"]
-      },
-      "hairline": {
+      "line": {
         "role": "neutral",
-        "displayName": "Blue-gray Hairline",
-        "canonical": "#27354f",
-        "tonalRamp": ["oklch(15% 0.035 255)", "oklch(28% 0.035 255)", "oklch(42% 0.035 255)", "oklch(56% 0.035 255)", "oklch(70% 0.035 255)", "oklch(82% 0.035 255)", "oklch(90% 0.035 255)", "oklch(95% 0.035 255)"]
+        "displayName": "Cool Hairline",
+        "canonical": "#dde6f1",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "market-teal": {
-        "role": "secondary",
-        "displayName": "Market Teal",
-        "canonical": "#35d0ba",
-        "tonalRamp": ["oklch(15% 0.115 177)", "oklch(28% 0.115 177)", "oklch(42% 0.115 177)", "oklch(56% 0.115 177)", "oklch(70% 0.115 177)", "oklch(82% 0.115 177)", "oklch(90% 0.115 177)", "oklch(95% 0.115 177)"]
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#cbd8e8",
+        "tonalRamp": ["#071225", "#0b1835", "#2f4165", "#6a7895", "#91a0b8", "#cbd8e8", "#dde6f1", "#f3f7fc"]
       },
-      "market-teal-bright": {
-        "role": "secondary",
-        "displayName": "Bright Market Teal",
-        "canonical": "#66e1cf",
-        "tonalRamp": ["oklch(15% 0.090 177)", "oklch(28% 0.090 177)", "oklch(42% 0.090 177)", "oklch(56% 0.090 177)", "oklch(70% 0.090 177)", "oklch(82% 0.090 177)", "oklch(90% 0.090 177)", "oklch(95% 0.090 177)"]
-      },
-      "exchange-gold": {
+      "action-blue": {
         "role": "primary",
-        "displayName": "Exchange Gold",
-        "canonical": "#f2b84b",
-        "tonalRamp": ["oklch(15% 0.120 82)", "oklch(28% 0.120 82)", "oklch(42% 0.120 82)", "oklch(56% 0.120 82)", "oklch(70% 0.120 82)", "oklch(82% 0.120 82)", "oklch(90% 0.120 82)", "oklch(95% 0.120 82)"]
+        "displayName": "Exchange Blue",
+        "canonical": "#1769f5",
+        "tonalRamp": ["#041b4f", "#0c3f9d", "#0c54d4", "#1769f5", "#5b96fa", "#a9c9fd", "#d4e5ff", "#e9f2ff"]
       },
-      "exchange-gold-soft": {
+      "action-blue-deep": {
         "role": "primary",
-        "displayName": "Soft Exchange Gold",
-        "canonical": "#f7d78f",
-        "tonalRamp": ["oklch(15% 0.085 82)", "oklch(28% 0.085 82)", "oklch(42% 0.085 82)", "oklch(56% 0.085 82)", "oklch(70% 0.085 82)", "oklch(82% 0.085 82)", "oklch(90% 0.085 82)", "oklch(95% 0.085 82)"]
+        "displayName": "Deep Exchange Blue",
+        "canonical": "#0c54d4",
+        "tonalRamp": ["#041b4f", "#0c3f9d", "#0c54d4", "#1769f5", "#5b96fa", "#a9c9fd", "#d4e5ff", "#e9f2ff"]
       },
-      "critical-red": {
+      "action-blue-soft": {
+        "role": "primary",
+        "displayName": "Blue Wash",
+        "canonical": "#e9f2ff",
+        "tonalRamp": ["#041b4f", "#0c3f9d", "#0c54d4", "#1769f5", "#5b96fa", "#a9c9fd", "#d4e5ff", "#e9f2ff"]
+      },
+      "governed-teal": {
+        "role": "secondary",
+        "displayName": "Governed Teal",
+        "canonical": "#0aa486",
+        "tonalRamp": ["#042d27", "#07594d", "#087e6a", "#0aa486", "#48c5ad", "#8ee0d0", "#c1eee5", "#e5f8f2"]
+      },
+      "governed-teal-soft": {
+        "role": "secondary",
+        "displayName": "Teal Wash",
+        "canonical": "#e5f8f2",
+        "tonalRamp": ["#042d27", "#07594d", "#087e6a", "#0aa486", "#48c5ad", "#8ee0d0", "#c1eee5", "#e5f8f2"]
+      },
+      "agent-violet": {
         "role": "tertiary",
-        "displayName": "Critical Red",
-        "canonical": "#f27069",
-        "tonalRamp": ["oklch(15% 0.150 26)", "oklch(28% 0.150 26)", "oklch(42% 0.150 26)", "oklch(56% 0.150 26)", "oklch(70% 0.150 26)", "oklch(82% 0.150 26)", "oklch(90% 0.150 26)", "oklch(95% 0.150 26)"]
+        "displayName": "Agent Violet",
+        "canonical": "#7454e8",
+        "tonalRamp": ["#25194f", "#3f2b83", "#5a40bb", "#7454e8", "#9b86ef", "#c3b7f6", "#ded8fb", "#f0edff"]
+      },
+      "agent-violet-soft": {
+        "role": "tertiary",
+        "displayName": "Violet Wash",
+        "canonical": "#f0edff",
+        "tonalRamp": ["#25194f", "#3f2b83", "#5a40bb", "#7454e8", "#9b86ef", "#c3b7f6", "#ded8fb", "#f0edff"]
+      },
+      "attention-amber": {
+        "role": "tertiary",
+        "displayName": "Attention Amber",
+        "canonical": "#d99318",
+        "tonalRamp": ["#3e2603", "#704504", "#a66b0a", "#d99318", "#e9b559", "#f5d696", "#fbe9c0", "#fff4dc"]
+      },
+      "attention-amber-soft": {
+        "role": "tertiary",
+        "displayName": "Amber Wash",
+        "canonical": "#fff4dc",
+        "tonalRamp": ["#3e2603", "#704504", "#a66b0a", "#d99318", "#e9b559", "#f5d696", "#fbe9c0", "#fff4dc"]
+      },
+      "risk-red": {
+        "role": "tertiary",
+        "displayName": "Risk Red",
+        "canonical": "#de4d5c",
+        "tonalRamp": ["#4a1019", "#7d1f2b", "#ad2f3d", "#de4d5c", "#ea8290", "#f4b8bf", "#fad5d9", "#ffebed"]
+      },
+      "risk-red-soft": {
+        "role": "tertiary",
+        "displayName": "Red Wash",
+        "canonical": "#ffebed",
+        "tonalRamp": ["#4a1019", "#7d1f2b", "#ad2f3d", "#de4d5c", "#ea8290", "#f4b8bf", "#fad5d9", "#ffebed"]
       },
       "success-green": {
         "role": "tertiary",
         "displayName": "Success Green",
-        "canonical": "#51d0a8",
-        "tonalRamp": ["oklch(15% 0.115 162)", "oklch(28% 0.115 162)", "oklch(42% 0.115 162)", "oklch(56% 0.115 162)", "oklch(70% 0.115 162)", "oklch(82% 0.115 162)", "oklch(90% 0.115 162)", "oklch(95% 0.115 162)"]
+        "canonical": "#14966d",
+        "tonalRamp": ["#042f22", "#07583f", "#0b7957", "#14966d", "#4ab68f", "#8bd1b7", "#c6eadc", "#ebf8f3"]
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Exceptional Display",
-        "purpose": "Deliberate conversational invitations and Research entry moments, never the default intelligence brief."
+        "displayName": "Brand Display",
+        "purpose": "Home hero branding and the rare highest-emphasis statement."
       },
       "headline": {
-        "displayName": "Workflow Headline",
-        "purpose": "Reviewer and governed page headings."
+        "displayName": "Workspace Headline",
+        "purpose": "Workspace titles and major invitations."
       },
       "title": {
-        "displayName": "Analytical Title",
-        "purpose": "Answer, plot, and panel hierarchy."
+        "displayName": "Panel Title",
+        "purpose": "Panel headings, answer titles, and compact structural anchors."
       },
       "body": {
         "displayName": "Operational Body",
-        "purpose": "Answers and analytical explanation."
+        "purpose": "Interface copy, descriptions, evidence, and working content."
       },
       "label": {
         "displayName": "Dense Label",
-        "purpose": "Navigation, status, source metadata, table headers, signal explanations, and evidence controls at a 10–11px explanatory floor."
+        "purpose": "Statuses, table headings, metadata, lifecycle stages, and compact controls."
       }
     },
     "shadows": [
       {
-        "name": "composer-float",
-        "value": "0 28px 80px rgba(2, 5, 16, 0.44)",
-        "purpose": "Separates the liquid-glass question input from the continuous midnight ground."
+        "name": "panel-ambient",
+        "value": "0 7px 24px rgba(30, 61, 104, .075)",
+        "purpose": "Low separation for white panels against the pale command canvas."
       },
       {
-        "name": "amber-action-lift",
-        "value": "0 8px 18px rgba(242, 184, 75, 0.14)",
-        "purpose": "Reserved for scarce gold actions, including send and Start research."
+        "name": "overlay-lift",
+        "value": "0 24px 70px rgba(30, 61, 104, .17)",
+        "purpose": "Menus, tooltips, toasts, and transient surfaces."
       },
       {
-        "name": "research-command-float",
-        "value": "0 22px 58px rgba(2, 5, 16, 0.30)",
-        "purpose": "Separates the Research command form from the line-led route map."
+        "name": "hero-anchor",
+        "value": "0 20px 55px rgba(13, 39, 76, .2)",
+        "purpose": "The deep-navy home hero only."
       },
       {
-        "name": "local-question-float",
-        "value": "0 20px 48px rgba(2, 5, 16, 0.27)",
-        "purpose": "Keeps the sticky Local Analysis question form visibly interactive above the evidence dialogue."
-      },
-      {
-        "name": "mobile-drawer-depth",
-        "value": "18px 0 50px rgba(0, 0, 0, 0.42)",
-        "purpose": "Separates the open navigation drawer from its dimmed scrim."
+        "name": "composer-lift",
+        "value": "0 15px 45px rgba(32, 71, 122, .12)",
+        "purpose": "The assistant composer above a scrolling thread."
       }
     ],
     "motion": [
       {
-        "name": "settle",
-        "value": "cubic-bezier(0.2, 0.75, 0.25, 1)",
-        "purpose": "Default easing for the analysis canvas and mobile navigation."
+        "name": "ease-standard",
+        "value": "cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Default state, hover, drawer, and page-transition easing."
       },
       {
-        "name": "state",
-        "value": "140ms cubic-bezier(0.2, 0.75, 0.25, 1)",
-        "purpose": "Hover, focus, and compact control transitions."
+        "name": "state-transition",
+        "value": "160ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Hover, focus, and compact control feedback."
       },
       {
-        "name": "press",
-        "value": "90ms ease-out",
-        "purpose": "Immediate scale feedback on primary controls."
+        "name": "page-enter",
+        "value": "420ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Short fade, blur, and upward arrival when changing workspaces."
       },
       {
-        "name": "canvas-enter",
-        "value": "350ms cubic-bezier(0.2, 0.75, 0.25, 1)",
-        "purpose": "Fades and settles the decision canvas from the right."
+        "name": "lifecycle-trace",
+        "value": "620ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Draws completed mission links from left to right."
       },
       {
-        "name": "drawer",
-        "value": "260ms cubic-bezier(0.2, 0.75, 0.25, 1)",
-        "purpose": "Moves the mobile navigation fully on and off the viewport."
-      },
-      {
-        "name": "research-settle",
-        "value": "420ms cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Settles a completed Research dossier; removed under reduced-motion preferences."
+        "name": "lifecycle-arrive",
+        "value": "820ms cubic-bezier(.2, .8, .2, 1)",
+        "purpose": "Gives the active mission node one soft arrival halo."
       }
     ],
     "breakpoints": [
       {
-        "name": "compact-desktop",
+        "name": "wide-compact",
         "value": "1280px"
       },
       {
-        "name": "drawer-and-intelligence-stack",
-        "value": "980px"
+        "name": "icon-rail",
+        "value": "1080px"
       },
       {
-        "name": "canvas-overlay",
-        "value": "980px",
-        "purpose": "At or below this width, or in portrait orientation, the Decision Canvas opens as a bounded, independently scrollable overlay below the header."
+        "name": "mobile-drawer",
+        "value": "820px"
       },
       {
-        "name": "intelligence-phone",
-        "value": "680px"
-      },
-      {
-        "name": "phone-spacing",
-        "value": "620px"
-      },
-      {
-        "name": "ledger-phone",
-        "value": "520px"
+        "name": "single-column",
+        "value": "580px"
       }
     ]
   },
   "components": [
     {
-      "name": "Amber Send Button",
+      "name": "Primary Action",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The scarce primary action used to submit a BursaIQ question.",
-      "html": "<button class=\"ds-send\" type=\"button\" aria-label=\"Send question\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m4 12 16-8-6 16-3-6-7-2Z\"/></svg></button>",
-      "css": ".ds-send { display:grid; width:44px; height:44px; place-items:center; border:0; border-radius:11px; color:#0b1221; background:#f2b84b; box-shadow:0 8px 18px rgba(242,184,75,.14); cursor:pointer; transition:background 140ms cubic-bezier(.2,.75,.25,1),transform 90ms ease-out; } .ds-send svg { width:16px; fill:none; stroke:currentColor; stroke-width:1.8; } .ds-send:hover { background:#f7c35a; } .ds-send:focus-visible { outline:2px solid #66e1cf; outline-offset:3px; } .ds-send:active { transform:scale(.94); }"
+      "description": "The compact blue control for creating, sending, publishing, or progressing work.",
+      "html": "<button class=\"ds-btn-primary\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 5v14M5 12h14\"/></svg><span>Create</span></button>",
+      "css": ".ds-btn-primary { display:inline-flex; min-height:40px; align-items:center; justify-content:center; gap:8px; border:0; border-radius:9px; padding:0 13px; color:var(--paper,#fff); background:var(--blue,#1769f5); font:700 10.5px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; box-shadow:0 7px 16px rgba(23,105,245,.18); transition:transform 150ms cubic-bezier(.2,.8,.2,1),background 150ms cubic-bezier(.2,.8,.2,1); } .ds-btn-primary svg { width:15px; height:15px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; } .ds-btn-primary:hover { background:var(--blue-dark,#0c54d4); transform:translateY(-1px); } .ds-btn-primary:active { transform:translateY(0) scale(.985); } .ds-btn-primary:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; }"
     },
     {
-      "name": "Active Workspace Navigation",
+      "name": "Secondary Action",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "A blue-wash action for important alternatives that should not compete with the primary control.",
+      "html": "<button class=\"ds-btn-secondary\" type=\"button\">Review evidence</button>",
+      "css": ".ds-btn-secondary { display:inline-flex; min-height:40px; align-items:center; justify-content:center; border:1px solid #bfd5fb; border-radius:9px; padding:0 13px; color:var(--blue-dark,#0c54d4); background:var(--blue-soft,#e9f2ff); font:700 10.5px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; transition:transform 150ms cubic-bezier(.2,.8,.2,1),border-color 150ms cubic-bezier(.2,.8,.2,1); } .ds-btn-secondary:hover { border-color:#98bbf5; transform:translateY(-1px); } .ds-btn-secondary:active { transform:none; } .ds-btn-secondary:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; }"
+    },
+    {
+      "name": "Navigation Architecture",
       "kind": "nav",
       "refersTo": "navigation-active",
-      "description": "A 44px active icon target for the fixed desktop rail that reveals its name with the complete navigation on hover or keyboard focus; BursaIQ Assistant is the default entry.",
-      "html": "<button class=\"ds-nav-active\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z\"/></svg><span>BursaIQ Assistant</span></button>",
-      "css": ".ds-nav-active { display:grid; width:222px; min-height:44px; grid-template-columns:16px minmax(0,1fr); align-items:center; gap:10px; border:0; border-radius:8px; padding:0 9px; color:#f5f7fa; background:#141f38; box-shadow:inset 0 0 0 1px rgba(53,208,186,.1); font:650 11px/1.3 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-nav-active svg { width:16px; fill:none; stroke:#35d0ba; stroke-width:1.7; } .ds-nav-active:hover { background:#1b294a; } .ds-nav-active:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; }"
+      "description": "The canonical rail order is Home, AI Assistant, Ask Bursa, My Workforce, and Intelligence Exchange, followed by a divider, then Action, Verification Centre, and Connectors; Settings remains in the footer.",
+      "html": "<nav class=\"ds-nav-rail\" aria-label=\"BursaIQ navigation example\"><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 11 12 4l8 7v9h-6v-6h-4v6H4z\"/></svg><span><strong>Home</strong><small>Command centre</small></span></button><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m12 3 1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z\"/></svg><span><strong>AI Assistant</strong><small>Ask. Understand. Decide.</small></span></button><button class=\"ds-nav-item is-active\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 5.5c2.5-.8 5.2-.5 8 1v13c-2.8-1.5-5.5-1.8-8-1zM20 5.5c-2.5-.8-5.2-.5-8 1v13c2.8-1.5 5.5-1.8 8-1z\"/></svg><span><strong>Ask Bursa</strong><small>Internal knowledge Q&amp;A</small></span></button><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"3\"/><circle cx=\"17\" cy=\"9\" r=\"2\"/><path d=\"M3 20c0-4 2-6 5-6s5 2 5 6M14 20c0-3 1-5 3-5 2.5 0 4 2 4 5\"/></svg><span><strong>My Workforce</strong><small>Agents, tasks, missions</small></span><b>3</b></button><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></svg><span><strong>Intelligence Exchange</strong><small>Discover and share</small></span></button><span class=\"ds-nav-separator\" aria-hidden=\"true\"></span><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m5 12 4 4L19 6\"/></svg><span><strong>Action</strong><small>Memory and email follow-ups</small></span><b>2</b></button><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3 4 7v5c0 5 3.5 8 8 9 4.5-1 8-4 8-9V7z\"/></svg><span><strong>Verification Centre</strong><small>Approvals and audit</small></span><b>2</b></button><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M8 3v5M16 3v5M6 8h12v4a6 6 0 0 1-12 0zM12 18v3\"/></svg><span><strong>Connectors</strong><small>M365 and internal apps</small></span></button><div class=\"ds-nav-footer\"><button class=\"ds-nav-item\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"3\"/><path d=\"M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.4 1a7 7 0 0 0-1.7-1L14.5 3h-5l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L5 10.5A7 7 0 0 0 5 13l-2 1.5 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h5l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4-2-1.5z\"/></svg><span><strong>Settings</strong><small>Preferences and access</small></span></button></div></nav>",
+      "css": ".ds-nav-rail { display:flex; width:232px; min-height:430px; flex-direction:column; padding:10px; background:var(--navy-950,#06152c); font-family:\"Segoe UI\",sans-serif; } .ds-nav-item { position:relative; display:grid; width:100%; min-height:53px; grid-template-columns:34px minmax(0,1fr) auto; align-items:center; gap:9px; border:0; border-radius:11px; padding:6px 9px; color:#bdcce0; background:transparent; text-align:left; cursor:pointer; transition:color 160ms cubic-bezier(.2,.8,.2,1),background 160ms cubic-bezier(.2,.8,.2,1); } .ds-nav-item.is-active { color:#fff; background:linear-gradient(90deg,rgba(25,105,230,.77),rgba(17,76,160,.64)); box-shadow:inset 0 1px rgba(255,255,255,.09); } .ds-nav-item.is-active::after { position:absolute; inset:9px auto 9px -10px; width:3px; border-radius:0 4px 4px 0; background:#2d8cff; content:\"\"; box-shadow:0 0 17px rgba(45,140,255,.65); } .ds-nav-item:hover { color:#fff; background-color:rgba(255,255,255,.06); } .ds-nav-item:focus-visible { outline:3px solid rgba(72,153,255,.42); outline-offset:2px; } .ds-nav-item svg { width:20px; height:20px; justify-self:center; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; } .ds-nav-item strong,.ds-nav-item small { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .ds-nav-item strong { font-size:11.5px; font-weight:640; } .ds-nav-item small { margin-top:2px; color:#8297b2; font-size:10px; } .ds-nav-item.is-active small { color:#d8e8ff; } .ds-nav-item b { display:grid; min-width:20px; height:20px; place-items:center; border-radius:99px; color:#fff; background:#1672ff; font-size:10px; } .ds-nav-separator { height:1px; flex:none; margin:8px; background:rgba(175,199,229,.15); } .ds-nav-footer { margin-top:auto; border-top:1px solid rgba(175,199,229,.15); padding-top:8px; }"
     },
     {
-      "name": "Research Command",
-      "kind": "custom",
-      "description": "The liquid-glass Research entry surface with depth, evidence boundary, and a scarce Exchange Gold run action.",
-      "html": "<section class=\"ds-research-command\"><div><h2>Turn a broad question into a research dossier</h2><p>Keep the source trail visible from first question to final finding.</p></div><form><label for=\"ds-research-query\">Research question or instruction</label><textarea id=\"ds-research-query\" rows=\"3\" placeholder=\"Assess whether July’s market activity was broad and sustainable.\"></textarea><div><select aria-label=\"Research depth\"><option>Deep research</option></select><select aria-label=\"Evidence boundary\"><option>Governed BursaIQ sources</option></select><button type=\"button\">Start research</button></div></form></section>",
-      "css": ".ds-research-command { display:grid; width:min(920px,100%); grid-template-columns:minmax(250px,.78fr) minmax(430px,1.22fr); gap:42px; align-items:center; padding:28px 30px 30px; color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-research-command h2 { max-width:13ch; margin:0; color:#f5f7fa; font-size:clamp(26px,2.8vw,42px); font-weight:620; letter-spacing:-.035em; line-height:1.06; } .ds-research-command p { max-width:48ch; margin:14px 0 0; font-size:12px; line-height:1.68; } .ds-research-command form { overflow:hidden; border:1px solid rgba(238,221,255,.24); border-radius:20px; padding:18px; background:linear-gradient(145deg,rgba(108,72,132,.25),rgba(26,31,55,.76) 50%,rgba(13,23,43,.84)); box-shadow:0 22px 58px rgba(2,5,16,.3),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(28px) saturate(150%); } .ds-research-command label { display:block; margin-bottom:8px; font-size:10px; font-weight:700; } .ds-research-command textarea { width:100%; min-height:94px; resize:vertical; border:0; outline:0; padding:3px 0 16px; color:#f5f7fa; background:transparent; font:450 14px/1.55 \"Segoe UI\",sans-serif; } .ds-research-command form > div { display:grid; grid-template-columns:minmax(118px,.7fr) minmax(190px,1.15fr) auto; gap:10px; border-top:1px solid rgba(226,207,244,.11); padding-top:13px; } .ds-research-command select,.ds-research-command button { min-height:44px; border-radius:10px; padding:0 10px; font:650 10px/1.3 \"Segoe UI\",sans-serif; } .ds-research-command select { border:1px solid rgba(219,200,237,.14); color:#aeb8ca; background:rgba(9,15,30,.54); } .ds-research-command button { border:0; padding-inline:14px; color:#0b1221; background:#f2b84b; box-shadow:0 8px 22px rgba(242,184,75,.18); cursor:pointer; } .ds-research-command button:hover { background:#f7d78f; } .ds-research-command :is(textarea,select,button):focus-visible { outline:2px solid #66e1cf; outline-offset:2px; } @media (max-width:980px) { .ds-research-command { grid-template-columns:1fr; gap:24px; } } @media (max-width:680px) { .ds-research-command form > div { grid-template-columns:1fr; } .ds-research-command button { width:100%; } }"
-    },
-    {
-      "name": "Suggestion Chip",
-      "kind": "chip",
-      "refersTo": "chip-suggestion",
-      "description": "A prepared prompt that stays secondary to the composer.",
-      "html": "<button class=\"ds-chip\" type=\"button\">How did 30-day ADV change?</button>",
-      "css": ".ds-chip { min-height:44px; border:1px solid #27354f; border-radius:999px; padding:6px 11px; color:#aeb8ca; background:#141f38; font:650 10px/1.3 \"Segoe UI\",sans-serif; cursor:pointer; transition:color 140ms cubic-bezier(.2,.75,.25,1),border-color 140ms cubic-bezier(.2,.75,.25,1); } .ds-chip:hover { border-color:#35d0ba; color:#35d0ba; } .ds-chip:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; }"
-    },
-    {
-      "name": "Assistant Composer",
+      "name": "Global Search",
       "kind": "input",
-      "refersTo": "composer",
-      "description": "The signature liquid-glass question field with a visible governed-routing cue.",
-      "html": "<label class=\"ds-composer\"><span>Ask BursaIQ</span><textarea rows=\"2\" placeholder=\"Ask BursaIQ…\"></textarea><small>● Routes within your permitted workspaces</small></label>",
-      "css": ".ds-composer { display:grid; width:min(620px,100%); border:1px solid rgba(238,221,255,.24); border-radius:26px; padding:18px 20px 11px; color:#f5f7fa; background:linear-gradient(145deg,rgba(116,76,139,.28),rgba(35,31,59,.68) 40%,rgba(15,23,43,.82)); box-shadow:0 28px 80px rgba(2,5,16,.44),inset 0 1px rgba(255,255,255,.32); backdrop-filter:blur(34px) saturate(165%); font-family:\"Segoe UI\",sans-serif; } .ds-composer > span { font-size:10px; color:#b0a8ba; } .ds-composer textarea { resize:none; border:0; outline:0; padding:9px 0; color:#f5f7fa; background:transparent; font:400 14px/1.55 \"Segoe UI\",sans-serif; } .ds-composer small { color:#b0a8ba; font-size:10px; } .ds-composer small::first-letter { color:#35d0ba; } .ds-composer:focus-within { border-color:#66e1cf; box-shadow:0 32px 88px rgba(2,5,16,.5),0 0 0 3px rgba(53,208,186,.11),inset 0 1px rgba(255,255,255,.36); }"
+      "description": "The sticky-topbar entry point for knowledge, people, projects, navigation, and AI questions.",
+      "html": "<button class=\"ds-global-search\" type=\"button\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"m20 20-4-4\"/></svg><span>Search knowledge, people, projects, or ask AI…</span><kbd>⌘ K</kbd></button>",
+      "css": ".ds-global-search { display:flex; width:min(640px,100%); height:42px; align-items:center; gap:12px; border:1px solid #e2e9f2; border-radius:10px; padding:0 12px; color:var(--muted,#6a7895); background:#f4f7fb; font-family:\"Segoe UI\",sans-serif; cursor:pointer; text-align:left; } .ds-global-search:hover { border-color:var(--line-strong,#cbd8e8); background:var(--paper,#fff); } .ds-global-search:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; } .ds-global-search svg { width:18px; height:18px; fill:none; stroke:#52688e; stroke-width:1.8; stroke-linecap:round; } .ds-global-search span { flex:1; overflow:hidden; font-size:11px; text-overflow:ellipsis; white-space:nowrap; } .ds-global-search kbd { border:1px solid #dbe4f0; border-bottom-color:#c3d1e3; border-radius:5px; padding:2px 6px; color:#60708c; background:#fff; font:10px/1.4 inherit; box-shadow:0 1px 1px rgba(20,45,80,.08); }"
     },
     {
-      "name": "Predefined Answer Card",
-      "kind": "card",
-      "refersTo": "answer-card",
-      "description": "A governed answer surface with explicit fallback provenance.",
-      "html": "<article class=\"ds-answer\"><div class=\"ds-answer-meta\"><span>IQ</span><small>BursaIQ Assistant</small><em>Predefined demo answer</em></div><h3>The market advanced in July</h3><p>The prepared response remains available when Copilot Studio cannot be reached.</p></article>",
-      "css": ".ds-answer { max-width:520px; border:1px solid #27354f; border-radius:14px; padding:16px; color:#d7deea; background:#141f38; font:400 12.5px/1.62 \"Segoe UI\",sans-serif; } .ds-answer-meta { display:flex; align-items:center; gap:8px; margin-bottom:10px; color:#8190a7; font-size:9px; } .ds-answer-meta > span { display:grid; width:25px; height:25px; place-items:center; border-radius:7px; color:#0b1221; background:#f2b84b; font-weight:700; } .ds-answer-meta em { border-radius:999px; padding:4px 7px; color:#f2b84b; background:rgba(242,184,75,.1); font-style:normal; } .ds-answer h3 { margin:0 0 8px; color:#f5f7fa; font-size:16px; } .ds-answer p { margin:0; }"
+      "name": "Universal Work Composer",
+      "kind": "input",
+      "refersTo": "command-composer",
+      "description": "The white command surface for asking, delegating, attaching evidence, building workflows, and searching the Exchange.",
+      "html": "<form class=\"ds-composer\"><textarea aria-label=\"Describe work\" placeholder=\"Ask a question, delegate a task, find knowledge, or describe what you want to build…\"></textarea><div><span><button type=\"button\">Attach</button><button type=\"button\">Deep Research</button></span><button class=\"ds-composer-send\" type=\"submit\" aria-label=\"Start with BursaIQ\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"m22 2-7 20-4-9-9-4zM22 2 11 13\"/></svg></button></div></form>",
+      "css": ".ds-composer { min-height:92px; border:1px solid #cfdbeb; border-radius:12px; padding:13px 13px 9px; background:var(--paper,#fff); font-family:\"Segoe UI\",sans-serif; transition:border-color 160ms cubic-bezier(.2,.8,.2,1),box-shadow 160ms cubic-bezier(.2,.8,.2,1); } .ds-composer:focus-within { border-color:#85b2f8; box-shadow:0 0 0 3px rgba(23,105,245,.1); } .ds-composer textarea { display:block; width:100%; min-height:39px; resize:none; border:0; outline:0; color:var(--ink,#0b1835); background:transparent; font:400 12px/1.48 \"Segoe UI\",sans-serif; } .ds-composer textarea::placeholder { color:#8390a8; } .ds-composer > div { display:flex; align-items:center; justify-content:space-between; gap:10px; } .ds-composer > div > span { display:flex; gap:4px; } .ds-composer button { min-height:34px; border:0; border-radius:7px; padding:0 8px; color:#415575; background:transparent; font:500 10.5px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-composer button:hover { color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); } .ds-composer .ds-composer-send { display:grid; width:40px; height:38px; place-items:center; padding:0; border-radius:9px; color:#fff; background:var(--blue,#1769f5); box-shadow:0 7px 15px rgba(23,105,245,.2); } .ds-composer .ds-composer-send:hover { color:#fff; background:var(--blue-dark,#0c54d4); } .ds-composer .ds-composer-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; } .ds-composer button:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; }"
     },
     {
-      "name": "Decision Canvas Tabs",
+      "name": "Ask Bursa Q&A Lane",
       "kind": "custom",
-      "refersTo": "decision-canvas",
-      "description": "The keyboard-complete Plot, Analysis, Sources, and Actions switcher, opened by Decision Canvas before Verify and Create PDF in every chat answer at every width and in every answer mode. The inline toggle synchronizes aria-expanded; closing hides the canvas completely and Escape returns focus to the latest inline button. Desktop uses a side-by-side plane; portrait and widths at or below 980px use a bounded overlay. Header Canvas and separate answer-card evidence links are absent. Actions carries an answer into monitoring, memory, review, or Research.",
-      "html": "<div class=\"ds-canvas\"><div class=\"ds-tabs\" role=\"tablist\" aria-label=\"Analysis views\"><button role=\"tab\" aria-selected=\"false\">Plot</button><button role=\"tab\" aria-selected=\"false\">Analysis</button><button role=\"tab\" aria-selected=\"false\">Sources <span>3</span></button><button class=\"is-active\" role=\"tab\" aria-selected=\"true\">Actions</button></div><div class=\"ds-action\"><span>↗</span><div><strong>Open a research thread</strong><p>Expand this answer into a sourced dossier with counterpoints and open questions.</p></div><em>Research</em></div></div>",
-      "css": ".ds-canvas { width:420px; overflow:hidden; border-left:1px solid #27354f; color:#aeb8ca; background:#0e1a33; font-family:\"Segoe UI\",sans-serif; } .ds-tabs { display:grid; grid-template-columns:repeat(4,1fr); height:54px; border-bottom:1px solid #27354f; padding:5px 12px; } .ds-tabs button { min-height:44px; border:0; border-radius:8px; color:#78869c; background:transparent; font-size:9.5px; cursor:pointer; } .ds-tabs button.is-active { color:#f2b84b; background:#141f38; } .ds-tabs button:focus-visible { outline:2px solid #66e1cf; outline-offset:-2px; } .ds-tabs span { color:#35d0ba; } .ds-action { display:grid; min-height:82px; grid-template-columns:32px 1fr auto; align-items:center; gap:12px; margin:16px; border-block:1px solid #27354f; padding:12px 2px; } .ds-action > span { display:grid; width:32px; height:32px; place-items:center; border:1px solid #27354f; border-radius:8px; color:#f2b84b; background:#0b1221; } .ds-action strong { color:#f5f7fa; font-size:10.5px; } .ds-action p { margin:4px 0 0; color:#738099; font-size:10.5px; line-height:1.45; } .ds-action em { color:#35d0ba; font-size:10px; font-style:normal; letter-spacing:.08em; text-transform:uppercase; }"
-    },
-    {
-      "name": "Private Analysis Bench",
-      "kind": "custom",
-      "description": "The two-pane Local Analysis surface: private memory-only intake on the left, evidence dialogue and explicit Copilot opt-in on the right.",
-      "html": "<section class=\"ds-local-bench\"><div class=\"ds-local-intake\"><h2>Private document bench</h2><p>Files are parsed locally and held in memory only for this running session.</p><button type=\"button\"><strong>Drop documents here</strong><span>PDF, XLSX, CSV, JSON, TXT or MD</span></button><small>Nothing is added to the governed source library.</small></div><div class=\"ds-local-dialogue\"><h2>Ask against the evidence</h2><p>Every local answer shows the passages it used.</p><form><textarea rows=\"3\" placeholder=\"Ask a question or describe the analysis you need…\"></textarea><div><label><input type=\"checkbox\"><span><strong>Copilot-assisted synthesis</strong><small>Send only selected evidence extracts.</small></span></label><button type=\"button\">Analyse</button></div></form><aside><strong>Local by default.</strong> Evidence leaves the local service only with explicit question-level consent.</aside></div></section>",
-      "css": ".ds-local-bench { display:grid; width:min(920px,100%); grid-template-columns:minmax(300px,.72fr) minmax(440px,1.28fr); color:#aeb8ca; background:#0b1221; font-family:\"Segoe UI\",sans-serif; } .ds-local-bench h2 { margin:0; color:#f5f7fa; font-size:17px; letter-spacing:-.02em; } .ds-local-bench p { margin:7px 0 0; color:#738099; font-size:11px; line-height:1.55; } .ds-local-intake { border-right:1px solid #27354f; padding:28px 24px; background:rgba(5,11,24,.22); } .ds-local-intake > button { display:grid; width:100%; min-height:190px; place-items:center; align-content:center; gap:6px; margin-top:24px; border:1px dashed rgba(132,150,181,.42); border-radius:14px; padding:24px; color:#aeb8ca; background:linear-gradient(145deg,rgba(101,68,123,.13),rgba(17,27,48,.42)); cursor:pointer; } .ds-local-intake > button strong { color:#f5f7fa; font-size:12px; } .ds-local-intake > button span,.ds-local-intake > small { color:#738099; font-size:10px; } .ds-local-intake > button:hover { border-color:#35d0ba; transform:translateY(-2px); } .ds-local-dialogue { display:flex; min-width:0; flex-direction:column; padding:28px 30px; } .ds-local-dialogue form { margin-top:28px; border:1px solid rgba(238,221,255,.24); border-radius:18px; padding:14px; background:linear-gradient(145deg,rgba(97,68,117,.25),rgba(19,28,50,.82)); box-shadow:0 20px 48px rgba(2,5,16,.27),inset 0 1px rgba(255,255,255,.17); backdrop-filter:blur(26px) saturate(145%); } .ds-local-dialogue textarea { width:100%; min-height:62px; resize:vertical; border:0; outline:0; color:#f5f7fa; background:transparent; font:450 13px/1.55 \"Segoe UI\",sans-serif; } .ds-local-dialogue form > div { display:flex; align-items:center; justify-content:space-between; gap:14px; border-top:1px solid rgba(226,207,244,.11); padding-top:11px; } .ds-local-dialogue label { display:flex; align-items:center; gap:9px; font-size:10px; } .ds-local-dialogue label small { display:block; color:#738099; } .ds-local-dialogue form button { min-height:44px; border:0; border-radius:13px; padding:0 14px; color:#0b1221; background:#f2b84b; cursor:pointer; } .ds-local-dialogue form button:hover { background:#f7d78f; } .ds-local-dialogue aside { margin-top:18px; border-top:1px solid #27354f; padding-top:18px; color:#738099; font-size:10px; line-height:1.55; } .ds-local-dialogue :is(textarea,input,button):focus-visible,.ds-local-intake > button:focus-visible { outline:2px solid #66e1cf; outline-offset:2px; } @media (max-width:980px) { .ds-local-bench { grid-template-columns:1fr; } .ds-local-intake { border-right:0; border-bottom:1px solid #27354f; } } @media (max-width:680px) { .ds-local-dialogue form > div { display:grid; } .ds-local-dialogue form button { width:100%; } }"
+      "refersTo": "ask-bursa-lane",
+      "description": "The clean, centered internal Q&A lane: welcome prompt, department-aware suggestion cards, conversation thread, and composer, with governance kept visible through quiet status and source indicators.",
+      "html": "<section class=\"ds-bursa-lane\"><header class=\"ds-bursa-head\"><div><h2>Ask Bursa</h2><p>Your internal question-and-answer channel across Bursa departments.</p></div><span><i></i>Internal knowledge only</span></header><div class=\"ds-bursa-welcome\"><h3>Ask anything <em>inside Bursa.</em></h3><p>Get a direct answer from approved internal guidance—without launching a task or opening a Decision Canvas.</p><div class=\"ds-bursa-suggestions\"><button type=\"button\"><strong>How do I submit a leave request?</strong><small>HR · Leave and employee services</small></button><button type=\"button\"><strong>How do I report a suspected phishing email?</strong><small>Group Technology · Cybersecurity</small></button><button type=\"button\"><strong>What changed in the latest internal regulatory notice?</strong><small>Regulations · Current guidance</small></button><button type=\"button\"><strong>Who should be contacted during a trading incident?</strong><small>Market Operations · Escalation</small></button></div></div><form class=\"ds-bursa-composer\"><textarea aria-label=\"Ask an internal Bursa question\" placeholder=\"Ask about HR, Group Technology, Regulations, or Market Operations…\"></textarea><div><span><button type=\"button\">Internal sources</button><em>Q&amp;A only</em></span><button class=\"ds-bursa-send\" type=\"submit\" aria-label=\"Send internal question\">→</button></div></form></section>",
+      "css": ".ds-bursa-lane { width:min(920px,100%); color:var(--ink,#0b1835); background:#f8fbff; font-family:\"Segoe UI\",sans-serif; } .ds-bursa-head { display:flex; min-height:74px; align-items:center; justify-content:space-between; gap:18px; border-bottom:1px solid var(--line,#dde6f1); padding:0 24px; background:var(--paper,#fff); } .ds-bursa-head h2,.ds-bursa-head p { margin:0; } .ds-bursa-head h2 { font:770 21px/1.1 Manrope,\"Segoe UI\",sans-serif; letter-spacing:-.025em; } .ds-bursa-head p { margin-top:3px; color:var(--muted,#6a7895); font-size:10.5px; } .ds-bursa-head > span { display:flex; align-items:center; gap:7px; color:var(--green,#14966d); font-size:10px; font-weight:650; white-space:nowrap; } .ds-bursa-head i { width:6px; height:6px; border-radius:50%; background:var(--green,#14966d); } .ds-bursa-welcome { padding:56px 24px 25px; } .ds-bursa-welcome h3 { max-width:650px; margin:0; font:750 clamp(29px,4vw,45px)/1.08 Manrope,\"Segoe UI\",sans-serif; letter-spacing:-.045em; } .ds-bursa-welcome h3 em { color:var(--blue,#1769f5); font-style:normal; } .ds-bursa-welcome > p { max-width:620px; margin:13px 0 25px; color:var(--muted,#6a7895); font-size:12px; line-height:1.65; } .ds-bursa-suggestions { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .ds-bursa-suggestions button { position:relative; min-height:88px; border:1px solid var(--line,#dde6f1); border-radius:13px; padding:14px 38px 14px 14px; color:var(--ink,#0b1835); background:rgba(255,255,255,.9); text-align:left; cursor:pointer; transition:border-color 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms cubic-bezier(.2,.8,.2,1),transform 180ms cubic-bezier(.2,.8,.2,1); } .ds-bursa-suggestions button::after { position:absolute; top:15px; right:15px; color:#88a5cc; content:\"→\"; font-size:14px; } .ds-bursa-suggestions button:hover { border-color:#9cc1f4; box-shadow:0 12px 25px rgba(28,73,132,.08); transform:translateY(-2px); } .ds-bursa-suggestions button:focus-visible,.ds-bursa-composer button:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; } .ds-bursa-suggestions strong,.ds-bursa-suggestions small { display:block; } .ds-bursa-suggestions strong { font-size:11px; line-height:1.35; } .ds-bursa-suggestions small { margin-top:7px; color:var(--muted,#6a7895); font-size:10px; line-height:1.4; } .ds-bursa-composer { margin:10px 24px 16px; border:1px solid #cdd9e8; border-radius:14px; padding:10px; background:var(--paper,#fff); box-shadow:0 15px 45px rgba(32,71,122,.12); } .ds-bursa-composer textarea { width:100%; min-height:50px; resize:none; border:0; outline:0; color:var(--ink,#0b1835); background:transparent; font:400 12px/1.48 \"Segoe UI\",sans-serif; } .ds-bursa-composer > div,.ds-bursa-composer > div > span { display:flex; align-items:center; gap:6px; } .ds-bursa-composer > div { justify-content:space-between; } .ds-bursa-composer button { min-height:28px; border:0; border-radius:8px; padding:0 9px; color:var(--ink-2,#2f4165); background:transparent; font:650 10px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-bursa-composer button:hover { color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); } .ds-bursa-composer em { display:inline-flex; min-height:28px; align-items:center; border-radius:999px; padding:0 9px; color:var(--green,#14966d); background:#ecf9f4; font-size:10px; font-style:normal; font-weight:700; } .ds-bursa-composer .ds-bursa-send { width:40px; height:38px; padding:0; color:#fff; background:var(--blue,#1769f5); font-size:17px; } .ds-bursa-composer .ds-bursa-send:hover { color:#fff; background:var(--blue-dark,#0c54d4); } @media (max-width:580px) { .ds-bursa-head { padding:0 14px; } .ds-bursa-head > span { display:none; } .ds-bursa-welcome { padding:24px 14px 12px; } .ds-bursa-suggestions { grid-template-columns:1fr; } .ds-bursa-composer { margin:8px 10px 12px; } }"
     },
     {
       "name": "Governed Status Pill",
       "kind": "chip",
-      "description": "A compact source or workflow status marker.",
-      "html": "<span class=\"ds-status\"><i></i>Loaded</span>",
-      "css": ".ds-status { display:inline-flex; min-height:28px; align-items:center; gap:6px; border:1px solid #27354f; border-radius:8px; padding:0 9px; color:#35d0ba; background:rgba(53,208,186,.07); font:650 10px/1.3 \"Segoe UI\",sans-serif; } .ds-status i { width:5px; height:5px; border-radius:50%; background:#35d0ba; }"
+      "refersTo": "status-governed",
+      "description": "A compact textual confirmation for a governed, completed, or healthy state.",
+      "html": "<span class=\"ds-status-governed\"><i></i>Governed</span>",
+      "css": ".ds-status-governed { display:inline-flex; min-height:22px; align-items:center; gap:6px; border-radius:99px; padding:2px 8px; color:#087a57; background:#dff6ed; font:720 10px/1.4 \"Segoe UI\",sans-serif; white-space:nowrap; } .ds-status-governed i { width:6px; height:6px; border-radius:50%; background:var(--teal,#0aa486); box-shadow:0 0 0 3px rgba(10,164,134,.1); }"
     },
     {
-      "name": "IQ Guide Pet",
+      "name": "Mission Lifecycle",
       "kind": "custom",
-      "description": "A device-local, role-aware BursaIQ directory anchored to the supplied animated white character. It recommends a permitted panel, exposes one direct navigation action, hides with /Close, and can be restored from Settings.",
-      "html": "<section class=\"ds-guide\"><div class=\"ds-guide-panel\"><strong>IQ Guide</strong><p>Tell me what you need to do and I’ll point you to the right workspace or workflow.</p><button type=\"button\">Open Today’s Brief</button></div><button class=\"ds-guide-pet\" type=\"button\" aria-label=\"Open IQ Guide\"><img src=\"/static/assets/bursaiq-guide-pet.png\" alt=\"\"></button></section>",
-      "css": ".ds-guide { position:relative; width:68px; height:68px; } .ds-guide-pet { width:68px; height:68px; overflow:visible; border:0; border-radius:50%; padding:0; background:transparent; cursor:pointer; } .ds-guide-pet img { width:112px; height:100px; object-fit:contain; filter:drop-shadow(0 9px 13px rgba(0,0,0,.22)); } .ds-guide-panel { position:absolute; right:0; bottom:78px; width:360px; border:1px solid rgba(226,209,242,.18); border-radius:22px; padding:14px; color:#f5f7fa; background:linear-gradient(145deg,rgba(75,50,91,.88),rgba(9,16,31,.96)); box-shadow:0 30px 84px rgba(1,3,12,.5),inset 0 1px rgba(255,255,255,.2); backdrop-filter:blur(32px) saturate(155%); } .ds-guide-panel button { min-height:44px; border:1px solid rgba(53,208,186,.22); border-radius:10px; color:#66e1cf; background:rgba(53,208,186,.07); }"
+      "description": "BursaIQ's signature four-stage handoff, moving every mission from governed research to reusable exchange.",
+      "html": "<div class=\"ds-lifecycle\" aria-label=\"Mission lifecycle: Research, Synthesis, Verification, Exchange\"><div class=\"ds-life-step is-done\" data-step=\"1\"><strong>Research</strong><span>Retrieve governed sources</span></div><div class=\"ds-life-step is-done\" data-step=\"2\"><strong>Synthesis</strong><span>Analyse and draft</span></div><div class=\"ds-life-step is-active\" data-step=\"3\"><strong>Verification</strong><span>Fact-check and approve</span></div><div class=\"ds-life-step\" data-step=\"4\"><strong>Exchange</strong><span>Share or deliver</span></div></div>",
+      "css": ".ds-lifecycle { display:grid; min-width:620px; grid-template-columns:repeat(4,minmax(0,1fr)); padding:15px; color:var(--muted,#6a7895); background:var(--paper,#fff); font:400 10px/1.4 \"Segoe UI\",sans-serif; } .ds-life-step { position:relative; min-width:0; padding-top:29px; } .ds-life-step::before { position:absolute; z-index:2; top:0; left:0; display:grid; width:22px; height:22px; place-items:center; border:2px solid #d2dce9; border-radius:50%; color:#71829d; background:#fff; content:attr(data-step); font-size:10px; font-weight:750; } .ds-life-step::after { position:absolute; top:10px; right:6px; left:24px; height:2px; background:#dbe4ef; content:\"\"; } .ds-life-step:last-child::after { display:none; } .ds-life-step strong,.ds-life-step span { display:block; } .ds-life-step strong { color:var(--ink,#0b1835); font-size:10px; } .ds-life-step.is-done::before { color:#fff; border-color:var(--teal,#0aa486); background:var(--teal,#0aa486); content:\"✓\"; } .ds-life-step.is-done::after { background:var(--teal,#0aa486); transform-origin:left center; animation:ds-life-trace 620ms cubic-bezier(.2,.8,.2,1) both; } .ds-life-step.is-active::before { color:#fff; border-color:var(--blue,#1769f5); background:var(--blue,#1769f5); box-shadow:0 0 0 5px var(--blue-soft,#e9f2ff); animation:ds-life-arrive 820ms cubic-bezier(.2,.8,.2,1) 360ms both; } @keyframes ds-life-trace { from { transform:scaleX(0); } to { transform:scaleX(1); } } @keyframes ds-life-arrive { 0% { box-shadow:0 0 0 0 rgba(23,105,245,.28); } 55% { box-shadow:0 0 0 8px rgba(23,105,245,.12); } 100% { box-shadow:0 0 0 5px var(--blue-soft,#e9f2ff); } } @media (prefers-reduced-motion:reduce) { .ds-life-step::before,.ds-life-step::after { animation:none !important; } }"
     },
     {
-      "name": "Automation Ledger and Editor",
+      "name": "Decision Canvas Action",
       "kind": "custom",
-      "description": "An incumbent ledger beside a theme-aware inline schedule editor: native 44px fields, portrait stacking, visible demo boundary, and prepared email preview. Role-scoped browser records send no emails and run no background jobs.",
-      "html": "<section class=\"ds-automation\"><p class=\"ds-automation-boundary\">Demo only · schedules are saved on this device. No emails or background runs occur. Previews use prepared data.</p><div class=\"ds-automation-layout\"><aside class=\"ds-automation-ledger\" aria-label=\"Saved email schedules\"><h3>Your schedules</h3><button class=\"ds-automation-row\" type=\"button\" aria-current=\"true\"><strong>Market intelligence email</strong><small>Every day · 08:30 · MYT</small><small>1 recipient · On (demo)</small></button><p>Private to the active demo identity on this browser.</p></aside><section class=\"ds-automation-editor\" aria-label=\"Email automation editor\"><h3>Edit automation</h3><label class=\"ds-automation-field\"><span>Question to repeat</span><textarea rows=\"2\">How did the market perform in July?</textarea></label><label class=\"ds-automation-field\"><span>Email recipients</span><input value=\"analyst@example.test\"></label><label class=\"ds-automation-field\"><span>Send time</span><input type=\"time\" value=\"08:30\"></label><div class=\"ds-automation-includes\"><label><input type=\"checkbox\" checked><span>Link</span></label><label><input type=\"checkbox\"><span>Dashboard</span></label><label><input type=\"checkbox\"><span>Report</span></label></div><button class=\"ds-automation-save\" type=\"button\">Save changes</button><p class=\"ds-automation-preview\">Email preview · Not sent<br>Dashboard is an evidence snapshot; Report is an inline summary, not a PDF attachment.</p></section></div></section>",
-      "css": ".ds-automation { width:min(820px,100%); color:var(--ink,#f5f7fa); background:var(--navy-950,#0b1221); font-family:var(--font-sans,\"Segoe UI\",sans-serif); } .ds-automation-boundary { margin:0 0 28px; border-block:1px solid var(--line,#27354f); padding-block:12px; color:var(--ink-soft,#aeb8ca); font-size:12px; line-height:1.65; } .ds-automation-layout { display:grid; grid-template-columns:minmax(220px,280px) minmax(0,1fr); gap:32px; align-items:start; } .ds-automation-layout > * { min-width:0; } .ds-automation h3 { margin:0 0 20px; font-size:17px; } .ds-automation-row { display:grid; gap:6px; min-height:102px; width:100%; border:0; border-bottom:1px solid var(--line,#27354f); padding:16px 10px; text-align:left; color:var(--ink,#f5f7fa); background:rgba(53,208,186,.07); cursor:pointer; } .ds-automation-row strong { font-size:13px; line-height:1.5; overflow-wrap:anywhere; } .ds-automation-row small { color:var(--ink-soft,#aeb8ca); font-size:11px; line-height:1.5; } .ds-automation-row:hover { background:rgba(53,208,186,.05); } .ds-automation-ledger > p { color:var(--ink-soft,#aeb8ca); font-size:12px; line-height:1.65; } .ds-automation-editor { padding:24px; border-radius:16px; background:linear-gradient(135deg,rgba(117,87,145,.16),rgba(21,31,52,.16)); box-shadow:inset 0 1px rgba(228,210,243,.2); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); } .ds-automation-field { display:grid; gap:7px; margin-top:16px; min-width:0; } .ds-automation-field > span { color:var(--ink-soft,#aeb8ca); font-size:12px; } .ds-automation-field input,.ds-automation-field textarea { min-width:0; min-height:44px; border:1px solid var(--line-strong,#364868); border-radius:10px; padding:11px 12px; color:var(--ink,#f5f7fa); background:var(--navy-900,#0e1a33); font:400 13px/1.5 var(--font-sans,\"Segoe UI\",sans-serif); caret-color:var(--teal,#35d0ba); } .ds-automation-field textarea { resize:vertical; overflow-wrap:anywhere; } .ds-automation-includes { display:flex; flex-wrap:wrap; gap:12px; margin-block:16px; } .ds-automation-includes label { display:flex; align-items:center; gap:10px; min-height:44px; font-size:13px; cursor:pointer; } .ds-automation-includes input { width:16px; height:16px; accent-color:var(--teal,#35d0ba); } .ds-automation-save { min-height:44px; border:0; border-radius:13px; padding:0 14px; color:var(--navy-950,#0b1221); background:var(--gold,#f2b84b); font:650 12px/1.3 var(--font-sans,\"Segoe UI\",sans-serif); cursor:pointer; transition:filter 140ms ease,transform 90ms ease-out; } .ds-automation-save:hover { filter:brightness(1.07); } .ds-automation-save:active { transform:scale(.98); } .ds-automation :is(button,input,textarea):focus-visible { outline:2px solid var(--teal-strong,#66e1cf); outline-offset:3px; } .ds-automation-preview { margin:24px 0 0; border-top:1px solid var(--line-strong,#364868); padding-top:22px; color:var(--ink-soft,#aeb8ca); font-size:12px; line-height:1.65; } :host-context(html[data-theme=\"light\"]) .ds-automation-editor { background:linear-gradient(135deg,rgba(248,240,255,.72),rgba(255,255,255,.48)); box-shadow:inset 0 1px rgba(255,255,255,.95); } @media (max-width:900px),(orientation:portrait) { .ds-automation-layout { grid-template-columns:minmax(0,1fr); gap:24px; } .ds-automation-ledger { border-bottom:1px solid var(--line,#27354f); padding-bottom:20px; } .ds-automation-field input,.ds-automation-field textarea { font-size:16px; } } @media (max-width:500px) { .ds-automation-editor { padding:18px 14px; } .ds-automation-includes { display:grid; gap:0; } .ds-automation-save { width:100%; } } @media (prefers-reduced-motion:reduce) { .ds-automation-save { transition:none; } .ds-automation-save:active { transform:none; } }"
+      "refersTo": "decision-canvas-action",
+      "description": "The fourth Decision Canvas view, where a governed Assistant answer becomes Decision Memory or a reviewable Email automation.",
+      "html": "<aside class=\"ds-canvas\"><div class=\"ds-canvas-tabs\" role=\"tablist\"><button type=\"button\">Plot</button><button type=\"button\">Analysis</button><button type=\"button\">Source <b>3</b></button><button class=\"is-active\" type=\"button\">Action</button></div><section class=\"ds-canvas-actions\"><h3>Move this answer into action</h3><p>Keep the evidence attached when you record the decision or schedule a refreshed answer.</p><button type=\"button\"><span class=\"ds-canvas-icon\">✓</span><span><strong>Save to Decision Memory</strong><small>Record the question, rationale, owner, and evidence trail.</small></span><em>Record</em></button><button type=\"button\"><span class=\"ds-canvas-icon\">↗</span><span><strong>Automate by Email</strong><small>Repeat this question weekly with a refreshed source snapshot.</small></span><em>Schedule</em></button><footer><strong>Synthetic workflow</strong><small>Stored only in this browser demo. No external email is sent.</small></footer></section></aside>",
+      "css": ".ds-canvas { width:min(430px,100%); border:1px solid var(--line,#dde6f1); color:var(--ink,#0b1835); background:var(--paper,#fff); font-family:\"Segoe UI\",sans-serif; } .ds-canvas-tabs { display:grid; grid-template-columns:repeat(4,1fr); border-bottom:1px solid var(--line,#dde6f1); padding:0 14px; } .ds-canvas-tabs button { position:relative; min-height:43px; border:0; color:var(--muted,#6a7895); background:transparent; font:650 10.5px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-canvas-tabs button.is-active { color:var(--blue,#1769f5); } .ds-canvas-tabs button.is-active::after { position:absolute; right:8px; bottom:-1px; left:8px; height:2px; border-radius:2px 2px 0 0; background:var(--blue,#1769f5); content:\"\"; } .ds-canvas-tabs b { display:inline-grid; min-width:18px; min-height:18px; place-items:center; border-radius:999px; color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); font-size:10px; } .ds-canvas-actions { padding:18px; background:linear-gradient(180deg,#fbfdff,#f7faff); } .ds-canvas-actions h3 { margin:0; font-size:17px; letter-spacing:-.02em; } .ds-canvas-actions > p { margin:6px 0 14px; color:var(--muted,#6a7895); font-size:10.5px; line-height:1.6; } .ds-canvas-actions > button { display:grid; width:100%; min-height:78px; grid-template-columns:35px minmax(0,1fr) auto; align-items:center; gap:10px; margin-top:9px; border:1px solid #dce6f2; border-radius:12px; padding:11px; color:var(--ink,#0b1835); background:#fff; text-align:left; cursor:pointer; transition:border-color 180ms cubic-bezier(.2,.8,.2,1),transform 180ms cubic-bezier(.2,.8,.2,1),box-shadow 180ms cubic-bezier(.2,.8,.2,1); } .ds-canvas-actions > button:hover { border-color:#91baf1; box-shadow:0 10px 24px rgba(28,73,132,.08); transform:translateY(-1px); } .ds-canvas-actions > button:focus-visible,.ds-canvas-tabs button:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; } .ds-canvas-icon { display:grid; width:35px; height:35px; place-items:center; border-radius:10px; color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); } .ds-canvas-actions strong,.ds-canvas-actions small { display:block; } .ds-canvas-actions strong { font-size:10.5px; } .ds-canvas-actions small { margin-top:4px; color:var(--muted,#6a7895); font-size:10px; line-height:1.4; } .ds-canvas-actions em { border-radius:999px; padding:5px 7px; color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); font-size:10px; font-style:normal; font-weight:700; } .ds-canvas-actions footer { display:grid; gap:3px; margin-top:12px; border-top:1px solid #e5ebf3; padding-top:12px; } .ds-canvas-actions footer strong,.ds-canvas-actions footer small { font-size:10px; } .ds-canvas-actions footer small { color:var(--muted,#6a7895); }"
+    },
+    {
+      "name": "Action Workspace Records",
+      "kind": "custom",
+      "refersTo": "action-record",
+      "description": "The review-and-management destination for Decision Memory and Email automation records created from the Assistant canvas.",
+      "html": "<section class=\"ds-action-workspace\"><article class=\"ds-action-panel\"><header><div><h3>Decision Memory</h3><p>Answers saved with their question, owner, and evidence context.</p></div><button type=\"button\">Add from AI Assistant</button></header><div class=\"ds-action-record\"><span class=\"ds-action-icon\">▤</span><div><strong>July market activity strengthened</strong><p>How did July market activity compare with June?</p><small>DEC-1014 · Lim Kim Hoong · 14 Oct 2026</small></div><em>Recorded</em></div></article><article class=\"ds-action-panel\"><header><div><h3>Email automations</h3><p>Questions refreshed on a schedule with a current source snapshot.</p></div><i>Local demo</i></header><div class=\"ds-action-record\"><span class=\"ds-action-icon is-email\">↗</span><div><strong>Weekly Market Activity Brief</strong><p>Summarise the latest market activity</p><small>Every Monday · 8:00 AM · Market Strategy</small></div><button type=\"button\">Pause</button></div></article></section>",
+      "css": ".ds-action-workspace { display:grid; width:min(900px,100%); grid-template-columns:minmax(0,1.12fr) minmax(350px,.88fr); gap:13px; color:var(--ink,#0b1835); font-family:\"Segoe UI\",sans-serif; } .ds-action-panel { border:1px solid var(--line,#dde6f1); border-radius:14px; padding:15px; background:var(--paper,#fff); box-shadow:0 7px 24px rgba(30,61,104,.075); } .ds-action-panel header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; } .ds-action-panel h3 { margin:0; font-size:13px; } .ds-action-panel header p { margin:4px 0 0; color:var(--muted,#6a7895); font-size:10px; } .ds-action-panel header button { min-height:34px; border:1px solid #bfd5fb; border-radius:9px; padding:0 11px; color:var(--blue-dark,#0c54d4); background:var(--blue-soft,#e9f2ff); font:700 10px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-action-panel header i { border-radius:999px; padding:5px 8px; color:var(--blue-dark,#0c54d4); background:var(--blue-soft,#e9f2ff); font-size:10px; font-style:normal; } .ds-action-record { display:grid; grid-template-columns:38px minmax(0,1fr) auto; align-items:center; gap:10px; border:1px solid #e1e8f1; border-radius:11px; padding:11px; background:#fff; } .ds-action-icon { display:grid; width:36px; height:36px; place-items:center; border-radius:10px; color:var(--blue,#1769f5); background:var(--blue-soft,#e9f2ff); } .ds-action-icon.is-email { color:#6f45d6; background:#f0ebff; } .ds-action-record strong,.ds-action-record p,.ds-action-record small { display:block; } .ds-action-record strong { font-size:10.5px; } .ds-action-record p { margin:4px 0; color:var(--ink-2,#2f4165); font-size:10px; line-height:1.4; } .ds-action-record small { color:var(--muted,#6a7895); font-size:10px; } .ds-action-record em { border-radius:999px; padding:4px 7px; color:#135bca; background:#e4efff; font-size:10px; font-style:normal; font-weight:700; } .ds-action-record button { min-height:34px; border:1px solid #bfd5fb; border-radius:9px; padding:0 11px; color:var(--blue-dark,#0c54d4); background:var(--blue-soft,#e9f2ff); font:700 10px/1.4 \"Segoe UI\",sans-serif; cursor:pointer; } .ds-action-workspace button:hover { border-color:#98bbf5; } .ds-action-workspace button:focus-visible { outline:3px solid rgba(23,105,245,.24); outline-offset:2px; } @media (max-width:760px) { .ds-action-workspace { grid-template-columns:1fr; } }"
     }
   ],
   "narrative": {
-    "northStar": "The Midnight Market Desk",
-    "overview": "BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into Intelligence workspaces—Today’s Brief, Research, Local Analysis, and Watchlist—and accountable workflow panels.\n\nThe fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Appearance sits directly above Settings in the rail and uses the same complete 44px tile in compact mode; the demo identity remains an unboxed avatar-and-name control. A selective liquid-glass layer gives the conversational entry point, navigation chrome, and Decision Canvas a tactile sense of depth; dense ledgers remain line-led and optically quiet. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Muted violet appears only as refracted material light. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.\n\nThe Research Map and Private Analysis Bench are established-world extensions corroborated by surface seed `7f11c161`. The built implementation remains authoritative: Research expands a question into a contestable dossier, while Local Analysis keeps sanitized uploads in a visibly separate, memory-only evidence boundary.",
+    "northStar": "The Governed Exchange Floor",
+    "overview": "BursaIQ is a light, high-density enterprise command centre framed by a deep Bursa navy navigation rail. The dark frame establishes institutional continuity and focus; the working field stays bright, calm, and information-rich so people can scan missions, evidence, agents, approvals, and reusable intelligence without entering a decorative dashboard world. The experience should feel precise and operational, never like a generic chatbot or consumer productivity app.\n\nThe system treats AI work as accountable movement. Blue marks the active task or next action, teal confirms governed or completed state, and supporting violet, amber, red, and green remain bounded to agent identity, attention, risk, and success. Restrained white panels, cool hairlines, compact typography, and modest shadows preserve density. In AI Assistant, the Decision Canvas turns an answer into four inspectable views—Plot, Analysis, Source, and Action—without separating the action from its evidence. Synthetic content, source state, approval state, and permission boundaries remain visible at the moment of decision, carrying forward BursaIQ's durable evidence and governance commitments.\n\nThe information architecture separates questions from follow-through. AI Assistant owns governed analysis and the Decision Canvas. Ask Bursa follows it as a clean internal Q&A-only lane with a welcome prompt, suggestion cards, and composer; governance stays present through the quiet Internal knowledge only, Internal sources, and Q&A only indicators rather than a separate scope strip. It does not launch tasks or expose a Decision Canvas. After the primary navigation and its divider, Action leads the governance group before Verification Centre and Connectors; Settings remains anchored in the footer. Action receives Decision Memory records and Email automations created from the Assistant canvas. The wider workforce retains its signature left-to-right lifecycle: Research → Synthesis → Verification → Exchange.",
     "keyCharacteristics": [
-      "A persistent Light / Dark appearance choice: violet midnight glass after dark and pearl-lilac glass in daylight.",
-      "An animated IQ Guide pet provides local, role-aware wayfinding without becoming a second answer engine.",
-      "The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.",
-      "Research and Local Analysis sit together under Intelligence as complementary paths for governed investigation and private evidence work.",
-      "Research moves from a liquid-glass command surface into a line-led dossier with method, findings, counterpoints, source trail, and follow-up questions.",
-      "Local Analysis pairs a private document intake with an evidence dialogue and never presents uploaded files as governed library sources.",
-      "Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.",
-      "Liquid glass for floating, interactive surfaces; fine structural rules for evidence-heavy operational content.",
-      "Prepared questions and answers remain clearly labelled when Copilot is unavailable.",
-      "Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.",
-      "Motion communicates spatial state and stops under reduced-motion preferences."
+      "A persistent deep-navy rail frames a predominantly light workspace.",
+      "A sticky white top bar unifies global search, demo provenance, creation, notifications, apps, and identity.",
+      "Dense white panels use cool borders and compact rows instead of oversized floating cards.",
+      "Blue drives action and current state; teal confirms completed or governed state.",
+      "Manrope gives brand and major headings a distinctive voice; Segoe UI and the system stack carry operational detail.",
+      "Home behaves as an AI-workforce command centre, not a chat landing page.",
+      "AI Assistant pairs governed answers with Plot, Analysis, Source, and Action canvas views.",
+      "Ask Bursa follows AI Assistant as a clean internal Q&A lane with welcome suggestions, a focused composer, and no Decision Canvas.",
+      "Action leads the post-divider governance group before Verification Centre and Connectors; Settings remains in the footer.",
+      "The mission lifecycle always reads left to right: Research, Synthesis, Verification, Exchange.",
+      "Responsive layouts preserve task order by collapsing rails and grids rather than hiding governance context.",
+      "Synthetic demo state, evidence, approvals, and access boundaries are labelled honestly.",
+      "Motion is brief, directional, and removed when reduced motion is requested."
     ],
     "rules": [
       {
-        "name": "The Amber Acts, Teal Explains Rule",
-        "body": "Amber is the scarce action and emphasis color; teal communicates analytical state, navigation intent, focus, and healthy operation.",
+        "name": "The Navy Frames, Paper Works Rule",
+        "body": "Persistent navigation may be deeply dark; the primary working field stays light, cool, and legible.",
         "section": "colors"
       },
       {
-        "name": "The Glass Floats, Evidence Stays Still Rule",
-        "body": "Use refracted glass for navigation, the composer, chat exchanges, dialogs, and the Decision Canvas. Keep dense ledgers, tables, and source metadata line-led and substantially opaque.",
+        "name": "The Blue Moves, Teal Confirms Rule",
+        "body": "Use blue for the present action or current stage and teal for completed, governed, or healthy state.",
         "section": "colors"
       },
       {
-        "name": "The Workspace Leads, Work Compresses Rule",
-        "body": "The assistant opens with one deliberate invitation; intelligence and workflow pages switch to compact operational hierarchy.",
+        "name": "The Status Has Two Signals Rule",
+        "body": "Pair every semantic color with text, an icon, a position, or a shape; color never carries status alone.",
+        "section": "colors"
+      },
+      {
+        "name": "The Manrope Declares, Segoe Operates Rule",
+        "body": "Use Manrope for identity and high-level orientation; use the system body stack for the dense work itself.",
         "section": "typography"
       },
       {
-        "name": "The Compact Copy Floor Rule",
-        "body": "Any compact text that explains a signal, source, action, owner, boundary, or state stays at least 10–11px and never relies on size alone to carry meaning.",
+        "name": "The Ten-Pixel Floor Rule",
+        "body": "Operational labels and metadata do not fall below 10px, and small type must retain contrast, spacing, and a clear role.",
         "section": "typography"
       },
       {
-        "name": "The Weight Follows Area Rule",
-        "body": "Large glass surfaces receive stronger blur and deeper shadows; compact controls receive lighter material and almost no independent elevation.",
+        "name": "The Work Before Chrome Rule",
+        "body": "Responsive collapse may shorten labels and move secondary rails, but it must preserve the active work, provenance, approvals, and the mission's ordered handoff.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Until It Floats Rule",
+        "body": "Default work surfaces rely on tone and hairlines; only transient, anchored, or signature surfaces receive noticeable shadow.",
         "section": "elevation"
       },
       {
-        "name": "The Private Means Ephemeral Rule",
-        "body": "Never describe Local Analysis uploads as indexed, retained, governed-library content, or automatically shared. Their implemented boundary is memory-only, session-scoped, and local unless the per-question Copilot option is enabled.",
+        "name": "The Radius Follows Scope Rule",
+        "body": "Small controls use small corners, panels use medium corners, and only statuses or identities become fully round.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Answer Carries Its Evidence Rule",
+        "body": "Decision memories and scheduled follow-ups are created only from a governed AI Assistant answer, so question, source, and rationale stay attached.",
+        "section": "components"
+      },
+      {
+        "name": "The Q&A Stays Q&A Rule",
+        "body": "Ask Bursa answers permitted internal questions directly and never inherits the Decision Canvas or Action-creation affordances.",
         "section": "components"
       }
     ],
     "dos": [
-      "Do use amber for scarce actions, fallback provenance, and the value that deserves immediate attention.",
-      "Do use teal for analysis, focus, healthy status, and interactive intent.",
-      "Do keep Decision Canvas beside Verify and Create PDF in every chat answer, and restore the full conversation width when the canvas closes.",
-      "Do keep working controls at least 44px and support reduced motion and increased contrast.",
-      "Do keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.",
-      "Do label synthetic, predefined, and restricted content at the point of use.",
-      "Do preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.",
-      "Do preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.",
-      "Do keep IQ Guide answers about navigation, panel purpose, workflow and access boundaries; route substantive Bursa questions to BursaIQ Assistant.",
-      "Do reserve the gold Research action for starting or progressing the investigation while teal continues to identify sources, focus, and analytical state.",
-      "Do keep the Local Analysis memory-only boundary and per-question Copilot opt-in adjacent to the question form."
+      "Do keep the deep-navy rail as the persistent institutional frame and the main workspace light.",
+      "Do use blue for primary action and current state, then teal for completed or governed state.",
+      "Do preserve the exact Research → Synthesis → Verification → Exchange order wherever mission progress appears.",
+      "Do keep panels dense, white, and line-led, with low shadow and concise 10–13px working type.",
+      "Do pair semantic color with labels, icons, stage order, or shape.",
+      "Do label synthetic data, simulated actions, evidence state, permissions, and human approvals at the point of use.",
+      "Do keep the home surface focused on work initiation, active missions, approvals, and reusable intelligence.",
+      "Do keep Ask Bursa immediately after AI Assistant as a clean internal Q&A lane with welcome suggestions, a focused composer, and unobtrusive Internal knowledge only, Internal sources, and Q&A only indicators.",
+      "Do preserve the Decision Canvas order Plot, Analysis, Source, Action and create Action records only from its Action tab.",
+      "Do keep Action immediately after the divider and before Verification Centre and Connectors; keep Settings in the footer and disclose that Decision Memory and Email automation records are browser-session demo data.",
+      "Do retain visible keyboard focus, reduced-motion behavior, responsive reflow, and horizontal scrolling for dense governed data."
     ],
     "donts": [
-      "Don't apply glass indiscriminately to tables, ledgers, or every information group; material must communicate a floating or interactive plane.",
-      "Don't turn every information group into a floating card; use lines and tonal layers first.",
-      "Don't use amber and teal interchangeably or flood either accent across passive surfaces.",
-      "Don't place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.",
-      "Don't shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.",
-      "Don't hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.",
-      "Don't animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.",
-      "Don't make Light mode a flat white recolour; retain refracted violet, white rims, layered translucency, and cool structural shadows.",
-      "Don't let the pet block primary work, bypass role gates, imitate Copilot Studio, or keep moving when reduced motion is requested.",
-      "Don't imply that Local Analysis uploads persist, join the governed source library, or leave the local service without explicit question-level consent."
+      "Don't revert the workforce shell to an all-dark, liquid-glass, or card-glow aesthetic.",
+      "Don't use amber as the primary action color; amber is reserved for attention and pending review.",
+      "Don't turn BursaIQ into a generic chat landing page or a sparse marketing site.",
+      "Don't split the mission lifecycle into unrelated tiles or reorder its four stages.",
+      "Don't add a Decision Canvas, agent delegation, or Action creation to Ask Bursa; it is Q&A only.",
+      "Don't restore Today's Brief, Automation Studio, Collaborative Rooms, or Projects & Workspace to the sidebar without a new information-architecture decision.",
+      "Don't let Action become an independent automation builder or create Decision Memory without an Assistant answer and evidence trail.",
+      "Don't float every information group; repeated work belongs in rows, tables, and restrained panels.",
+      "Don't over-round controls, overuse pills, or apply overlay shadows to ordinary content cards.",
+      "Don't shrink operational labels below the established 10px floor or hide governance context to make a mobile layout look cleaner.",
+      "Don't imply live production behavior, external delivery, or unrestricted access when the implementation is a synthetic governed demo."
     ]
   }
 }

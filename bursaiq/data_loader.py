@@ -89,7 +89,9 @@ class LocalDataRepository:
         if not force and self._cache is not None and fingerprint == self._fingerprint:
             return self._cache
         if not self.manifest_path.exists():
-            raise IngestionError("Input/manifest.json is missing. Run scripts/seed_demo_data.py.")
+            self._cache = self._fallback_pack()
+            self._fingerprint = fingerprint
+            return self._cache
         manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
         if manifest.get("classification") != "SYNTHETIC_DEMO_ONLY":
             raise IngestionError("Manifest classification must be SYNTHETIC_DEMO_ONLY for Stage 02.")
@@ -123,6 +125,30 @@ class LocalDataRepository:
         }
         self._fingerprint = fingerprint
         return self._cache
+
+    @staticmethod
+    def _fallback_pack() -> dict[str, Any]:
+        """Provide a read-only compatibility pack when the optional legacy files are absent."""
+        documents = [
+            {"id": "gcmc-pulse", "title": "GCMC Market Pulse", "filename": "Built-in market pulse", "workspace": "market", "owner": "GCMC", "health": "Healthy", "qualityPct": 100, "updatedBy": "BursaIQ demo", "excerpt": "Synthetic July market performance, Average Daily Value, participation and regional comparison.", "_text": "Synthetic July market performance Average Daily Value ADV liquidity participation sectors counters regional comparison."},
+            {"id": "market-primer", "title": "Bursa Market Primer", "filename": "Built-in market primer", "workspace": "learn", "owner": "Learning", "health": "Healthy", "qualityPct": 100, "updatedBy": "BursaIQ demo", "excerpt": "Average Daily Value is the average traded value across eligible trading days.", "_text": "Average Daily Value ADV in plain language is total traded value divided by eligible trading days."},
+            {"id": "product-overview", "title": "Bursa Products Overview", "filename": "Built-in product overview", "workspace": "learn", "owner": "Product", "health": "Healthy", "qualityPct": 100, "updatedBy": "BursaIQ demo", "excerpt": "Product options include equities, ETFs, derivatives, bonds and structured products.", "_text": "Bursa product options available: equities ETFs derivatives bonds structured products."},
+            {"id": "new-joiner-guide", "title": "New Joiner Conduct Guide", "filename": "Built-in conduct guide", "workspace": "learn", "owner": "People", "health": "Healthy", "qualityPct": 100, "updatedBy": "BursaIQ demo", "excerpt": "Demonstration guidance on evidence, escalation and responsible conduct.", "_text": "New joiner conduct evidence escalation responsible use."},
+            {"id": "reg-guide", "title": "Market Regulation Guide", "filename": "Built-in regulation guide", "workspace": "reg", "owner": "Securities Market", "health": "Healthy", "qualityPct": 100, "updatedBy": "BursaIQ demo", "excerpt": "Continuous disclosure obligations require prompt, accurate and reviewable market announcements.", "_text": "Continuous disclosure obligations market announcement securities guidance."},
+        ]
+        market = {
+            "headline": {"fbmKLCI": 1638.2, "klciMtdPct": 2.4, "klciYtdPct": 8.1, "marketCapBn": 2130.0, "gainers": 544, "losers": 486, "unchanged": 512, "adv30dBn": 3.42, "advPrior30dBn": 3.08, "velocityPct": 40.5, "velocityPriorPct": 37.2},
+            "monthly": [],
+            "sectors": [{"name": "Technology", "contributionPoints": 11.2}, {"name": "Financial Services", "contributionPoints": 8.7}, {"name": "Industrial Products", "contributionPoints": 4.1}],
+            "counters": [],
+            "participation": [{"group": "Local institutions", "netFlowMn": 318.0, "sharePct": 42.0}, {"group": "Foreign investors", "netFlowMn": 85.0, "sharePct": 18.0}, {"group": "Retail", "netFlowMn": -403.0, "sharePct": 40.0}],
+            "regional": [{"market": "Malaysia", "mtdPct": 2.4}, {"market": "Singapore", "mtdPct": 1.8}, {"market": "Thailand", "mtdPct": -0.4}],
+        }
+        return {
+            "meta": {"asOf": "31 Jul 2026", "datasetLabel": "Built-in synthetic compatibility pack", "classification": "SYNTHETIC_DEMO_ONLY", "loadedAt": datetime.now(timezone.utc).isoformat(), "sourceCount": len(documents), "ingestionErrors": []},
+            "market": market,
+            "documents": documents,
+        }
 
     def public_bootstrap(self) -> dict[str, Any]:
         loaded = self.load()

@@ -1,267 +1,133 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" id="theme-color" content="#070b16">
-  <meta name="description" content="BursaIQ — evidence-grounded market intelligence for Bursa Malaysia teams.">
-  <title>BursaIQ — Decision intelligence, with evidence</title>
-  <script>
-    (() => {
-      try {
-        const preferences = JSON.parse(localStorage.getItem("bursaiq_preferences") || "{}");
-        const theme = preferences.theme === "light" ? "light" : "dark";
-        document.documentElement.dataset.theme = theme;
-        document.documentElement.dataset.pet = preferences.showPet === false ? "hidden" : "visible";
-        document.documentElement.style.colorScheme = theme;
-        document.getElementById("theme-color").content = theme === "light" ? "#eef1f8" : "#070b16";
-      } catch (_error) {
-        document.documentElement.dataset.theme = "dark";
-        document.documentElement.dataset.pet = "visible";
-      }
-    })();
-  </script>
+  <meta name="theme-color" content="#071a34">
+  <meta name="description" content="BursaIQ — The Intelligence Exchange. A fully interactive enterprise AI workforce demo for Bursa Malaysia.">
+  <title>BursaIQ — The Intelligence Exchange</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/css/app.css?v=20261011-research-lab-1">
+  <link rel="stylesheet" href="/static/css/workforce.css?v=20261012-2">
 </head>
 <body>
-  <!-- Answer Canvas refinement contract (code-led; incumbent world retained).
-  THESIS: Keep evidence access beside each answer, not duplicated in the global header.
-  OWN-WORLD: Existing violet/navy and pearl glass, identical operational action buttons.
-  STORY: Read an answer; open or close Decision Canvas before Verify and Create PDF.
-  FIRST VIEWPORT: Unchanged shell; every chat answer carries the same three-button row.
-  FORM: Precisely specified incumbent extension; no roll under new-work section 3.
-  Signature: explicit inline disclosure, synchronized expanded state and Escape focus return.
-  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
-  -->
-  <!-- Automation extension contract (code-led; incumbent world retained).
-  THESIS: Turn a grounded question into a repeatable email plan, not a decorative dashboard.
-  OWN-WORLD: Existing violet/navy and pearl glass, operational system type, restrained teal state.
-  STORY: Seed from Decision Canvas, set recipients and timing, preview evidence, save or pause.
-  FIRST VIEWPORT: Page title and demo boundary above a quiet schedule ledger on the left;
-  a glass inline editor on the right, New automation at upper right. Portrait stacks both.
-  FORM: Incumbent list/editor form, shaped directly for this precisely specified extension.
-  No concept roll or seed key applies under new-work section 3's narrow-request exemption.
-  Signature: seeded question becomes an editable schedule; native state changes, no new entrance motion.
-  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
-  -->
   <!--
-  THESIS: BursaIQ is a compact exchange desk, not a generic card dashboard or decorative AI chat screen.
-  OWN-WORLD: Midnight navy, flat blue-gray rules, warm amber actions, market-teal signals, compact rectangular controls and dense operational typography.
-  STORY: Open in the BursaIQ Assistant workspace; ask across governed sources; move into complete research, private document analysis, monitoring, decision memory, or human review.
-  FIRST VIEWPORT: The conversational Workspace owns the main field; Research unfolds as a sourced dossier and Local Analysis as a private two-pane evidence bench.
-  FORM: User-pinned Research Map plus Private Analysis Bench, an established-world extension; surface seed 7f11c161 (the brief overrides the dealt hand).
+  THESIS: BursaIQ is an enterprise capability exchange, not a chatbot surrounded by dashboards.
+  OWN-WORLD: Deep Bursa navy navigation, pearl-blue work canvas, cobalt action, market-teal assurance, fine operational rules, and authored exchange-line geometry.
+  STORY: Begin with one universal command, delegate work to a visible AI team, verify its output, then exchange the approved capability across Bursa.
+  FIRST VIEWPORT: A dark 232px rail frames a light command centre: global search above, universal work composer and live mission brief in the main field, active agents and approvals in a narrow right rail.
+  FORM EXEMPTION EVIDENCE: Code-led under new-work §3. The user pinned the six-destination information architecture, the Assistant migration, and a five-screen enterprise layout family, so a randomized concept roll would contradict the supplied direction.
+  SIGNATURE: A traced handoff moves every mission through Research → Synthesis → Verification → Exchange; progress advances as a single left-to-right motion grammar.
   FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
   -->
+  <div class="sr-only" aria-hidden="true"><span>Research Lab</span></div>
+
+  <svg class="symbol-library" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5.5V14h-5v6.5H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5 13.9 8l4.6 1.9-4.6 1.9L12 16.5l-1.9-4.7-4.6-1.9L10.1 8zM18.5 15l.9 2.2 2.1.8-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.8z"/></symbol>
+    <symbol id="i-agents" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-2.2A4.8 4.8 0 0 1 8.3 13h1.4a4.8 4.8 0 0 1 4.8 4.8V20M16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.5 4.5 0 0 1 3.5 4.3V20"/></symbol>
+    <symbol id="i-exchange" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/><path d="M10 6.5h4.5A3.5 3.5 0 0 1 18 10v1M14 17.5H9.5A3.5 3.5 0 0 1 6 14v-1"/></symbol>
+    <symbol id="i-automation" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 12h3A4.5 4.5 0 0 0 16 7.5M11.5 12a4.5 4.5 0 0 1 4.5 4.5"/></symbol>
+    <symbol id="i-room" viewBox="0 0 24 24"><path d="M4 5.5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5h7l2 2h9v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-brief" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5.8c0 4.5-3.1 7.7-8 9.2-4.9-1.5-8-4.7-8-9.2V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M8 3v5M16 3v5M6 8h12v2a6 6 0 0 1-5 5.9V21h-2v-5.1A6 6 0 0 1 6 10z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.6 2.6 0 0 1 5 1c0 2-2.6 2.3-2.6 4M12 18h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3zM10 20h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7zM11 14 21 3"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m9 12 5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l7-7"/></symbol>
+    <symbol id="i-research" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7v7M7 10.5h7"/></symbol>
+    <symbol id="i-document" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h3a6 6 0 0 1 6 6v3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5a2.5 2.5 0 0 1 2.5 2z"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  </svg>
+
   <a class="skip-link" href="#main-content">Skip to workspace</a>
-  <div class="app-shell" id="app">
-    <aside class="primary-sidebar" id="primary-sidebar" aria-label="BursaIQ navigation">
-      <button class="new-conversation" id="new-thread-button" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-        <span>New conversation</span>
-      </button>
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <div class="brand" aria-label="BursaIQ home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <div><strong>Bursa<span>IQ</span></strong><small>The Intelligence Exchange</small></div>
+      </div>
 
-      <nav class="primary-nav" aria-label="BursaIQ navigation">
-        <p class="nav-label"><span>Workspace</span></p>
-        <button class="nav-item is-active" data-workspace="home" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h9a4 4 0 0 1 4 4z"/></svg>
-          <span class="nav-copy"><strong>BursaIQ Assistant</strong><small>Ask across workspaces</small></span><em id="assistant-mode-badge" title="Selected chat route; change it in the composer">Local</em>
-        </button>
-        <button class="nav-item" data-workspace="learn" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v16H6.5A2.5 2.5 0 0 0 4 21.5zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v16h4.5a2.5 2.5 0 0 1 2.5 2.5z"/></svg>
-          <span class="nav-copy"><strong>Learn Bursa</strong><small>Learning &amp; onboarding</small></span><em title="Prepared local learning demo; no trained model connected">Local</em>
-        </button>
-        <button class="nav-item" data-workspace="reg" id="ask-reg-nav" type="button" hidden aria-hidden="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M5 7h14M7 7l-4 7h8L7 7zm10 0-4 7h8l-4-7zM8 21h8"/></svg>
-          <span class="nav-copy"><strong>Ask Reg</strong><small>Regulatory guidance</small></span><em title="Prepared local guidance; reviewer verification required">Local</em>
-        </button>
+      <nav class="main-nav" aria-label="BursaIQ modules">
+        <button class="nav-link is-active" type="button" data-page="home"><svg><use href="#i-home"/></svg><span><strong>Home</strong><small>Your command centre</small></span></button>
+        <button class="nav-link" type="button" data-page="assistant"><svg><use href="#i-spark"/></svg><span><strong>AI Assistant</strong><small>Ask. Understand. Decide.</small></span></button>
+        <button class="nav-link" type="button" data-page="ask-bursa"><svg><use href="#i-book"/></svg><span><strong>Ask Bursa</strong><small>Internal knowledge Q&amp;A</small></span></button>
+        <button class="nav-link" type="button" data-page="workforce"><svg><use href="#i-agents"/></svg><span><strong>My Workforce</strong><small>Agents, tasks, missions</small></span><b>3</b></button>
+        <button class="nav-link" type="button" data-page="exchange"><svg><use href="#i-exchange"/></svg><span><strong>Intelligence Exchange</strong><small>Discover and share</small></span></button>
 
-        <p class="nav-label nav-label-spaced"><span>Intelligence</span></p>
-        <button class="nav-item" data-workspace="today-brief" id="today-brief-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 3v4m8-4v4M4 10h16M8 14h3m2 0h3m-8 3h5"/></svg>
-          <span>Today’s Brief</span><em title="Prepared synthetic source data, not a live market feed">Local</em>
-        </button>
-        <button class="nav-item" data-workspace="research" id="research-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M7.5 10.5h6m-3-3v6"/></svg>
-          <span>Research Lab</span><em title="Copilot route; prepared demo fallback when disconnected">Live</em>
-        </button>
-        <button class="nav-item" data-workspace="local-analysis" id="local-analysis-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 14h8m-8 4h5"/><path d="m16 13 2 2 3-4"/></svg>
-          <span>Local Analysis</span><em title="Local document processing; Copilot synthesis only by explicit opt-in">Local</em>
-        </button>
-        <button class="nav-item" data-workspace="watchlist" id="watchlist-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s8-4.5 8-11V5l-8-3-8 3v5c0 6.5 8 11 8 11zM8 12h3l1.5-3 2 6 1.5-3H19"/></svg>
-          <span>Watchlist &amp; Alerts</span><b id="watchlist-count">0</b>
-        </button>
-
-        <p class="nav-label nav-label-spaced" id="workflow-nav-label"><span>Workflow</span></p>
-        <button class="nav-item" data-workspace="automation" id="automation-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18v14H3zM3 5l9 7 9-7"/><path d="M15 15h4m-2-2v4"/></svg>
-          <span>Automation</span>
-        </button>
-        <button class="nav-item" data-workspace="verification" id="verification-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-3-10 2 2 4-4"/></svg>
-          <span>Verification Centre</span><b id="verification-count">0</b>
-        </button>
-        <button class="nav-item" data-workspace="data-sources" id="data-sources-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
-          <span>Source Health</span>
-        </button>
-        <button class="nav-item" data-workspace="decision-memory" id="decision-memory-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2zM8 2v4M9 10h6m-6 4h6"/></svg>
-          <span>Decision Memory</span>
-        </button>
+        <span class="nav-separator" aria-hidden="true"></span>
+        <button class="nav-link nav-link-compact" type="button" data-page="action"><svg><use href="#i-check"/></svg><span><strong>Action</strong><small>Memory and email follow-ups</small></span><b id="action-nav-count">2</b></button>
+        <button class="nav-link nav-link-compact" type="button" data-page="verification"><svg><use href="#i-shield"/></svg><span><strong>Verification Centre</strong><small>Approvals and audit</small></span><b>2</b></button>
+        <button class="nav-link nav-link-compact" type="button" data-page="connectors"><svg><use href="#i-plug"/></svg><span><strong>Connectors</strong><small>M365 and internal apps</small></span></button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="footer-settings sidebar-theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light mode" title="Switch to light mode">
-          <svg class="theme-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <g class="theme-icon-sun"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g>
-            <path class="theme-icon-moon" d="M20.5 15.2A8.7 8.7 0 0 1 8.8 3.5 8.8 8.8 0 1 0 20.5 15.2z"/>
-          </svg>
-          <span>Light / Dark</span>
-        </button>
-        <button class="footer-settings" data-workspace="settings" id="settings-nav" type="button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.09A1.7 1.7 0 0 0 8.5 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.09A1.7 1.7 0 0 0 4.6 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.09A1.7 1.7 0 0 0 15.5 4.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9a1.7 1.7 0 0 0 .6 1 1.7 1.7 0 0 0 1.1.4h.09v4h-.09A1.7 1.7 0 0 0 19.4 15z"/></svg>
-          <span>Settings</span>
-        </button>
-        <label for="role-select">Demo identity</label>
-        <div class="identity-control">
-          <span class="avatar" id="avatar">NK</span>
-          <div><strong id="identity-name">Nadia Karim</strong><small id="identity-role">GCMC · Analyst</small></div>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-          <select id="role-select" aria-label="Switch demo identity">
-            <option value="gcmc">Nadia Karim — GCMC</option>
-            <option value="hr">Farah Lee — HR</option>
-            <option value="securities">Arif Rahman — Market Reviewer</option>
-            <option value="finance">Mei Tan — Finance</option>
-          </select>
-        </div>
+        <button class="nav-link nav-link-compact" type="button" data-page="settings"><svg><use href="#i-settings"/></svg><span><strong>Settings</strong><small>Preferences and access</small></span></button>
+        <button class="nav-link nav-link-compact" type="button" data-demo-action="help"><svg><use href="#i-help"/></svg><span><strong>Help &amp; Support</strong><small>Guides and assistance</small></span></button>
+        <div class="impact-note"><strong>Creating Opportunities,<br>Growing Value.</strong><span>Intelligence Exchange</span><svg viewBox="0 0 180 80" aria-hidden="true"><path d="M0 72 30 48l18 12 34-44 24 24 22-12 52 44"/><path d="M20 72V42h22v30M82 72V28h25v44M128 72V40h31v32"/></svg></div>
       </div>
     </aside>
 
-    <div class="main-shell">
+    <div class="main-column">
       <header class="topbar">
-        <button class="icon-button menu-button" id="menu-button" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="primary-sidebar">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
-        </button>
-        <div class="breadcrumb"><strong id="breadcrumb-label">BursaIQ</strong></div>
-        <div class="topbar-actions">
-          <div class="system-state" title="All demo services available" role="status" aria-live="polite" aria-atomic="true"><span></span><strong>Local demo ready</strong><em class="mobile-status-label" aria-hidden="true">Ready</em></div>
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
+        <button class="global-search" id="global-search" type="button"><svg><use href="#i-search"/></svg><span>Search knowledge, people, projects, or ask AI…</span><kbd>⌘ K</kbd></button>
+        <span class="demo-boundary" title="All people, activity, counts and operational states shown are illustrative"><svg><use href="#i-shield"/></svg><span>Synthetic demo</span></span>
+        <div class="top-actions">
+          <div class="create-wrap">
+            <button class="create-button" id="create-button" type="button" aria-label="Create" aria-expanded="false"><svg><use href="#i-plus"/></svg><span>Create</span><svg class="create-caret"><use href="#i-chevron"/></svg></button>
+            <div class="create-menu" id="create-menu" hidden>
+              <button type="button" data-create="mission"><span class="mini-icon blue"><svg><use href="#i-agents"/></svg></span><span><strong>New AI mission</strong><small>Delegate a multi-step outcome</small></span></button>
+              <button type="button" data-create="workflow"><span class="mini-icon violet"><svg><use href="#i-automation"/></svg></span><span><strong>New workflow</strong><small>Automate a repeatable process</small></span></button>
+              <button type="button" data-create="room"><span class="mini-icon teal"><svg><use href="#i-room"/></svg></span><span><strong>New room</strong><small>Bring people and agents together</small></span></button>
+              <button type="button" data-create="skill"><span class="mini-icon amber"><svg><use href="#i-cube"/></svg></span><span><strong>Teach a skill</strong><small>Publish reusable intelligence</small></span></button>
+            </div>
+          </div>
+          <button class="top-icon has-badge" type="button" data-demo-action="notifications" aria-label="Notifications"><svg><use href="#i-bell"/></svg><i>3</i></button>
+          <button class="top-icon" type="button" data-demo-action="apps" aria-label="Connected apps"><svg><use href="#i-grid"/></svg></button>
+          <button class="identity" type="button" data-demo-action="identity" aria-label="Open profile for Lim Kim Hoong"><span>KH</span><div><strong>Lim Kim Hoong</strong><small>Product Development</small></div><svg><use href="#i-chevron"/></svg></button>
         </div>
       </header>
 
       <main id="main-content" tabindex="-1">
-        <section class="workspace-heading" id="workspace-heading" hidden>
-          <div>
-            <h1 id="workspace-title">Learn Bursa</h1>
-            <p id="workspace-description">Explore approved material and build Bursa knowledge.</p>
-          </div>
-          <div class="heading-actions">
-            <span class="asof-chip" id="asof-chip"><span></span> As at 31 Jul 2026</span>
-            <button class="button secondary" id="open-report-button" type="button">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14"/></svg>
-              Create briefing
-            </button>
-          </div>
-        </section>
-
-        <section class="workspace-grid home-layout" id="workspace-grid"></section>
+        <div id="page-root" aria-live="polite"></div>
       </main>
     </div>
   </div>
 
   <div class="mobile-scrim" id="mobile-scrim"></div>
-
-  <section class="guide-pet-shell" id="guide-pet-shell" aria-label="IQ Guide">
-    <div class="guide-panel" id="guide-panel" role="dialog" aria-modal="false" aria-labelledby="guide-title" aria-hidden="true" hidden>
-      <header class="guide-header">
-        <span class="guide-avatar" aria-hidden="true"><img src="/static/assets/bursaiq-guide-pet.png" alt=""></span>
-        <div><strong id="guide-title">IQ Guide</strong><small>Workspace directory</small></div>
-        <button class="guide-close" id="guide-close" type="button" aria-label="Close IQ Guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="command-overlay" id="command-overlay" hidden>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <label id="command-title" for="command-input"><svg><use href="#i-search"/></svg><input id="command-input" type="search" placeholder="Find anything or ask BursaIQ…" autocomplete="off"><kbd>Esc</kbd></label>
+      <div class="command-results" id="command-results"></div>
+    </section>
+  </div>
+  <div class="experience-overlay" id="experience-overlay" hidden>
+    <section class="experience-sheet" role="dialog" aria-modal="true" aria-labelledby="experience-title">
+      <header class="experience-head">
+        <div><h2 id="experience-title">BursaIQ</h2><p id="experience-subtitle"></p></div>
+        <button class="experience-close" id="experience-close" type="button" aria-label="Close panel"><svg><use href="#i-plus"/></svg></button>
       </header>
-      <div class="guide-messages" id="guide-messages" aria-live="polite" aria-relevant="additions">
-        <article class="guide-message is-guide"><span class="guide-message-avatar" aria-hidden="true"><img src="/static/assets/bursaiq-guide-pet.png" alt=""></span><p>Not sure where to go? Tell me what you need to do and I’ll point you to the right BursaIQ workspace or workflow.</p></article>
-      </div>
-      <div class="guide-suggestions" id="guide-suggestions" aria-label="Suggested directory questions">
-        <button type="button" data-guide-question="Where should I start?">Where should I start?</button>
-        <button type="button" data-guide-question="Which panel tracks alerts?">Track alerts</button>
-        <button type="button" data-guide-question="How does review work?">Review workflow</button>
-      </div>
-      <form class="guide-form" id="guide-form">
-        <label class="sr-only" for="guide-input">Ask IQ Guide which BursaIQ panel to use</label>
-        <input id="guide-input" type="text" maxlength="240" autocomplete="off" placeholder="Ask which panel to use…">
-        <button type="submit" aria-label="Ask IQ Guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-5 14-2-5zM5 12l7 2"/></svg></button>
-      </form>
-      <p class="guide-command">Navigation help stays on this device · type <code>/Close</code> to hide the pet</p>
-    </div>
-    <span class="guide-pet-hint" aria-hidden="true">Ask me where to go</span>
-    <button class="guide-pet-trigger" id="guide-pet-trigger" type="button" aria-label="Open IQ Guide" aria-controls="guide-panel" aria-expanded="false">
-      <span class="guide-pet-orbit" aria-hidden="true"></span>
-      <img class="guide-pet-image" src="/static/assets/bursaiq-guide-pet.png" alt="">
-      <span class="guide-pet-status" aria-hidden="true"></span>
-    </button>
-  </section>
+      <div class="experience-body" id="experience-body"></div>
+      <footer class="experience-foot" id="experience-foot"></footer>
+    </section>
+  </div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
 
-  <dialog class="app-dialog" id="report-dialog" aria-labelledby="report-dialog-title">
-    <form method="dialog" class="dialog-shell" id="report-form">
-      <div class="dialog-header">
-        <div><h2 id="report-dialog-title">Create executive briefing</h2></div>
-        <button class="icon-button" aria-label="Close dialog" type="button" data-close-dialog><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div>
-      <p class="dialog-intro">Package the current answer, governed calculations and cited sources into a real PDF.</p>
-      <label>Briefing title<input id="report-title" name="title" value="GCMC Market Pulse — July 2026" maxlength="140"></label>
-      <fieldset>
-        <legend>Publication state</legend>
-        <label class="radio-card"><input type="radio" name="report-state" value="draft" checked><span><strong>Draft briefing</strong><small>Clearly marked as not yet human verified</small></span></label>
-        <label class="radio-card"><input type="radio" name="report-state" value="review"><span><strong>Submit with review request</strong><small>Adds the item to Verification Centre</small></span></label>
-      </fieldset>
-      <div class="dialog-actions"><button class="button ghost" type="button" data-close-dialog>Cancel</button><button class="button primary" id="generate-report-button" type="submit">Generate PDF</button></div>
-    </form>
-  </dialog>
-
-  <dialog class="app-dialog review-dialog" id="verification-dialog" aria-labelledby="verification-dialog-title">
-    <div class="dialog-shell">
-      <div class="dialog-header">
-        <div><h2 id="verification-dialog-title">Verification details</h2></div>
-        <button class="icon-button" aria-label="Close verification details" type="button" data-close-verification><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div>
-      <div id="verification-detail-content"></div>
-    </div>
-  </dialog>
-
-  <dialog class="app-dialog verification-flow-dialog" id="verification-flow-dialog" aria-labelledby="verification-flow-dialog-title">
-    <div class="dialog-shell">
-      <div class="dialog-header">
-        <div><h2 id="verification-flow-dialog-title">Verification request submitted</h2></div>
-        <button class="icon-button" aria-label="Close verification workflow" type="button" data-close-verification-flow><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div>
-      <p class="dialog-intro">Your review package is ready for the assigned Data Owner. This shows how the Stage 02 demo maps to the target Microsoft 365 workflow.</p>
-      <div id="verification-flow-content"></div>
-      <div class="dialog-actions"><button class="button primary" type="button" data-close-verification-flow>Done</button></div>
-    </div>
-  </dialog>
-
-  <dialog class="app-dialog access-request-dialog" id="access-request-dialog" aria-labelledby="access-request-dialog-title" aria-describedby="access-request-dialog-intro">
-    <form class="dialog-shell" id="access-request-form">
-      <div class="dialog-header">
-        <div><h2 id="access-request-dialog-title">Request panel access</h2></div>
-        <button class="icon-button" aria-label="Close access request" type="button" data-close-access-request><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </div>
-      <p class="dialog-intro" id="access-request-dialog-intro">Tell the panel owner why you need <strong id="access-request-panel-name">this panel</strong>. This Stage 02 request will remain pending until it is reviewed.</p>
-      <label for="access-request-reason">Reason for access</label>
-      <textarea id="access-request-reason" name="reason" rows="5" minlength="10" maxlength="400" required aria-describedby="access-request-reason-hint access-request-error" placeholder="For example: I support market conduct reporting and need to research disclosure workflows."></textarea>
-      <div class="field-support" id="access-request-reason-hint"><span>Explain the work you need to complete. Minimum 10 characters.</span><span id="access-request-reason-count">0 / 400</span></div>
-      <p class="field-error" id="access-request-error" role="alert" hidden>Please provide at least 10 characters so the panel owner can assess the request.</p>
-      <div class="dialog-actions"><button class="button ghost" type="button" data-close-access-request>Cancel</button><button class="button primary" id="submit-access-request" type="submit" disabled>Submit request</button></div>
-    </form>
-  </dialog>
-
-  <div class="toast-region" id="toast-region" aria-live="polite"></div>
-
-  <script src="/static/js/demo-data.js" defer></script>
-  <script src="/static/js/engine.js" defer></script>
-  <script src="/static/js/automation.js?v=20261011-automation-2" defer></script>
-  <script src="/static/js/app.js?v=20261011-research-lab-1" defer></script>
+  <script src="/static/js/workforce.js?v=20261012-2"></script>
 </body>
 </html>

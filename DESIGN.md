@@ -1,331 +1,367 @@
 ---
 name: BursaIQ
-description: A two-mode liquid-glass exchange desk for governed answers, complete research, private document analysis, and accountable action.
+description: A governed enterprise AI-workforce command centre for trusted research, orchestration, verification, and exchange.
 colors:
-  ink: "#f5f7fa"
-  ink-soft: "#aeb8ca"
-  ink-faint: "#738099"
-  midnight-ground: "#0b1221"
-  decision-canvas: "#0e1a33"
-  panel: "#141f38"
-  active-panel: "#1b294a"
-  hairline: "#27354f"
-  market-teal: "#35d0ba"
-  market-teal-bright: "#66e1cf"
-  exchange-gold: "#f2b84b"
-  exchange-gold-soft: "#f7d78f"
-  critical-red: "#f27069"
-  success-green: "#51d0a8"
+  midnight-rail: "#06152c"
+  deep-rail: "#081c38"
+  rail-highlight: "#0d2c54"
+  ink: "#0b1835"
+  ink-secondary: "#2f4165"
+  muted: "#6a7895"
+  faint: "#91a0b8"
+  canvas: "#f3f7fc"
+  paper: "#ffffff"
+  paper-blue: "#f7faff"
+  line: "#dde6f1"
+  line-strong: "#cbd8e8"
+  action-blue: "#1769f5"
+  action-blue-deep: "#0c54d4"
+  action-blue-soft: "#e9f2ff"
+  governed-teal: "#0aa486"
+  governed-teal-soft: "#e5f8f2"
+  agent-violet: "#7454e8"
+  agent-violet-soft: "#f0edff"
+  attention-amber: "#d99318"
+  attention-amber-soft: "#fff4dc"
+  risk-red: "#de4d5c"
+  risk-red-soft: "#ffebed"
+  success-green: "#14966d"
 typography:
   display:
-    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
-    fontSize: "clamp(29px, 3.5vw, 44px)"
-    fontWeight: 760
-    lineHeight: 1.08
-    letterSpacing: "-0.035em"
+    fontFamily: "Bursa Manrope, Avenir Next, Segoe UI, -apple-system, sans-serif"
+    fontSize: "clamp(35px, 4vw, 53px)"
+    fontWeight: 820
+    lineHeight: 0.95
+    letterSpacing: "-0.05em"
   headline:
-    fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
-    fontSize: "22px"
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.02em"
+    fontFamily: "Bursa Manrope, Avenir Next, Segoe UI, -apple-system, sans-serif"
+    fontSize: "clamp(25px, 2.3vw, 35px)"
+    fontWeight: 770
+    lineHeight: 1.06
+    letterSpacing: "-0.035em"
   title:
     fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
-    fontSize: "16px"
-    fontWeight: 700
-    lineHeight: 1.3
+    fontSize: "13px"
+    fontWeight: 740
+    lineHeight: 1.35
     letterSpacing: "-0.01em"
   body:
     fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
-    fontSize: "12.5px"
+    fontSize: "13px"
     fontWeight: 400
-    lineHeight: 1.62
-    letterSpacing: "0"
+    lineHeight: 1.48
+    letterSpacing: "normal"
   label:
     fontFamily: "Segoe UI, -apple-system, BlinkMacSystemFont, Helvetica Neue, Arial, sans-serif"
     fontSize: "10px"
-    fontWeight: 650
-    lineHeight: 1.3
-    letterSpacing: "0.08em"
+    fontWeight: 700
+    lineHeight: 1.4
+    letterSpacing: "normal"
 rounded:
-  xs: "7px"
-  sm: "8px"
-  md: "13px"
-  lg: "20px"
-  xl: "26px"
-  shell: "30px"
-  pill: "999px"
+  compact: "7px"
+  control: "9px"
+  card: "11px"
+  soft-card: "12px"
+  panel: "14px"
+  hero: "15px"
+  overlay: "16px"
+  pill: "99px"
 spacing:
-  xs: "7px"
+  xxs: "4px"
+  xs: "8px"
   sm: "10px"
-  md: "14px"
-  lg: "16px"
-  xl: "24px"
-  2xl: "32px"
+  md: "12px"
+  lg: "14px"
+  xl: "20px"
+  2xl: "24px"
+  3xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.exchange-gold}"
-    textColor: "{colors.midnight-ground}"
+    backgroundColor: "{colors.action-blue}"
+    textColor: "{colors.paper}"
     typography: "{typography.label}"
-    rounded: "{rounded.md}"
-    padding: "0 14px"
-    height: "44px"
+    rounded: "{rounded.control}"
+    padding: "0 13px"
+    height: "40px"
   button-secondary:
-    backgroundColor: "{colors.midnight-ground}"
-    textColor: "{colors.ink-soft}"
+    backgroundColor: "{colors.action-blue-soft}"
+    textColor: "{colors.action-blue-deep}"
     typography: "{typography.label}"
-    rounded: "{rounded.md}"
-    padding: "0 12px"
-    height: "44px"
+    rounded: "{rounded.control}"
+    padding: "0 13px"
+    height: "40px"
+  button-ghost:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink-secondary}"
+    typography: "{typography.label}"
+    rounded: "{rounded.control}"
+    padding: "0 13px"
+    height: "40px"
   navigation-active:
-    backgroundColor: "{colors.panel}"
+    backgroundColor: "linear-gradient(90deg, rgba(25, 105, 230, .77), rgba(17, 76, 160, .64))"
+    textColor: "{colors.paper}"
+    typography: "{typography.body}"
+    rounded: "{rounded.card}"
+    padding: "6px 9px"
+    height: "53px"
+  command-composer:
+    backgroundColor: "{colors.paper}"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
-    padding: "0 9px"
-    height: "44px"
-  chip-suggestion:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink-soft}"
+    typography: "{typography.body}"
+    rounded: "{rounded.panel}"
+    padding: "10px"
+  panel:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.panel}"
+    padding: "14px"
+  status-governed:
+    backgroundColor: "{colors.governed-teal-soft}"
+    textColor: "{colors.governed-teal}"
     typography: "{typography.label}"
     rounded: "{rounded.pill}"
-    padding: "6px 11px"
-    height: "44px"
-  composer:
-    backgroundColor: "rgba(19, 25, 46, 0.66)"
+    padding: "2px 8px"
+    height: "22px"
+  mission-stage-active:
+    backgroundColor: "{colors.action-blue}"
+    textColor: "{colors.paper}"
+    typography: "{typography.label}"
+    rounded: "{rounded.pill}"
+    size: "22px"
+  ask-bursa-lane:
+    backgroundColor: "{colors.paper-blue}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.xl}"
-    padding: "18px 10px 11px 20px"
-  answer-card:
-    backgroundColor: "{colors.panel}"
-    textColor: "{colors.ink-soft}"
+    padding: "25px"
+  decision-canvas-action:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.lg}"
-    padding: "16px"
-  decision-canvas:
-    backgroundColor: "{colors.decision-canvas}"
-    textColor: "{colors.ink-soft}"
+    rounded: "{rounded.soft-card}"
+    padding: "11px"
+    height: "78px"
+  action-record:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.xs}"
-    padding: "16px"
-    width: "520px"
+    rounded: "{rounded.card}"
+    padding: "11px"
 ---
 
 # Design System: BursaIQ
 
 ## Overview
 
-**Creative North Star: "The Midnight Market Desk"**
+**Creative North Star: "The Governed Exchange Floor"**
 
-BursaIQ is a compact exchange workstation that can move between a midnight market desk and a daylight pearl exchange: precise, accountable, and ready for a live demonstration. It is not a generic card dashboard or a decorative AI chat screen. The BursaIQ Assistant workspace is the entry point, giving every role a governed place to ask questions before moving into Intelligence workspaces—Today’s Brief, Research, Local Analysis, and Watchlist—and accountable workflow panels.
+BursaIQ is a light, high-density enterprise command centre framed by a deep Bursa navy navigation rail. The dark frame establishes institutional continuity and focus; the working field stays bright, calm, and information-rich so people can scan missions, evidence, agents, approvals, and reusable intelligence without entering a decorative dashboard world. The experience should feel precise and operational, never like a generic chatbot or consumer productivity app.
 
-The fixed navigation rail, fluid workspace, and collapsible Decision Canvas keep the operating model visible without competing for attention. Appearance sits directly above Settings in the rail and uses the same complete 44px tile in compact mode; the demo identity remains an unboxed avatar-and-name control. A selective liquid-glass layer gives the conversational entry point, navigation chrome, and Decision Canvas a tactile sense of depth; dense ledgers remain line-led and optically quiet. Warm amber identifies scarce action, decisive value, and prepared-demo provenance; market teal explains analytical state, focus, and health. Muted violet appears only as refracted material light. Density is intentional, but every interactive target remains at least 44px and compact explanatory copy stays at least 10–11px.
+The system treats AI work as accountable movement. Blue marks the active task or next action, teal confirms governed or completed state, and supporting violet, amber, red, and green remain bounded to agent identity, attention, risk, and success. Restrained white panels, cool hairlines, compact typography, and modest shadows preserve density. In AI Assistant, the Decision Canvas turns an answer into four inspectable views—Plot, Analysis, Source, and Action—without separating the action from its evidence. Synthetic content, source state, approval state, and permission boundaries remain visible at the moment of decision, carrying forward BursaIQ's durable evidence and governance commitments.
 
-The Research Map and Private Analysis Bench are established-world extensions corroborated by surface seed `7f11c161`. The built implementation remains authoritative: Research expands a question into a contestable dossier, while Local Analysis keeps sanitized uploads in a visibly separate, memory-only evidence boundary.
+The information architecture separates questions from follow-through. AI Assistant owns governed analysis and the Decision Canvas. Ask Bursa follows it as a direct internal Q&A-only route for HR, Group Technology, Regulations, and Market Operations; it does not launch tasks or expose a Decision Canvas. After the primary navigation and its divider, Action leads the governance group before Verification Centre and Connectors; Settings remains anchored in the footer. Action receives Decision Memory records and Email automations created from the Assistant canvas. The wider workforce retains its signature left-to-right lifecycle: **Research → Synthesis → Verification → Exchange**.
 
 **Key Characteristics:**
 
-- A persistent Light / Dark appearance choice: violet midnight glass after dark and pearl-lilac glass in daylight.
-- An animated IQ Guide pet provides local, role-aware wayfinding without becoming a second answer engine.
-- The BursaIQ Assistant workspace owns the first viewport, with role-aware intelligence and workflows one navigation step away.
-- Research and Local Analysis sit together under Intelligence as complementary paths for governed investigation and private evidence work.
-- Research moves from a liquid-glass command surface into a line-led dossier with method, findings, counterpoints, source trail, and follow-up questions.
-- Local Analysis pairs a private document intake with an evidence dialogue and never presents uploaded files as governed library sources.
-- Fixed left navigation, fluid workspace, and collapsible right Decision Canvas.
-- Liquid glass for floating, interactive surfaces; fine structural rules for evidence-heavy operational content.
-- Prepared questions and answers remain clearly labelled when Copilot is unavailable.
-- Role gates, reviewer scope, synthetic truth, and local-only persistence are disclosed where they matter.
-- Motion communicates spatial state and stops under reduced-motion preferences.
+- A persistent deep-navy rail frames a predominantly light workspace.
+- A sticky white top bar unifies global search, demo provenance, creation, notifications, apps, and identity.
+- Dense white panels use cool borders and compact rows instead of oversized floating cards.
+- Blue drives action and current state; teal confirms completed or governed state.
+- Manrope gives brand and major headings a distinctive voice; Segoe UI and the system stack carry operational detail.
+- Home behaves as an AI-workforce command centre, not a chat landing page.
+- AI Assistant pairs governed answers with Plot, Analysis, Source, and Action canvas views.
+- Ask Bursa follows AI Assistant as a Q&A-only internal knowledge route with no Decision Canvas.
+- Action leads the post-divider governance group before Verification Centre and Connectors; Settings remains in the footer.
+- The mission lifecycle always reads left to right: Research, Synthesis, Verification, Exchange.
+- Responsive layouts preserve task order by collapsing rails and grids rather than hiding governance context.
+- Synthetic demo state, evidence, approvals, and access boundaries are labelled honestly.
+- Motion is brief, directional, and removed when reduced motion is requested.
 
 ## Colors
 
-The shared accent logic resembles an exchange floor: amber action, teal market feedback, and restrained violet refraction. Dark mode uses deep navy structure and cool light ink. Light mode uses a pearl-blue ground, dark navy ink, translucent white-lilac material, and darker teal/gold variants so status and action remain readable. The choice is stored on the device, applied before first paint, and available from the navigation rail directly above Settings as well as from the Settings page.
-
-### Dark — Midnight Market Desk
-
-- Violet-tinted navy liquid glass sits over a continuous midnight ground.
-- White and cool grey ink preserve dense analytical hierarchy.
-- This is the default and retains the established BursaIQ prototype identity.
-
-### Light — Pearl Exchange
-
-- Pale blue-grey ground, translucent pearl surfaces, and restrained lilac refraction create daylight glass without flattening the interface into white cards.
-- Dark navy ink carries hierarchy; teal and gold are deepened for accessible contrast.
-- Borders use white upper rims and cool structural hairlines; shadows are softer and less black than in Dark mode.
+The palette separates the institutional frame from the working surface: dark Bursa navy contains navigation, cool whites hold the work, and blue/teal make progression legible at a glance.
 
 ### Primary
 
-- **Exchange Gold:** Reserved for scarce actions, decisive values, attention markers, prototype and fallback provenance, and sparse chart emphasis.
-- **Soft Exchange Gold:** Provides readable caution and provenance text on dark surfaces.
+- **Exchange Blue:** The principal action and current-state color for creation, active navigation, progress, selected tabs, focus emphasis, and primary controls.
+- **Deep Exchange Blue:** The hover and high-contrast partner for Exchange Blue.
+- **Blue Wash:** A quiet selection, focus-halo, and secondary-action surface that keeps dense controls readable.
 
 ### Secondary
 
-- **Market Teal:** Signals analytical links, active icons, healthy status, chart lines, focus, and hover intent.
-- **Bright Market Teal:** Strengthens interactive emphasis without replacing amber as the main action color.
+- **Governed Teal:** Marks completed lifecycle stages, verified or healthy state, approved services, and selected analytical accents.
+- **Teal Wash:** Carries governed state behind icons and compact status treatments without competing with primary actions.
 
 ### Tertiary
 
-- **Critical Red:** Marks restricted or destructive states and negative file/status treatments.
-- **Success Green:** Marks loaded, approved, and available state.
+- **Agent Violet / Violet Wash:** Distinguishes agentic or orchestration-related objects.
+- **Attention Amber / Amber Wash:** Identifies approvals, deadlines, pending review, and items requiring human attention.
+- **Risk Red / Red Wash:** Marks risk, compliance concern, failure, or negative notification state.
+- **Success Green:** Confirms positive operational state where completion is not specifically part of the mission handoff.
 
 ### Neutral
 
-- **Midnight Ground:** Page field and conversation background.
-- **Decision Canvas:** Analysis surface beside the conversation on desktop or in a bounded overlay on portrait and narrow screens.
-- **Panel / Active Panel:** Nested answers, composer, selected navigation, and table rows.
-- **Ink / Soft Ink / Faint Ink:** Three deliberate text levels for decisions, explanation, and metadata.
-- **Hairline:** The default structural boundary between zones and rows.
+- **Midnight Rail, Deep Rail, and Rail Highlight:** Build the permanent institutional frame and its tonal variation.
+- **Ink and Secondary Ink:** Carry headings, primary content, and dense supporting copy.
+- **Muted and Faint:** Support metadata, descriptions, placeholders, and low-priority context.
+- **Canvas, Paper, and Paper Blue:** Separate the application field, primary panels, and quieter internal regions.
+- **Line and Strong Line:** Structure panels, fields, rows, and zones without heavy elevation.
 
 ### Named Rules
 
-**The Amber Acts, Teal Explains Rule.** Amber is the scarce action and emphasis color; teal communicates analytical state, navigation intent, focus, and healthy operation.
+**The Navy Frames, Paper Works Rule.** Persistent navigation may be deeply dark; the primary working field stays light, cool, and legible.
 
-**The Glass Floats, Evidence Stays Still Rule.** Use refracted glass for navigation, the composer, chat exchanges, dialogs, and the Decision Canvas. Keep dense ledgers, tables, and source metadata line-led and substantially opaque.
+**The Blue Moves, Teal Confirms Rule.** Use blue for the present action or current stage and teal for completed, governed, or healthy state.
+
+**The Status Has Two Signals Rule.** Pair every semantic color with text, an icon, a position, or a shape; color never carries status alone.
 
 ## Typography
 
-**Display Font:** Segoe UI through the system sans-serif stack
+**Display Font:** Bursa Manrope, bundled as a variable font, with Avenir Next and Segoe UI fallbacks
 
-**Body Font:** Segoe UI through the system sans-serif stack
+**Body Font:** Segoe UI through the native system sans-serif stack
 
-**Label/Mono Font:** The same system stack; figures use tabular numerals where alignment matters
+**Label/Mono Font:** The body stack; aligned figures use tabular numerals rather than a separate mono face
 
-**Character:** Compact, neutral, and operational. Display type is exceptional; working surfaces use a clear 10–22px hierarchy in which evidence, state, and values lead.
+**Character:** Manrope gives BursaIQ's brand and major moments a broad, contemporary confidence. Segoe UI keeps tables, navigation, statuses, controls, and evidence comfortably familiar at enterprise density.
 
 ### Hierarchy
 
-- **Display** (760, responsive 29–44px, 1.08): Reserved for exceptional invitation and Research entry moments, never the default intelligence brief.
-- **Headline** (700, 22px, 1.2): Briefing, page, and reviewer-workflow headings.
-- **Title** (700, 16px, 1.3): Answer titles, plot titles, and panel hierarchy.
-- **Body** (400, 12.5px, 1.62): Answers and analytical explanation, kept to readable card widths.
-- **Label** (650, 10–11px, tracked only when compact grouping helps): Navigation, status, source metadata, table headings, signal explanations, and evidence controls.
+- **Display** (820, responsive 35–53px, 0.95): Home hero branding and the rare highest-emphasis statement.
+- **Headline** (770, responsive 25–35px, 1.06): Workspace titles and major invitations.
+- **Title** (740, 13px, 1.35): Panel headings, answer titles, and compact structural anchors.
+- **Body** (400, 13px, 1.48): Interface copy, descriptions, and working content; longer analytical prose may open to roughly 1.6 line-height.
+- **Label** (700, 10px, 1.4): Statuses, table headings, action labels, metadata, lifecycle stages, and compact controls.
 
 ### Named Rules
 
-**The Workspace Leads, Work Compresses Rule.** The assistant opens with one deliberate invitation; intelligence and workflow pages switch to compact operational hierarchy.
+**The Manrope Declares, Segoe Operates Rule.** Use Manrope for identity and high-level orientation; use the system body stack for the dense work itself.
 
-**The Compact Copy Floor Rule.** Any compact text that explains a signal, source, action, owner, boundary, or state stays at least 10–11px and never relies on size alone to carry meaning.
+**The Ten-Pixel Floor Rule.** Operational labels and metadata do not fall below 10px, and small type must retain contrast, spacing, and a clear role.
 
 ## Layout
 
-Desktop uses a fixed 250px left rail and a fluid main shell. The BursaIQ Assistant workspace fills the first viewport with the governed conversation entry point. Today’s Brief, Watchlist, Decision Memory, and Source Health reuse the same hairline-separated rhythm instead of switching to card grids. Research and Local Analysis deliberately expand that grammar: the former becomes a research map and dossier; the latter becomes a private evidence bench.
+Desktop is organized around a fixed 232px left rail and a 64px sticky top bar. The main page may expand to 1700px and uses 20px side padding, with a compact 13–14px rhythm between working regions. The home surface prioritizes the command field and mission brief in a fluid main column, then reserves a narrow 286px right rail for active agents, pending approvals, and recommendations. Other workspaces reuse a similar main-plus-284px-rail pattern.
 
-When analysis is open on desktop, the working area becomes a two-column conversation/canvas grid with a 520px canvas. Closing it removes the canvas completely and restores the full conversation width. On desktop, navigation rests as a 72px icon rail and reveals its full 250px labels over the workspace on hover or keyboard focus, so the working canvas never shifts. Research starts with a two-column command area and a 1.45/0.55 route-and-principle split; its result uses a synthesis/method split, paired findings, and a full-width source trail. Local Analysis uses a 0.72/1.28 intake-and-dialogue split with a sticky glass question form. At 980px the navigation becomes a 280px off-canvas drawer, Research’s entry sections and Local Analysis both stack, with intake above dialogue. At widths at or below 980px or in portrait orientation, the Decision Canvas opens as a bounded overlay below the header with independent scrolling; the surrounding app uses natural document scrolling. At 680px Research controls, dossier sections, findings, and follow-up actions become single-column; the Local Analysis form also stacks and its action becomes full-width. At 520px attention counts, memory fields, and source summaries become single-column. Page padding contracts again below 620px.
+The composition is intentionally dense. Panels commonly use 49px headers, 42–67px rows, 8–14px internal gaps, and 10–14px padding. Repeated collections use even grids, while tables and the full mission journey scroll horizontally rather than compressing governed details into illegibility. The hero is the one broad branded interruption; subsequent content returns immediately to the compact operating cadence.
 
-Spacing follows a compact 7/10/14/16/24/32px rhythm. Working controls meet a 44px minimum target even when the visible label or icon is small. Tables may scroll horizontally rather than crushing governed source metadata.
+AI Assistant divides its working area into a fluid answer column and a minimum-370px Decision Canvas at a 1.42/0.88 ratio. Ask Bursa deliberately returns to a clean, centered 920px Q&A lane: a welcome prompt and two-column suggestion grid open the empty state, the conversation occupies the same thread, and the composer remains anchored below. Action uses a 1.12/0.88 Decision Memory and Email automation split, preceded by a compact governed-summary band and four accountability metrics.
+
+At 1280px, six-column collections reduce to three columns and identity metadata contracts. At 1080px, the rail becomes a 78px icon strip, contextual labels appear on hover or keyboard focus, right rails stack below the main field, the Action columns stack, and AI Assistant places the Decision Canvas below the conversation with a visible mobile entry control. At 820px, navigation becomes a 270px off-canvas drawer, page padding reduces to 12px, paired regions stack, and dense tables remain horizontally scrollable. At 580px, cards and secondary rails become single-column, quick actions remain a two-column launcher, Ask Bursa suggestions collapse to one column, and its composer preserves the Internal sources and Q&A only indicators while global search and creation controls compress without changing their function.
+
+**The Work Before Chrome Rule.** Responsive collapse may shorten labels and move secondary rails, but it must preserve the active work, provenance, approvals, and the mission's ordered handoff.
 
 ## Elevation & Depth
 
-Depth follows interaction. The composer is the clearest glass object: violet-tinted navy in Dark mode and pearl-lilac with a cool teal refraction in Light mode. Both use a bright upper rim, offset shadow, and saturated background blur. Navigation chrome and the Decision Canvas use heavier glass; answer cards and compact controls use lighter refraction. Ledgers and tables stay comparatively flat. Focus is a teal border plus a quiet three-pixel wash.
+Depth is restrained and structural. Most panels are white with a cool one-pixel border and a low ambient shadow; many compact rail panels omit shadow entirely. Strong elevation is reserved for overlays, menus, toasts, the floating assistant composer, and the branded home hero. The sticky top bar uses slight translucency and blur only to maintain separation while scrolling, not to introduce a glass aesthetic.
 
 ### Shadow Vocabulary
 
-- **Composer float:** Dark uses `0 28px 80px rgba(2, 5, 16, .44)`; Light uses a softer `0 28px 72px rgba(65, 62, 88, .18)` plus a white inset rim.
-- **Amber action lift** (`0 8px 18px rgba(242, 184, 75, .14)`): Used only beneath the send control.
-- **Mobile drawer depth** (`18px 0 50px rgba(0, 0, 0, .42)`): Appears only while the off-canvas navigation is open.
+- **Panel ambient** (`0 7px 24px rgba(30, 61, 104, .075)`): Low separation for cards against the pale canvas.
+- **Overlay lift** (`0 24px 70px rgba(30, 61, 104, .17)`): Menus, tooltips, and transient surfaces that must clearly sit above the workspace.
+- **Hero anchor** (`0 20px 55px rgba(13, 39, 76, .2)`): Used only by the deep-navy home hero.
+- **Composer lift** (`0 15px 45px rgba(32, 71, 122, .12)`): Keeps the assistant input available above a scrolling thread.
 
 ### Named Rules
 
-**The Weight Follows Area Rule.** Large glass surfaces receive stronger blur and deeper shadows; compact controls receive lighter material and almost no independent elevation.
+**The Flat Until It Floats Rule.** Default work surfaces rely on tone and hairlines; only transient, anchored, or signature surfaces receive noticeable shadow.
 
 ## Shapes
 
-The outer application shell uses a 30px curve on desktop. Navigation and compact controls use 8–13px corners; answer cards use 22px; the assistant composer uses 26px; the Research command uses 20px; and the Local Analysis question form uses 18px. Suggestion and status chips remain pills. The asymmetric question bubble keeps a tighter lower-right corner to communicate direction without adding a speech-tail ornament. Mobile drops the outer-shell inset while preserving the rounded composer and drawer geometry.
+The form language is softly squared and compact. Dense actions and metadata controls use 7–9px corners; cards use 10–12px; primary panels use 14px; the hero uses 15px; and command or overlay surfaces may reach 16px. Pills are reserved for statuses, counts, and tiny service indicators. Avatars and lifecycle nodes are circular. The rail's active marker remains a slim vertical stroke, creating directional emphasis without adding another container.
+
+**The Radius Follows Scope Rule.** Small controls use small corners, panels use medium corners, and only statuses or identities become fully round.
 
 ## Components
 
-### IQ Guide Pet
-
-The supplied white two-eye character sits at the bottom-right of the workspace, clear of the navigation rail. Its tooltip and liquid-glass directory open inward toward the content so neither can overflow the viewport. Its idle motion is a restrained three-pixel drift; hover produces one short greeting tilt, and opening the directory gives it a listening posture. The character is a transparent raster cutout rather than a redrawn icon, preserving the user-supplied expression in both themes. All looping motion stops under reduced-motion preferences.
-
-Clicking the pet opens a non-modal liquid-glass directory anchored to the character. The guide recommends the correct BursaIQ workspace or workflow, explains role boundaries, and offers one direct navigation action. It is intentionally local and deterministic, so wayfinding remains available when Copilot Studio cannot be reached and no question is sent outside the device. `/Close` hides the entire pet; Settings → Appearance restores it. Escape closes only the panel. The saved visibility preference is applied before first paint.
-
-The panel uses dark violet glass in Dark mode and pearl-lilac glass in Light mode. It never obscures access rules: unavailable reviewer or regulatory destinations resolve to a permitted alternative with an explicit explanation.
-
 ### Buttons
 
-- **Shape:** Compact 8–13px corners with a 44px target.
-- **Primary:** Exchange Gold on Midnight Ground; the send icon is the clearest example.
-- **Hover / Focus:** Amber brightens on hover; focus is a visible teal outline/wash; active state scales briefly to 0.94–0.98.
-- **Secondary:** Translucent theme-aware fill, hairline border, soft ink; teal appears on hover.
+Buttons are compact, direct, and visually subordinate to the information they operate on.
+
+- **Shape:** Gently squared controls, usually 9px, with 40–42px height for primary workspace actions and 28–36px for dense inline data actions.
+- **Primary:** Exchange Blue with white text and a small blue-tinted lift.
+- **Secondary:** Blue Wash with Deep Exchange Blue text and a blue-tinted border.
+- **Ghost:** White with Secondary Ink and a cool structural border.
+- **Hover / Focus:** Hover darkens or shifts the border and may rise by one pixel. Keyboard focus uses a visible three-pixel translucent blue outline with a two-pixel offset.
 
 ### Chips
 
-- **Style:** Pill-shaped translucent controls with soft text and a hairline border.
-- **State:** Hover moves border and text to teal. Provenance chips use amber for predefined fallback and teal for governed/local state.
+- **Style:** Compact pills use tinted semantic backgrounds with darker text; a short label is mandatory.
+- **State:** Teal means governed or completed, amber means pending attention, red means risk, blue means active or informational, and violet means agentic or orchestration context.
 
 ### Cards / Containers
 
-- **Corner Style:** 10–12px for analytical cards and 21–22px for conversation cards.
-- **Background:** Refracted violet-navy glass in Dark mode and pearl-lilac glass in Light mode; dense data remains more opaque in both.
-- **Shadow Strategy:** Deep and soft only where a surface floats; ledger rows rely on tone and hairlines.
-- **Border:** One-pixel Hairline; gold-tinted hairline for fallback or caution notes.
-- **Internal Padding:** Usually 11–16px.
+- **Corner Style:** 10–12px for cards and 14px for primary panels.
+- **Background:** Paper on Canvas; quiet subregions may use Paper Blue.
+- **Shadow Strategy:** Low ambient shadow where separation is needed; dense side-rail panels may remain border-only.
+- **Border:** A one-pixel cool hairline, strengthened on controls and focus-adjacent surfaces.
+- **Internal Padding:** Usually 9–14px for cards and 12–17px for panels.
 
 ### Inputs / Fields
 
-The Assistant composer includes a compact native Local / Live dropdown beside Send, with an accessible Answer mode label, a 44px touch target, and a short processing status below the composer. Its tooltip explains the selected route. Selection persists on the device and updates the Assistant sidebar badge. Local is a prepared browser demo, not trained-model inference; disconnected Live responses remain explicitly labelled as fallbacks. Mode changes apply to the next question and reset Copilot context without forwarding earlier Local messages.
-
-- **Style:** The signature composer is a 26px liquid-glass panel with a bright rim, 14px desktop text, and 16px mobile text.
-- **Focus:** Border shifts to Market Teal with a quiet three-pixel teal wash.
-- **Error / Disabled:** Connection failures appear as explicit content, never as silent disabled controls.
+- **Style:** White or Paper Blue, one-pixel Strong Line border, 8–12px corners, and compact 10–13px text.
+- **Focus:** Border shifts toward blue with a quiet three-pixel blue wash; native outline remains visible for global keyboard focus.
+- **Composer:** The universal work composer is a white, softly raised panel with tool actions aligned along its lower edge and a square blue send action.
+- **Error / Disabled:** Explain unavailable or demo-only behavior in text. Never imply a real external action when the prototype only simulates it.
 
 ### Navigation
 
-At desktop widths, the rail is anchored inside the positioned app shell rather than fixed independently to the viewport. Its zero inset shares the shell's rounded origin and height, keeping one aligned edge during focus-driven scrolling and zoom. The mobile drawer remains viewport-fixed.
+The deep-navy left rail is the product's persistent frame. Its canonical primary order is Home, AI Assistant, Ask Bursa, My Workforce, and Intelligence Exchange; Action, Verification Centre, and Connectors follow after the divider in that order. Today's Brief, Automation Studio, Collaborative Rooms, and Projects & Workspace are not sidebar destinations. Settings remains anchored in the footer, while Action stays visible beside the governance tools it supports.
 
-The desktop rail is a fixed 72px icon column with complete 44px square targets, ordered by task progression: Workspace, Intelligence, then Workflow. It uses black-violet glass in Dark mode and pearl-lilac glass in Light mode. Active and hover surfaces keep all four corners visible while compact, then widen into full rows as the rail reveals its 250px labels over the workspace. Thin rules distinguish the groups while compact. The rail begins directly with the unboxed New conversation action—there is no prototype badge—and always returns to the single landing-page composer. The top bar carries only the BursaIQ product name and service state; the matching Light / Dark and Settings tiles sit together at the foot of the rail, above the unboxed identity control. The active panel name and description appear once in the page heading. BursaIQ Assistant is the default entry; Research and Local Analysis live under Intelligence beside Today’s Brief and Watchlist; Verification Centre, Source Health, and Decision Memory remain under Workflow; Ask Reg remains access-controlled. On mobile, the complete labelled rail moves fully off-screen, enters over a dimmed scrim, traps focus, closes on Escape or navigation, and restores focus to the menu trigger.
+Full desktop items use a 53px row with icon, title, supporting line, and optional count. The active row uses a left-to-right blue gradient plus a narrow luminous marker. At 1080px the rail collapses to icons with hover/focus labels; at 820px it becomes an off-canvas labelled drawer over a dimmed scrim. Global search remains the first control in the sticky top bar.
 
-### Intelligence Workspaces
+### Ask Bursa
 
-Research opens with a large invitation beside a 20px liquid-glass command surface. Depth and evidence-boundary selects retain 44px targets, and the Exchange Gold “Start research” control is the single dominant action. Prepared routes remain line-led rather than carded. Once run, the page settles into a dossier: provenance and generation metadata, executive finding and numbered method, evidence-led findings beside counterpoints, a source trail, and three follow-up questions. Market Teal marks sources and analytical movement; Exchange Gold marks the method, working state, and run action. The dossier animation is removed under reduced motion.
+Ask Bursa is the direct internal knowledge lane, placed immediately after AI Assistant. Its empty state is intentionally spare: a welcoming “Ask anything inside Bursa” prompt, four department-aware suggestion cards, and a focused composer create a familiar internal-chat flow without a separate permission or department strip. Governance remains visible but unobtrusive through the “Internal knowledge only” header state, “Internal sources” composer action, and “Q&A only” mode indicator. It answers from permitted internal guidance and never launches a task, opens a Decision Canvas, or creates an Action record.
 
-Local Analysis is a Private Analysis Bench. The left intake holds the dropzone, session status, and uploaded-document rows; the right dialogue holds suggested tasks, local result, exact evidence extracts, and a sticky 18px liquid-glass question form. The service accepts sanitized PDF, XLSX, CSV, JSON, TXT, and MD files, up to six files and 5 MB each. Files are parsed by the local Python service, held only in server memory, never added to the governed source library, and cleared explicitly or when the process stops. Local extractive analysis is the default. Only an explicit per-question “Copilot-assisted synthesis” opt-in sends the selected evidence extracts to the published agent.
+### Decision Canvas and Action
 
-**The Private Means Ephemeral Rule.** Never describe Local Analysis uploads as indexed, retained, governed-library content, or automatically shared. Their implemented boundary is memory-only, session-scoped, and local unless the per-question Copilot option is enabled.
+AI Assistant's right canvas uses four equal tabs in the fixed order **Plot, Analysis, Source, Action**. Plot makes the trend visible; Analysis explains reasoning and calculation method; Source exposes coverage and exact evidence; Action preserves the governed answer as either a Decision Memory record or an Email automation. Completed actions turn to a quiet teal confirmation state and remain linked to the original question and evidence.
 
-### Workflow Ledgers
+Action is a review-and-management workspace, not a blank creation studio. Decision Memory records preserve the question, rationale, owner, date, and evidence context. Email automations preserve the question, schedule, recipient, source snapshot, and active/paused state. Both originate from the AI Assistant Decision Canvas; the workspace can send users back to Assistant, but it does not create evidence-free records. Browser-session storage and the absence of external email are disclosed on the surface.
 
-Today’s Brief, Watchlist, Decision Memory, and Source Health are variations of one ledger grammar: section heading, hairline-divided rows, a restrained marker or status, explanatory copy, and right-aligned value, owner, horizon, or action. Today’s Brief leads with counts and changed signals; Watchlist pairs monitored signals with transparent alert rules; Decision Memory preserves question, rationale, owner, workspace, status, and evidence re-entry; Source Health presents freshness and quality for sources permitted to the active identity.
+**The Answer Carries Its Evidence Rule.** Decision memories and scheduled follow-ups are created only from a governed AI Assistant answer, so question, source, and rationale stay attached.
 
-Verification Centre separates two responsibilities without mixing their authority. Every identity sees My submitted requests and the latest status of each request. Reviewer identities additionally see Pending my review, which contains only outstanding cases assigned to their review queue and is the sole surface that exposes approval or change-request actions. Both sections use the same line-led case grammar, but the reviewer panel carries an explicit access label.
+**The Q&A Stays Q&A Rule.** Ask Bursa answers permitted internal questions directly and never inherits the Decision Canvas or Action-creation affordances.
 
-Watchlist and Decision Memory writes are role-scoped in local browser storage; preferences and access requests are also device-local. Verification uses the local audit queue, and no prototype action implies an external notification. Synthetic, restricted, and proposed-production boundaries remain adjacent to the affected workflow.
+### Mission Lifecycle
 
-### Decision Canvas
+The signature component always uses the exact order **Research → Synthesis → Verification → Exchange**. Compact instances are inline labels separated by arrows: completed stages are teal, the active stage is blue, and future stages are muted. Expanded instances use four connected nodes: teal checkmarks trace completed links from left to right, the active blue node receives a soft arrival halo, and future nodes remain white with cool borders. The trace and arrival animation must be disabled under reduced-motion preferences.
 
-Every chat workspace and answer mode uses the same inline answer action row at every width: Decision Canvas, Verify, Create PDF. All three share the same button styling and remain together even on narrow phones. The Decision Canvas button toggles the analysis surface and exposes its synchronized expanded state through `aria-expanded`. The global header has no Canvas control, and answer cards have no separate Read full answer, sources/resources, or Explore chart links. Closing the canvas removes it completely; Escape also closes it and restores focus to the latest inline Decision Canvas button. The four keyboard-complete tabs remain Plot, Analysis, Sources, and Actions. Desktop uses a side-by-side analytical plane. At widths at or below 980px or in portrait orientation, the canvas opens as a bounded, independently scrollable overlay below the header. The surrounding app uses natural document scrolling so long conversations and every workspace remain reachable; dynamic viewport units account for mobile browser chrome.
+### Panels, Rows, and Tables
 
-### Automation Ledger and Editor
+Panel headers use a 49px structural band with a compact title and optional right-aligned text action. Repeated items favor hairline-separated rows over separately floating cards. Tables retain uppercase 10px headers, tabular numerals, and horizontal scrolling on narrow viewports. Evidence, reviewer, source, freshness, and approval state stay in the row where the decision happens.
 
-Automation pairs a quiet, hairline-divided schedule ledger on the left with an inline violet-navy glass editor in Dark mode and pearl glass in Light mode. The editor has a bright inset rim, a soft curve (16px), and grouped native fields with 44px minimum targets; portrait layouts and widths at or below 900px stack the ledger above the editor, while narrow phones stack inclusion choices and stretch form actions. Teal identifies selected rows, native check states, and focus; the existing scarce gold action saves the schedule. An Assistant answer's Decision Canvas action seeds its question into the editable schedule. The adjacent boundary and preview status remain visible: these role-scoped browser records are demo plans, with no emails or background runs, and previews use prepared evidence. Link returns to BursaIQ, Dashboard is an evidence snapshot, and Report is an inline summary rather than a PDF attachment; saved briefing instructions are displayed without arbitrary execution.
+### Overlays and Feedback
+
+Create menus, the command palette, and toasts are white, strongly elevated, and bounded by cool borders. The command palette opens over a navy scrim with light blur; toasts enter from the lower right and disappear after a short confirmation interval. Modal or transient motion is brief and directional, and all animations collapse under reduced-motion settings.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** use amber for scarce actions, fallback provenance, and the value that deserves immediate attention.
-- **Do** use teal for analysis, focus, healthy status, and interactive intent.
-- **Do** keep Decision Canvas beside Verify and Create PDF in every chat answer, and restore the full conversation width when the canvas closes.
-- **Do** keep working controls at least 44px and support reduced motion and increased contrast.
-- **Do** keep compact explanatory copy at least 10–11px, especially in ledgers, boundaries, source health, and workflow actions.
-- **Do** label synthetic, predefined, and restricted content at the point of use.
-- **Do** preserve role gates and distinguish local browser persistence, the local audit queue, and proposed production integrations.
-- **Do** preserve material depth, contrast, and semantic accent meaning when switching between Light and Dark modes.
-- **Do** keep IQ Guide answers about navigation, panel purpose, workflow and access boundaries; route substantive Bursa questions to BursaIQ Assistant.
-- **Do** reserve the gold Research action for starting or progressing the investigation while teal continues to identify sources, focus, and analytical state.
-- **Do** keep the Local Analysis memory-only boundary and per-question Copilot opt-in adjacent to the question form.
+- **Do** keep the deep-navy rail as the persistent institutional frame and the main workspace light.
+- **Do** use blue for primary action and current state, then teal for completed or governed state.
+- **Do** preserve the exact Research → Synthesis → Verification → Exchange order wherever mission progress appears.
+- **Do** keep panels dense, white, and line-led, with low shadow and concise 10–13px working type.
+- **Do** pair semantic color with labels, icons, stage order, or shape.
+- **Do** label synthetic data, simulated actions, evidence state, permissions, and human approvals at the point of use.
+- **Do** keep the home surface focused on work initiation, active missions, approvals, and reusable intelligence.
+- **Do** keep Ask Bursa immediately after AI Assistant as a clean internal Q&A lane with a welcome prompt, department-aware suggestion cards, a focused composer, and unobtrusive Internal knowledge only, Internal sources, and Q&A only indicators.
+- **Do** preserve the Decision Canvas order Plot, Analysis, Source, Action and create Action records only from its Action tab.
+- **Do** keep Action immediately after the divider and before Verification Centre and Connectors; keep Settings in the footer and disclose that Decision Memory and Email automation records are browser-session demo data.
+- **Do** retain visible keyboard focus, reduced-motion behavior, responsive reflow, and horizontal scrolling for dense governed data.
 
 ### Don't:
 
-- **Don't** apply glass indiscriminately to tables, ledgers, or every information group; material must communicate a floating or interactive plane.
-- **Don't** turn every information group into a floating card; use lines and tonal layers first.
-- **Don't** use amber and teal interchangeably or flood either accent across passive surfaces.
-- **Don't** place Intelligence ahead of Workspace in the navigation; BursaIQ Assistant must remain the shared entry point for every role.
-- **Don't** shrink meaningful metadata or explanatory copy below 10px; compactness comes from layout, line-led grouping, and concise language.
-- **Don't** hide reviewer ownership, freshness, restriction, or source provenance behind secondary interactions.
-- **Don't** animate layout properties for decoration; motion must explain the drawer, canvas, or analytical plot state.
-- **Don't** make Light mode a flat white recolour; retain refracted violet, white rims, layered translucency, and cool structural shadows.
-- **Don't** let the pet block primary work, bypass role gates, imitate Copilot Studio, or keep moving when reduced motion is requested.
-- **Don't** imply that Local Analysis uploads persist, join the governed source library, or leave the local service without explicit question-level consent.
+- **Don't** revert the workforce shell to an all-dark, liquid-glass, or card-glow aesthetic.
+- **Don't** use amber as the primary action color; amber is reserved for attention and pending review.
+- **Don't** turn BursaIQ into a generic chat landing page or a sparse marketing site.
+- **Don't** split the mission lifecycle into unrelated tiles or reorder its four stages.
+- **Don't** add a Decision Canvas, agent delegation, or Action creation to Ask Bursa; it is Q&A only.
+- **Don't** restore Automation Studio, Collaborative Rooms, or Projects & Workspace to the sidebar without a new information-architecture decision.
+- **Don't** let Action become an independent automation builder or create Decision Memory without an Assistant answer and evidence trail.
+- **Don't** float every information group; repeated work belongs in rows, tables, and restrained panels.
+- **Don't** over-round controls, overuse pills, or apply overlay shadows to ordinary content cards.
+- **Don't** shrink operational labels below the established 10px floor or hide governance context to make a mobile layout look cleaner.
+- **Don't** imply live production behavior, external delivery, or unrestricted access when the implementation is a synthetic governed demo.

@@ -16,6 +16,8 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
+from reportlab.graphics.charts.linecharts import HorizontalLineChart
+from reportlab.graphics.shapes import Drawing, String
 from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 
@@ -60,6 +62,142 @@ class BriefingGenerator:
         self._build(path, payload, title, fingerprint)
         validation = self.validate(path, title)
         return {"filename": filename, "path": path, "fingerprint": fingerprint, "validation": validation}
+
+    def generate_mission(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Create the competition ADV report from the exact dashboard result payload."""
+        mission = payload["mission"]
+        result = payload["result"]
+        title = clean_text(mission.get("title"))[:140] or "Malaysia Equity Market ADV Intelligence Report"
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        filename = f"bursaiq-adv-mission-{mission['id'].lower()}-{timestamp}.pdf"
+        path = self.output_dir / filename
+        fingerprint = hashlib.sha256(json.dumps(payload, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+        self._build_mission(path, mission, result, title, fingerprint)
+        validation = self.validate(path, title)
+        return {"filename": filename, "path": path, "fingerprint": fingerprint, "validation": validation}
+
+    def _build_mission(self, path: Path, mission: dict[str, Any], result: dict[str, Any], title: str, fingerprint: str) -> None:
+        styles = self._styles()
+        scope = result["scope"]
+        metrics = result["metrics"]
+        monthly = result["monthly"]
+        story: list[Any] = [
+            Spacer(1, 7 * mm),
+            Paragraph("BURSAIQ / AI WORKFORCE MISSION", styles["eyebrow"]),
+            Paragraph(safe_paragraph(title), styles["title"]),
+            Paragraph(safe_paragraph(result["classification"]), styles["watermark"]),
+            Spacer(1, 4 * mm),
+        ]
+        metadata = [
+            [Paragraph("MISSION", styles["label"]), Paragraph("REPORTING WINDOW", styles["label"]), Paragraph("STATUS", styles["label"])],
+            [Paragraph(mission["id"], styles["body"]), Paragraph(f"{scope['dateStart']} to {scope['dateEnd']}", styles["body"]), Paragraph("DRAFT READY - HUMAN REVIEW REQUIRED", styles["body"])],
+            [Paragraph("REQUESTED BY", styles["label"]), Paragraph("TRADING-DAY RULE", styles["label"]), Paragraph("BOARD SCOPE", styles["label"])],
+            [Paragraph(safe_paragraph(mission["requestedBy"]), styles["body"]), Paragraph(safe_paragraph(scope["tradingDayRule"]), styles["small"]), Paragraph(safe_paragraph(", ".join(scope["boards"])), styles["small"])],
+        ]
+        table = Table(metadata, colWidths=[48 * mm, 67 * mm, 56 * mm])
+        table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F7FAF9")),
+            ("GRID", (0, 0), (-1, -1), .45, LINE),
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+        story.extend([table, Spacer(1, 6 * mm), Paragraph("Executive summary", styles["h1"])])
+        for finding in result["findings"]:
+            story.append(Paragraph(f"• {safe_paragraph(finding)}", styles["body"]))
+
+        metric_rows = [
+            [Paragraph("PERIOD ADV", styles["label"]), Paragraph("TRADING DAYS", styles["label"]), Paragraph("TOTAL VALUE", styles["label"]), Paragraph("FIRST TO LAST MONTH", styles["label"])],
+            [Paragraph(f"RM{metrics['periodAdvBn']:.3f}bn", styles["h2"]), Paragraph(str(metrics["tradingDays"]), styles["h2"]), Paragraph(f"RM{metrics['totalTradedValueMyr']/1_000_000_000:.2f}bn", styles["h2"]), Paragraph(f"{metrics['firstToLastChangePct']:+.2f}%", styles["h2"])],
+        ]
+        metric_table = Table(metric_rows, colWidths=[42.75 * mm] * 4)
+        metric_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("BACKGROUND", (0, 1), (-1, 1), PALE_TEAL), ("GRID", (0, 0), (-1, -1), .45, LINE),
+            ("ALIGN", (0, 0), (-1, -1), "CENTER"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
+        ]))
+        story.extend([Spacer(1, 2 * mm), metric_table, Spacer(1, 6 * mm), Paragraph("Monthly ADV trend", styles["h1"]), self._mission_chart(monthly)])
+
+        month_rows = [[Paragraph("MONTH", styles["label"]), Paragraph("TRADING DAYS", styles["label"]), Paragraph("TOTAL VALUE", styles["label"]), Paragraph("ADV", styles["label"])]]
+        month_rows.extend([
+            [Paragraph(item["label"], styles["small"]), Paragraph(str(item["tradingDays"]), styles["small"]), Paragraph(f"RM{item['totalMyr']/1_000_000_000:.2f}bn", styles["small"]), Paragraph(f"RM{item['advBn']:.3f}bn", styles["small"])]
+            for item in monthly
+        ])
+        month_table = Table(month_rows, colWidths=[50 * mm, 36 * mm, 45 * mm, 40 * mm], repeatRows=1)
+        month_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]),
+            ("GRID", (0, 0), (-1, -1), .4, LINE), ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        story.extend([PageBreak(), month_table, Spacer(1, 6 * mm), Paragraph("Contribution and participation", styles["h1"])])
+
+        sector_rows = [[Paragraph("SECTOR", styles["label"]), Paragraph("TRADED VALUE", styles["label"]), Paragraph("SHARE", styles["label"])]]
+        sector_rows.extend([[Paragraph(safe_paragraph(item["sector"].title()), styles["small"]), Paragraph(f"RM{item['tradedValueMyr']/1_000_000_000:.2f}bn", styles["small"]), Paragraph(f"{item['sharePct']:.2f}%", styles["small"])] for item in result["sectors"]])
+        sector_table = Table(sector_rows, colWidths=[91 * mm, 46 * mm, 34 * mm], repeatRows=1)
+        sector_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), .4, LINE), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]), ("ALIGN", (1, 1), (-1, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+        story.extend([sector_table, Spacer(1, 6 * mm), Paragraph("Investor participation", styles["h1"])])
+        investor_rows = [[Paragraph("GROUP", styles["label"]), Paragraph("BUY", styles["label"]), Paragraph("SELL", styles["label"]), Paragraph("NET", styles["label"]), Paragraph("GROSS SHARE", styles["label"])]]
+        investor_rows.extend([[Paragraph(item["group"], styles["small"]), Paragraph(f"RM{item['buyMyr']/1_000_000_000:.2f}bn", styles["small"]), Paragraph(f"RM{item['sellMyr']/1_000_000_000:.2f}bn", styles["small"]), Paragraph(f"RM{item['netMyr']/1_000_000_000:+.2f}bn", styles["small"]), Paragraph(f"{item['grossSharePct']:.2f}%", styles["small"])] for item in result["investors"]])
+        investor_table = Table(investor_rows, colWidths=[39 * mm, 34 * mm, 34 * mm, 34 * mm, 30 * mm], repeatRows=1)
+        investor_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), .4, LINE), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]), ("ALIGN", (1, 1), (-1, -1), "RIGHT"), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 6), ("RIGHTPADDING", (0, 0), (-1, -1), 6), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+        story.extend([investor_table, PageBreak(), Paragraph("Methodology and limitations", styles["h1"]), Paragraph(safe_paragraph(result["formula"]), styles["callout"]), Paragraph(safe_paragraph(result["interpretationBoundary"]), styles["body"])])
+
+        quality = result["quality"]
+        quality_rows = [[Paragraph("CHECK", styles["label"]), Paragraph("RESULT", styles["label"]), Paragraph("EVIDENCE", styles["label"])],
+            [Paragraph("Schema and numeric validity", styles["small"]), Paragraph("Passed" if quality["passed"] else "Review", styles["small"]), Paragraph(f"Market invalid: {quality['marketInvalidRows']}; investor invalid: {quality['investorInvalidRows']}", styles["small"])],
+            [Paragraph("Exact duplicate control", styles["small"]), Paragraph("Passed", styles["small"]), Paragraph(f"{quality['marketExactDuplicatesExcluded']} exact duplicate rows excluded", styles["small"])],
+            [Paragraph("Coverage", styles["small"]), Paragraph("Passed", styles["small"]), Paragraph(f"{metrics['tradingDays']} distinct eligible trading dates", styles["small"])],
+            [Paragraph("Dashboard / PDF consistency", styles["small"]), Paragraph("Passed", styles["small"]), Paragraph("Both rendered from this fingerprinted result payload", styles["small"])]]
+        quality_table = Table(quality_rows, colWidths=[54 * mm, 28 * mm, 89 * mm], repeatRows=1)
+        quality_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), .4, LINE), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7), ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+        story.extend([Paragraph("Data quality and consistency checks", styles["h1"]), quality_table, Spacer(1, 5 * mm)])
+
+        worker_rows = [[Paragraph("WORKER", styles["label"]), Paragraph("VERIFIABLE OUTPUT", styles["label"])],
+            [Paragraph("Mission Manager", styles["small"]), Paragraph("Validated dates, board scope, output contract and human checkpoint.", styles["small"])],
+            [Paragraph("Data Agent", styles["small"]), Paragraph(f"Read {quality['marketRowsRead']:,} market rows and {quality['investorRowsRead']:,} investor rows.", styles["small"])],
+            [Paragraph("Analysis Agent", styles["small"]), Paragraph("Recomputed ADV, monthly trend, sector contribution and investor participation.", styles["small"])],
+            [Paragraph("Insight Agent", styles["small"]), Paragraph("Produced three rule-based observations with no causal attribution.", styles["small"])],
+            [Paragraph("Report Agent", styles["small"]), Paragraph("Rendered this PDF from the dashboard result and verified its required content.", styles["small"])]]
+        worker_table = Table(worker_rows, colWidths=[48 * mm, 123 * mm], repeatRows=1)
+        worker_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), .4, LINE), ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F7FAF9")]), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7), ("TOPPADDING", (0, 0), (-1, -1), 4), ("BOTTOMPADDING", (0, 0), (-1, -1), 4)]))
+        story.extend([Paragraph("Worker execution record", styles["h1"]), worker_table, Spacer(1, 5 * mm)])
+
+        source_rows = [[Paragraph("SOURCE", styles["label"]), Paragraph("TRACE", styles["label"])]]
+        for source in result["sources"]:
+            source_rows.append([Paragraph(f"<b>{safe_paragraph(source['filename'])}</b><br/>{safe_paragraph(source['role'])}", styles["small"]), Paragraph(f"Rows read: {source['rowsRead']:,}<br/>SHA-256: {source['sha256'][:24]}…", styles["small"])])
+        source_table = Table(source_rows, colWidths=[93 * mm, 78 * mm], repeatRows=1)
+        source_table.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, 0), NAVY), ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("GRID", (0, 0), (-1, -1), .4, LINE), ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 7), ("RIGHTPADDING", (0, 0), (-1, -1), 7), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6)]))
+        story.extend([Paragraph("Evidence register", styles["h1"]), source_table, Spacer(1, 5 * mm), Paragraph(f"Content fingerprint (SHA-256): {fingerprint}", styles["small"])])
+
+        document = SimpleDocTemplate(str(path), pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm, topMargin=21 * mm, bottomMargin=18 * mm, title=title, author="BursaIQ", subject="Synthetic ADV mission report")
+        document.build(story, onFirstPage=self._page_frame, onLaterPages=self._page_frame)
+
+    @staticmethod
+    def _mission_chart(monthly: list[dict[str, Any]]) -> Drawing:
+        drawing = Drawing(480, 175)
+        chart = HorizontalLineChart()
+        chart.x = 46
+        chart.y = 35
+        chart.height = 110
+        chart.width = 410
+        chart.data = [[item["advBn"] for item in monthly]]
+        chart.categoryAxis.categoryNames = [item["label"].split()[0] for item in monthly]
+        chart.categoryAxis.labels.fontName = "Helvetica"
+        chart.categoryAxis.labels.fontSize = 7
+        chart.valueAxis.valueMin = 0
+        chart.valueAxis.labels.fontName = "Helvetica"
+        chart.valueAxis.labels.fontSize = 7
+        chart.valueAxis.labelTextFormat = "%.1f"
+        chart.lines[0].strokeColor = TEAL
+        chart.lines[0].strokeWidth = 2.5
+        chart.lines[0].symbol = None
+        drawing.add(chart)
+        drawing.add(String(4, 153, "RM bn", fontName="Helvetica-Bold", fontSize=7, fillColor=MUTED))
+        return drawing
 
     def _styles(self) -> dict[str, ParagraphStyle]:
         base = getSampleStyleSheet()

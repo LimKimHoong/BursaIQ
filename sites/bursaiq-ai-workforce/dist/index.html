@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071a34">
+  <meta name="description" content="BursaIQ — The Intelligence Exchange. A fully interactive enterprise AI workforce demo for Bursa Malaysia.">
+  <title>BursaIQ — The Intelligence Exchange</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/css/workforce.css?v=20261012-2">
+</head>
+<body>
+  <!--
+  THESIS: BursaIQ is an enterprise capability exchange, not a chatbot surrounded by dashboards.
+  OWN-WORLD: Deep Bursa navy navigation, pearl-blue work canvas, cobalt action, market-teal assurance, fine operational rules, and authored exchange-line geometry.
+  STORY: Begin with one universal command, delegate work to a visible AI team, verify its output, then exchange the approved capability across Bursa.
+  FIRST VIEWPORT: A dark 232px rail frames a light command centre: global search above, universal work composer and live mission brief in the main field, active agents and approvals in a narrow right rail.
+  FORM EXEMPTION EVIDENCE: Code-led under new-work §3. The user pinned the six-destination information architecture, the Assistant migration, and a five-screen enterprise layout family, so a randomized concept roll would contradict the supplied direction.
+  SIGNATURE: A traced handoff moves every mission through Research → Synthesis → Verification → Exchange; progress advances as a single left-to-right motion grammar.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+  -->
+  <div class="sr-only" aria-hidden="true"><span>Research Lab</span></div>
+
+  <svg class="symbol-library" aria-hidden="true">
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5.5V14h-5v6.5H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3.5 13.9 8l4.6 1.9-4.6 1.9L12 16.5l-1.9-4.7-4.6-1.9L10.1 8zM18.5 15l.9 2.2 2.1.8-2.1.9-.9 2.1-.9-2.1-2.1-.9 2.1-.8z"/></symbol>
+    <symbol id="i-agents" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 20v-2.2A4.8 4.8 0 0 1 8.3 13h1.4a4.8 4.8 0 0 1 4.8 4.8V20M16 5.5a3 3 0 0 1 0 5.8M17 13.5a4.5 4.5 0 0 1 3.5 4.3V20"/></symbol>
+    <symbol id="i-exchange" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/><path d="M10 6.5h4.5A3.5 3.5 0 0 1 18 10v1M14 17.5H9.5A3.5 3.5 0 0 1 6 14v-1"/></symbol>
+    <symbol id="i-automation" viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 12h3A4.5 4.5 0 0 0 16 7.5M11.5 12a4.5 4.5 0 0 1 4.5 4.5"/></symbol>
+    <symbol id="i-room" viewBox="0 0 24 24"><path d="M4 5.5h16v11H9l-5 4z"/><path d="M8 10h8M8 13h5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5h7l2 2h9v10.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-brief" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 20 6v5.8c0 4.5-3.1 7.7-8 9.2-4.9-1.5-8-4.7-8-9.2V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24"><path d="M8 3v5M16 3v5M6 8h12v2a6 6 0 0 1-5 5.9V21h-2v-5.1A6 6 0 0 1 6 10z"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.1h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.1v4H21a1.7 1.7 0 0 0-1.6 1z"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.6 2.6 0 0 1 5 1c0 2-2.6 2.3-2.6 4M12 18h.01"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3zM10 20h4"/></symbol>
+    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7zM11 14 21 3"/></symbol>
+    <symbol id="i-paperclip" viewBox="0 0 24 24"><path d="m9 12 5-5a3 3 0 0 1 4 4l-7 7a5 5 0 0 1-7-7l7-7"/></symbol>
+    <symbol id="i-research" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M10.5 7v7M7 10.5h7"/></symbol>
+    <symbol id="i-document" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 12h6M9 16h6"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24"><rect x="3" y="3" width="6" height="6" rx="1"/><rect x="15" y="15" width="6" height="6" rx="1"/><path d="M9 6h3a6 6 0 0 1 6 6v3"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11v17H6.5A2.5 2.5 0 0 0 4 22zM20 5.5A2.5 2.5 0 0 0 17.5 3H13v17h4.5a2.5 2.5 0 0 1 2.5 2z"/></symbol>
+    <symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9zM4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  </svg>
+
+  <a class="skip-link" href="#main-content">Skip to workspace</a>
+  <div class="app-shell" id="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Primary navigation">
+      <div class="brand" aria-label="BursaIQ home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <div><strong>Bursa<span>IQ</span></strong><small>The Intelligence Exchange</small></div>
+      </div>
+
+      <nav class="main-nav" aria-label="BursaIQ modules">
+        <button class="nav-link is-active" type="button" data-page="home"><svg><use href="#i-home"/></svg><span><strong>Home</strong><small>Your command centre</small></span></button>
+        <button class="nav-link" type="button" data-page="assistant"><svg><use href="#i-spark"/></svg><span><strong>AI Assistant</strong><small>Ask. Understand. Decide.</small></span></button>
+        <button class="nav-link" type="button" data-page="ask-bursa"><svg><use href="#i-book"/></svg><span><strong>Ask Bursa</strong><small>Internal knowledge Q&amp;A</small></span></button>
+        <button class="nav-link" type="button" data-page="workforce"><svg><use href="#i-agents"/></svg><span><strong>My Workforce</strong><small>Agents, tasks, missions</small></span><b>3</b></button>
+        <button class="nav-link" type="button" data-page="exchange"><svg><use href="#i-exchange"/></svg><span><strong>Intelligence Exchange</strong><small>Discover and share</small></span></button>
+
+        <span class="nav-separator" aria-hidden="true"></span>
+        <button class="nav-link nav-link-compact" type="button" data-page="action"><svg><use href="#i-check"/></svg><span><strong>Action</strong><small>Memory and email follow-ups</small></span><b id="action-nav-count">2</b></button>
+        <button class="nav-link nav-link-compact" type="button" data-page="verification"><svg><use href="#i-shield"/></svg><span><strong>Verification Centre</strong><small>Approvals and audit</small></span><b>2</b></button>
+        <button class="nav-link nav-link-compact" type="button" data-page="connectors"><svg><use href="#i-plug"/></svg><span><strong>Connectors</strong><small>M365 and internal apps</small></span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-link nav-link-compact" type="button" data-page="settings"><svg><use href="#i-settings"/></svg><span><strong>Settings</strong><small>Preferences and access</small></span></button>
+        <button class="nav-link nav-link-compact" type="button" data-demo-action="help"><svg><use href="#i-help"/></svg><span><strong>Help &amp; Support</strong><small>Guides and assistance</small></span></button>
+        <div class="impact-note"><strong>Creating Opportunities,<br>Growing Value.</strong><span>Intelligence Exchange</span><svg viewBox="0 0 180 80" aria-hidden="true"><path d="M0 72 30 48l18 12 34-44 24 24 22-12 52 44"/><path d="M20 72V42h22v30M82 72V28h25v44M128 72V40h31v32"/></svg></div>
+      </div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Open navigation" aria-expanded="false"><svg><use href="#i-menu"/></svg></button>
+        <button class="global-search" id="global-search" type="button"><svg><use href="#i-search"/></svg><span>Search knowledge, people, projects, or ask AI…</span><kbd>⌘ K</kbd></button>
+        <span class="demo-boundary" title="All people, activity, counts and operational states shown are illustrative"><svg><use href="#i-shield"/></svg><span>Synthetic demo</span></span>
+        <div class="top-actions">
+          <div class="create-wrap">
+            <button class="create-button" id="create-button" type="button" aria-label="Create" aria-expanded="false"><svg><use href="#i-plus"/></svg><span>Create</span><svg class="create-caret"><use href="#i-chevron"/></svg></button>
+            <div class="create-menu" id="create-menu" hidden>
+              <button type="button" data-create="mission"><span class="mini-icon blue"><svg><use href="#i-agents"/></svg></span><span><strong>New AI mission</strong><small>Delegate a multi-step outcome</small></span></button>
+              <button type="button" data-create="workflow"><span class="mini-icon violet"><svg><use href="#i-automation"/></svg></span><span><strong>New workflow</strong><small>Automate a repeatable process</small></span></button>
+              <button type="button" data-create="room"><span class="mini-icon teal"><svg><use href="#i-room"/></svg></span><span><strong>New room</strong><small>Bring people and agents together</small></span></button>
+              <button type="button" data-create="skill"><span class="mini-icon amber"><svg><use href="#i-cube"/></svg></span><span><strong>Teach a skill</strong><small>Publish reusable intelligence</small></span></button>
+            </div>
+          </div>
+          <button class="top-icon has-badge" type="button" data-demo-action="notifications" aria-label="Notifications"><svg><use href="#i-bell"/></svg><i>3</i></button>
+          <button class="top-icon" type="button" data-demo-action="apps" aria-label="Connected apps"><svg><use href="#i-grid"/></svg></button>
+          <button class="identity" type="button" data-demo-action="identity" aria-label="Open profile for Lim Kim Hoong"><span>KH</span><div><strong>Lim Kim Hoong</strong><small>Product Development</small></div><svg><use href="#i-chevron"/></svg></button>
+        </div>
+      </header>
+
+      <main id="main-content" tabindex="-1">
+        <div id="page-root" aria-live="polite"></div>
+      </main>
+    </div>
+  </div>
+
+  <div class="mobile-scrim" id="mobile-scrim"></div>
+  <div class="command-overlay" id="command-overlay" hidden>
+    <section class="command-palette" role="dialog" aria-modal="true" aria-labelledby="command-title">
+      <label id="command-title" for="command-input"><svg><use href="#i-search"/></svg><input id="command-input" type="search" placeholder="Find anything or ask BursaIQ…" autocomplete="off"><kbd>Esc</kbd></label>
+      <div class="command-results" id="command-results"></div>
+    </section>
+  </div>
+  <div class="experience-overlay" id="experience-overlay" hidden>
+    <section class="experience-sheet" role="dialog" aria-modal="true" aria-labelledby="experience-title">
+      <header class="experience-head">
+        <div><h2 id="experience-title">BursaIQ</h2><p id="experience-subtitle"></p></div>
+        <button class="experience-close" id="experience-close" type="button" aria-label="Close panel"><svg><use href="#i-plus"/></svg></button>
+      </header>
+      <div class="experience-body" id="experience-body"></div>
+      <footer class="experience-foot" id="experience-foot"></footer>
+    </section>
+  </div>
+  <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="/static/js/workforce.js?v=20261012-2"></script>
+</body>
+</html>

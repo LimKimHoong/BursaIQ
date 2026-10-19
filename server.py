@@ -28,6 +28,7 @@ from bursaiq.copilot_studio import (
 from bursaiq.data_loader import IngestionError, LocalDataRepository, ROLE_WORKSPACES
 from bursaiq.local_analysis import LocalAnalysisError, LocalAnalysisService, MAX_FILE_BYTES
 from bursaiq.metrics import MetricEngine
+from bursaiq.mission_engine import AdvMissionAnalyser, MissionRunner, MissionStore
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
@@ -47,6 +48,21 @@ reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 local_analysis = LocalAnalysisService()
+missions = MissionStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
+mission_runner = MissionRunner(
+    missions,
+    AdvMissionAnalyser(BASE_DIR / "input" / "market_trades_demo.csv", BASE_DIR / "input" / "investor_participation_demo.csv"),
+    reports.generate_mission,
+)
+_mission_fallback_cache: dict[str, Any] | None = None
+
+
+def mission_fallback_result() -> dict[str, Any]:
+    """Keep mission-backed routes usable when the optional legacy Input pack is absent."""
+    global _mission_fallback_cache
+    if _mission_fallback_cache is None:
+        _mission_fallback_cache = mission_runner.analyser.analyse("2026-01-01", "2026-09-30", [], lambda *_: None)
+    return _mission_fallback_cache
 
 DEMO_IDENTITIES = {
     "gcmc": "Nadia Karim",
@@ -145,7 +161,18 @@ def review_details(payload: dict[str, Any]) -> dict[str, Any]:
 
 def research_sources(query: str, role: str, limit: int = 6) -> list[dict[str, Any]]:
     """Retrieve a small role-filtered evidence set for a research run."""
-    loaded = repository.load()
+    try:
+        loaded = repository.load()
+    except IngestionError:
+        fallback = mission_fallback_result()
+        return [{
+            "id": f"mission-csv-{index}",
+            "title": source["filename"],
+            "filename": source["filename"],
+            "workspace": "market",
+            "owner": "BursaIQ mission data",
+            "excerpt": f"Synthetic source for {source['role']}; {source['rowsRead']:,} rows read and fingerprint retained.",
+        } for index, source in enumerate(fallback["sources"], start=1)][:limit]
     document_map = {document["id"]: document for document in loaded["documents"]}
     collected: dict[str, dict[str, Any]] = {}
     for workspace in sorted(ROLE_WORKSPACES.get(role, set())):
@@ -178,7 +205,16 @@ def research_sources(query: str, role: str, limit: int = 6) -> list[dict[str, An
 
 def fallback_research(query: str, sources: list[dict[str, Any]], depth: str) -> dict[str, Any]:
     """Provide a transparent demo dossier when the published agent is unavailable."""
-    headline = repository.load()["market"]["headline"]
+    try:
+        headline = repository.load()["market"]["headline"]
+    except IngestionError:
+        mission_result = mission_fallback_result()
+        headline = {
+            "fbmKLCI": 1638.2,
+            "klciMtdPct": mission_result["metrics"]["firstToLastChangePct"],
+            "adv30dBn": mission_result["metrics"]["lastMonthAdvMyr"] / 1_000_000_000,
+            "advPrior30dBn": mission_result["metrics"]["firstMonthAdvMyr"] / 1_000_000_000,
+        }
     market_topic = bool(set(query.lower().split()).intersection({"market", "klci", "adv", "liquidity", "sector", "trading"}))
     if market_topic:
         narrative = (
@@ -264,7 +300,10 @@ def home():
 
 @app.get("/api/health")
 def health():
-    loaded = repository.load()
+    try:
+        loaded = repository.load()
+    except IngestionError as error:
+        loaded = {"documents": [], "meta": {"ingestionErrors": [{"source": "Input/manifest.json", "error": str(error)}]}}
     return jsonify({
         "status": "ok",
         "version": "3.0.0-copilot-studio",
@@ -281,7 +320,14 @@ def health():
 @app.get("/api/bootstrap")
 def bootstrap():
     role = str(request.args.get("role", "")).lower()
-    payload = repository.public_bootstrap()
+    try:
+        payload = repository.public_bootstrap()
+    except IngestionError as error:
+        payload = {
+            "meta": {"classification": "SYNTHETIC_DEMO_ONLY", "datasetLabel": "ADV mission CSV fallback", "ingestionErrors": [{"source": "Input/manifest.json", "error": str(error)}]},
+            "market": {},
+            "documents": [],
+        }
     assigned, requested, accessible = verification_access_scope(role)
     payload["verification"] = accessible
     payload["verificationAssigned"] = assigned
@@ -333,10 +379,130 @@ def metric_query():
     role = bounded_text(payload, "role", 30).lower()
     if "market" not in ROLE_WORKSPACES.get(role, set()):
         return jsonify({"error": "The active demo identity cannot access GCMC market metrics."}), 403
-    result = MetricEngine(repository.load()["market"]).query(question)
+    try:
+        result = MetricEngine(repository.load()["market"]).query(question)
+    except IngestionError:
+        mission_result = mission_fallback_result()
+        result = {
+            "intent": "average_daily_value",
+            "facts": {
+                "periodAdvBn": mission_result["metrics"]["periodAdvBn"],
+                "changePct": mission_result["metrics"]["firstToLastChangePct"],
+                "tradingDays": mission_result["metrics"]["tradingDays"],
+            },
+            "answer": mission_result["findings"],
+            "formula": mission_result["formula"],
+            "sources": mission_result["sources"],
+            "fallbackReason": "The optional legacy Input pack is unavailable; figures were recomputed from the two mission CSVs.",
+        }
     result["classification"] = "SYNTHETIC_DEMO_ONLY"
     result["calculationMode"] = "deterministic"
     return jsonify(result)
+
+
+def mission_request(payload: dict[str, Any]) -> dict[str, Any]:
+    """Validate the fixed competition mission contract without accepting arbitrary jobs."""
+    title = bounded_text(payload, "title", 140, required=False) or "Malaysia Equity Market ADV Intelligence Report"
+    objective = bounded_text(payload, "objective", 1000, required=False) or (
+        "Analyse Malaysia's equity market Average Daily Trading Value (ADV), explain key shifts, "
+        "visualise important patterns and prepare an executive report for review."
+    )
+    requested_by = bounded_text(payload, "requestedBy", 100, required=False) or "Lim Kim Hoong"
+    date_start = bounded_text(payload, "dateStart", 10, required=False) or "2026-01-01"
+    date_end = bounded_text(payload, "dateEnd", 10, required=False) or "2026-09-30"
+    try:
+        start = datetime.strptime(date_start, "%Y-%m-%d").date()
+        end = datetime.strptime(date_end, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ValueError("dateStart and dateEnd must use YYYY-MM-DD.") from exc
+    if end < start:
+        raise ValueError("dateEnd must be on or after dateStart.")
+    boards = payload.get("boards", [])
+    if not isinstance(boards, list) or not all(isinstance(item, str) for item in boards):
+        raise ValueError("boards must be a list of market-board names.")
+    allowed = {"MAIN MARKET", "ACE MARKET", "LEAP MARKET", "SECOND BOARD", "STRCWARR", "EXCHANGE TRADED", "LOANS"}
+    selected = sorted({item.strip().upper() for item in boards if item.strip()})
+    if set(selected) - allowed:
+        raise ValueError("boards contains an unsupported market-board name.")
+    return {"title": title, "objective": objective, "requestedBy": requested_by, "dateStart": start.isoformat(), "dateEnd": end.isoformat(), "boards": selected}
+
+
+@app.get("/api/missions")
+def list_missions():
+    return jsonify({"missions": missions.list()})
+
+
+@app.post("/api/missions")
+def create_mission():
+    mission = missions.create(mission_request(body_json()))
+    return jsonify(mission), 201
+
+
+@app.get("/api/missions/<mission_id>")
+def get_mission(mission_id: str):
+    try:
+        return jsonify(missions.get(mission_id))
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+
+
+@app.post("/api/missions/<mission_id>/run")
+def run_mission(mission_id: str):
+    try:
+        mission = mission_runner.start(mission_id)
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+    return jsonify(mission), 202
+
+
+@app.post("/api/missions/<mission_id>/rerun")
+def rerun_mission(mission_id: str):
+    try:
+        prior = missions.get(mission_id)
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+    override = body_json()
+    request_payload = mission_request({
+        "title": override.get("title") or prior["title"],
+        "objective": prior["objective"],
+        "requestedBy": prior["requestedBy"],
+        "dateStart": override.get("dateStart") or prior["dateStart"],
+        "dateEnd": override.get("dateEnd") or prior["dateEnd"],
+        "boards": override.get("boards") if "boards" in override else prior["boards"],
+    })
+    mission = missions.create(request_payload)
+    mission_runner.start(mission["id"])
+    return jsonify(missions.get(mission["id"])), 201
+
+
+@app.post("/api/missions/<mission_id>/submit-review")
+def submit_mission_review(mission_id: str):
+    try:
+        mission = missions.get(mission_id)
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+    if mission["status"] not in {"DRAFT READY", "REVISION REQUESTED"} or not mission.get("result"):
+        return jsonify({"error": "Only a completed draft can be submitted for review."}), 409
+    if mission.get("verificationCaseId"):
+        return jsonify({"mission": mission, "verification": verification.get_case(mission["verificationCaseId"])})
+    result = mission["result"]
+    case = verification.create_case(
+        mission["title"],
+        "GCMC",
+        mission["requestedBy"],
+        mission.get("reportFilename"),
+        details={
+            "question": mission["objective"],
+            "answerTitle": mission["title"],
+            "answerText": " ".join(result.get("findings", [])),
+            "formula": result.get("formula", ""),
+            "context": result.get("scope", {}),
+            "sources": [{"title": item["filename"], "filename": item["filename"], "owner": "BursaIQ demo input", "detail": item["role"]} for item in result.get("sources", [])],
+        },
+    )
+    missions.update(mission_id, status="AWAITING REVIEW", current_worker="mission-manager", verification_case_id=case["id"])
+    missions.event(mission_id, "mission-manager", "AWAITING REVIEW", "Immutable draft snapshot submitted to the Market Intelligence Lead.", {"verificationCaseId": case["id"]})
+    return jsonify({"mission": missions.get(mission_id), "verification": case}), 201
 
 
 @app.post("/api/chat")
@@ -554,7 +720,13 @@ def review_verification(case_id: str):
         existing = verification.get_case(case_id)
         if not reviewer_can_access(existing, role):
             return jsonify({"error": "This verification case is not assigned to the active reviewer."}), 403
-        case = verification.update_status(case_id, bounded_text(payload, "status", 30), DEMO_IDENTITIES.get(role, "Demo reviewer"))
+        requested_status = bounded_text(payload, "status", 30)
+        case = verification.update_status(case_id, requested_status, DEMO_IDENTITIES.get(role, "Demo reviewer"))
+        mission = missions.by_verification_case(case_id)
+        if mission:
+            mission_status = "APPROVED" if requested_status == "Approved" else "REVISION REQUESTED"
+            missions.update(mission["id"], status=mission_status, current_worker="mission-manager")
+            missions.event(mission["id"], "mission-manager", mission_status, f"Human review recorded: {requested_status}.", {"verificationCaseId": case_id, "reviewer": DEMO_IDENTITIES.get(role, "Demo reviewer")})
     except KeyError:
         return jsonify({"error": "Verification case not found."}), 404
     return jsonify(case)

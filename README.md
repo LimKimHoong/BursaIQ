@@ -28,6 +28,7 @@ Email Automation is a browser-local demo: no email delivery, scheduler, live ref
 - **Human verification:** every identity can track the status of requests they submitted, while reviewer identities receive a separate assigned queue for inspecting, approving or returning outstanding cases. The Stage 02 demo persists decisions in a local SQLite audit queue.
 - **Expanded Source Health:** every identity can inspect freshness, quality, usage, accountable updater, next review date and overall health for sources permitted to their workspaces.
 - **Real PDF export:** ReportLab generates a two-page executive briefing; pypdf verifies that it opens and contains the title, evidence register and synthetic-data label.
+- **Executable AI Workforce mission:** My Workforce runs the supplied January–September 2026 equity ADV mission against `input/market_trades_demo.csv` and `input/investor_participation_demo.csv`. The backend persists every run, executes five visible worker stages, records timings and source fingerprints, supports adjustable date and board scope, and routes the exact dashboard result into a verified PDF and human approval queue.
 - **No local inference stack:** Ollama, Transformers and downloadable model weights are not used by BursaIQ.
 
 ## Run the demo
@@ -44,6 +45,16 @@ cp .env.example .env
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
 
 No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, Local Analysis uploads, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
+
+### Run the ADV mission
+
+1. Open **My Workforce** and choose **Configure mission**.
+2. Keep the default `2026-01-01` to `2026-09-30` window or choose a narrower period and board scope.
+3. Run the mission and open its ledger to watch the Mission Manager, Data, Analysis, Insight and Report workers complete with evidence.
+4. Inspect the dashboard, calculation trace and generated PDF, then submit it to **Verification Centre**.
+5. Approve it with the Securities Market reviewer identity, or request changes. Use **Rerun with new dates** and start at `2026-04-01` to demonstrate real recomputation.
+
+The mission is deterministic and remains usable with no Copilot or external AI connection. The supplied CSVs and every output are explicitly labelled synthetic demonstration data.
 
 ## Suggested five-minute showcase
 
@@ -124,9 +135,11 @@ static/js/app.js           Workspace state and interactions
 bursaiq/data_loader.py     Excel/PDF/JSON ingestion and local retrieval
 bursaiq/metrics.py         Governed GCMC calculation tools
 bursaiq/store.py           SQLite verification/audit queue
+bursaiq/mission_engine.py  Persisted ADV mission orchestration and calculations
 bursaiq/reporting.py       PDF generation and validation
 bursaiq/copilot_studio.py  Anonymous Direct Line and Copilot Studio gateway
 Input/                     Controlled synthetic source pack
+input/                     Competition mission CSV inputs
 output/pdf/                Generated briefings
 runtime/                   Local demo database
 ```
