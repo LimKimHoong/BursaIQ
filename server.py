@@ -6,6 +6,7 @@ Open:     http://127.0.0.1:5000
 
 from __future__ import annotations
 
+import json
 import os
 import re
 from datetime import datetime, timezone
@@ -29,6 +30,7 @@ from bursaiq.data_loader import IngestionError, LocalDataRepository, ROLE_WORKSP
 from bursaiq.local_analysis import LocalAnalysisError, LocalAnalysisService, MAX_FILE_BYTES
 from bursaiq.metrics import MetricEngine
 from bursaiq.mission_engine import AdvMissionAnalyser, MissionRunner, MissionStore
+from bursaiq.model_providers import ModelConfigurationError, ModelRequestError, OllamaService
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
@@ -47,6 +49,7 @@ repository = LocalDataRepository(INPUT_DIR)
 reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
+ollama = OllamaService()
 local_analysis = LocalAnalysisService()
 missions = MissionStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 mission_runner = MissionRunner(
@@ -293,6 +296,17 @@ def copilot_request_error(error):
     return jsonify({"error": str(error), "type": "copilot_request", "agent": copilot.status()}), 502
 
 
+@app.errorhandler(ModelConfigurationError)
+def model_configuration_error(error):
+    return jsonify({"error": str(error), "type": "model_configuration"}), 503
+
+
+@app.errorhandler(ModelRequestError)
+def model_request_error(error):
+    app.logger.error("Language model request failed: %s", error)
+    return jsonify({"error": str(error), "type": "model_request"}), 502
+
+
 @app.get("/")
 def home():
     return send_from_directory(BASE_DIR, "index.html")
@@ -312,6 +326,7 @@ def health():
         "sources": len(loaded["documents"]),
         "ingestionErrors": loaded["meta"]["ingestionErrors"],
         "agent": copilot.status(),
+        "modelProviders": [ollama.status(), {**copilot.status(), "id": "copilot", "label": "Microsoft Copilot Studio"}],
         "pdf": "reportlab",
         "verification": "sqlite",
     })
@@ -425,6 +440,90 @@ def mission_request(payload: dict[str, Any]) -> dict[str, Any]:
     if set(selected) - allowed:
         raise ValueError("boards contains an unsupported market-board name.")
     return {"title": title, "objective": objective, "requestedBy": requested_by, "dateStart": start.isoformat(), "dateEnd": end.isoformat(), "boards": selected}
+
+
+def parse_intent_route(text: str) -> dict[str, Any]:
+    """Validate the model's routing envelope without inferring intent locally."""
+    candidate = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", candidate, re.IGNORECASE | re.DOTALL)
+    if fenced:
+        candidate = fenced.group(1)
+    else:
+        start, end = candidate.find("{"), candidate.rfind("}")
+        if start >= 0 and end > start:
+            candidate = candidate[start:end + 1]
+    try:
+        route = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise ModelRequestError("The selected model returned an invalid routing response.") from exc
+    if not isinstance(route, dict) or route.get("route") not in {"assistant", "mission"}:
+        raise ModelRequestError("The selected model returned an unsupported route.")
+    reason = str(route.get("reason") or "").strip()[:240]
+    if route["route"] == "assistant":
+        return {"route": "assistant", "reason": reason}
+    if str(route.get("missionType") or "").strip() != "adv-analysis":
+        return {"route": "assistant", "reason": reason or "The requested task is not supported by the available executable mission."}
+    title = str(route.get("title") or "Malaysia Equity Market ADV Intelligence Report").strip()[:140]
+    objective = str(route.get("objective") or "").strip()[:1000]
+    if not objective:
+        raise ModelRequestError("The selected model did not provide a mission objective.")
+    return {"route": "mission", "missionType": "adv-analysis", "title": title, "objective": objective, "reason": reason}
+
+
+@app.post("/api/intent-route")
+def intent_route():
+    """Use the live language model to route a free-form command by meaning."""
+    payload = body_json()
+    command = bounded_text(payload, "command", 1000)
+    provider = bounded_text(payload, "provider", 30, required=False).lower() or "ollama"
+    if provider not in {"ollama", "copilot"}:
+        raise ValueError("provider must be ollama or copilot.")
+    prompt = f"""You are the intent router for BursaIQ. Decide from the user's meaning, not keyword matching.
+
+Available routes:
+- assistant: questions, explanations, comparisons, unsupported tasks, and anything that should not execute work.
+- mission: only a request to execute a multi-step Malaysia equity Average Daily Trading Value (ADV) analysis using the governed market-trades and investor-participation datasets, including validation, calculation, insights, and a PDF report.
+
+Do not route a mere question about ADV to mission unless the user asks BursaIQ to carry out that multi-step deliverable. Never claim other mission types are available.
+
+Return JSON only. For assistant:
+{{"route":"assistant","reason":"brief reason"}}
+For mission:
+{{"route":"mission","missionType":"adv-analysis","title":"concise title","objective":"faithful executable objective","reason":"brief reason"}}
+
+User command:
+{json.dumps(command, ensure_ascii=False)}"""
+    if provider == "ollama":
+        local_reply = ollama.ask(prompt)
+        reply_text = local_reply.text
+        request_id = local_reply.request_id
+        routed_by = "ollama-local-language-model"
+    else:
+        copilot_reply = copilot.ask(prompt)
+        reply_text = copilot_reply.text
+        request_id = copilot_reply.conversation_id
+        routed_by = "copilot-studio-language-model"
+    route = parse_intent_route(reply_text)
+    route.update({"provider": provider, "routedBy": routed_by, "modelRequestId": request_id})
+    return jsonify(route)
+
+
+@app.get("/api/model-providers")
+def model_providers():
+    copilot_status = copilot.status()
+    return jsonify({"providers": [
+        ollama.status(check_connection=True),
+        {
+            "id": "copilot",
+            "label": "Microsoft Copilot Studio",
+            "provider": copilot_status["provider"],
+            "model": "Company-managed agent",
+            "configured": copilot_status["configured"],
+            "available": copilot_status["available"],
+            "dataBoundary": "Microsoft Copilot Studio",
+            "error": copilot_status["error"],
+        },
+    ]})
 
 
 @app.get("/api/missions")

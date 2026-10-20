@@ -14,12 +14,22 @@
   var experienceBody = document.getElementById("experience-body");
   var experienceFoot = document.getElementById("experience-foot");
   var lastFocusedControl = null;
+  function storedRoutingProvider() {
+    try {
+      var saved = window.localStorage.getItem("bursaiq-routing-provider");
+      return saved === "copilot" ? "copilot" : "ollama";
+    } catch (_error) {
+      return "ollama";
+    }
+  }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var state = {
     page: requestedPage,
     exchangeCategory: "featured",
     homeAssetCategory: "Featured",
+    routingProvider: storedRoutingProvider(),
+    modelProviders: [],
     assistantMessages: [],
     assistantCanvasTab: "plot",
     askBursaMessages: [],
@@ -134,6 +144,21 @@
     });
   }
 
+  function loadModelProviders() {
+    return apiJson("/api/model-providers").then(function (payload) {
+      state.modelProviders = payload.providers || [];
+      if (state.page === "home" || state.page === "settings") render();
+    }).catch(function () {
+      state.modelProviders = [];
+    });
+  }
+
+  function routingProviderControl() {
+    var selected = state.modelProviders.filter(function (item) { return item.id === state.routingProvider; })[0];
+    var availability = selected ? selected.available === true ? "Ready" : selected.available === false ? "Unavailable" : "Not checked" : "Checking";
+    return '<label class="router-provider"><span>Route with</span><select id="routing-provider" aria-label="Language model for semantic routing"><option value="ollama"' + (state.routingProvider === "ollama" ? " selected" : "") + '>Local model · Ollama</option><option value="copilot"' + (state.routingProvider === "copilot" ? " selected" : "") + '>Microsoft Copilot Studio</option></select><small class="' + (availability === "Unavailable" ? "is-error" : "") + '">' + escapeHtml(availability) + '</small></label>';
+  }
+
   function loadMissions(quiet) {
     if (!quiet) {
       state.missionLoading = true;
@@ -221,7 +246,7 @@
       "</section>",
       '<section class="panel command-centre"><h2>What would you like to accomplish today?</h2><div class="command-box">',
       '<textarea id="home-command" aria-label="Describe what you want BursaIQ to do" placeholder="Ask a question, delegate a task, find knowledge, or describe what you want to build…"></textarea>',
-      '<div class="command-tools"><div class="command-tools-left"><button class="tool-button" type="button" data-demo-action="attach">' + svg("i-paperclip") + 'Attach</button><button class="tool-button" type="button" data-assistant-prompt="Research our options for a new cross-department initiative">' + svg("i-research") + 'Deep Research</button><button class="tool-button" type="button" data-page-jump="automation">' + svg("i-flow") + 'Build workflow</button><button class="tool-button" type="button" data-page-jump="exchange">' + svg("i-book") + 'Search Exchange</button></div><button class="send-button" id="home-send" type="button" aria-label="Start with BursaIQ">' + svg("i-send") + "</button></div>",
+      '<div class="command-tools"><div class="command-tools-left">' + routingProviderControl() + '<button class="tool-button" type="button" data-demo-action="attach">' + svg("i-paperclip") + 'Attach</button><button class="tool-button" type="button" data-assistant-prompt="Research our options for a new cross-department initiative">' + svg("i-research") + 'Deep Research</button><button class="tool-button" type="button" data-page-jump="automation">' + svg("i-flow") + 'Build workflow</button><button class="tool-button" type="button" data-page-jump="exchange">' + svg("i-book") + 'Search Exchange</button></div><button class="send-button" id="home-send" type="button" aria-label="Start with BursaIQ">' + svg("i-send") + "</button></div>",
       "</div></section>",
       '<div class="quick-actions">' + quick.map(function (item) {
         return '<button class="quick-action" type="button" data-page-jump="' + item[4] + '">' + miniIcon(item[0], item[1]) + '<span><strong>' + item[2] + '</strong><small>' + item[3] + "</small></span></button>";
@@ -840,6 +865,38 @@
     });
   }
 
+  function routeHomeCommand(command) {
+    var button = document.getElementById("home-send");
+    if (button) {
+      button.disabled = true;
+      button.setAttribute("aria-label", "BursaIQ is routing your request");
+    }
+    return apiJson("/api/intent-route", {
+      method: "POST",
+      body: JSON.stringify({ command: command, provider: state.routingProvider })
+    }).then(function (decision) {
+      if (decision.route === "mission") {
+        openCreation("mission");
+        var form = document.getElementById("creation-form");
+        if (form) {
+          form.elements.title.value = decision.title;
+          form.elements.description.value = decision.objective;
+        }
+        toast("Live model routed this to My Workforce", decision.reason || "Review the mission scope, then start the governed run.");
+        return;
+      }
+      state.assistantMessages = [];
+      navigate("assistant");
+      window.setTimeout(function () { submitAssistant(command); }, 80);
+    }).catch(function (error) {
+      toast("Live routing unavailable", error.message + " No keyword fallback was used.");
+      if (button) {
+        button.disabled = false;
+        button.setAttribute("aria-label", "Start with BursaIQ");
+      }
+    });
+  }
+
   function completeCreation(form) {
     var data = new FormData(form);
     var type = form.dataset.creationType;
@@ -1156,15 +1213,21 @@
       button.addEventListener("click", function () { state.homeAssetCategory = button.dataset.homeAssetType; render(); });
     });
 
+    var routingProvider = document.getElementById("routing-provider");
+    if (routingProvider) {
+      routingProvider.addEventListener("change", function () {
+        state.routingProvider = routingProvider.value;
+        try { window.localStorage.setItem("bursaiq-routing-provider", state.routingProvider); } catch (_error) {}
+        render();
+      });
+    }
     var homeSend = document.getElementById("home-send");
     if (homeSend) {
       homeSend.addEventListener("click", function () {
         var input = document.getElementById("home-command");
         var value = input.value.trim();
         if (!value) value = "Prepare a product launch readiness brief";
-        state.assistantMessages = [];
-        navigate("assistant");
-        window.setTimeout(function () { submitAssistant(value); }, 80);
+        routeHomeCommand(value);
       });
     }
 
@@ -1675,4 +1738,5 @@
 
   render();
   loadMissions(false);
+  loadModelProviders();
 })();

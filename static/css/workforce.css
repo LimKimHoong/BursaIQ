@@ -205,6 +205,11 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .command-box textarea::placeholder { color: #8390a8; }
 .command-tools { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .command-tools-left { display: flex; align-items: center; gap: 4px; }
+.router-provider { display: grid; grid-template-columns: auto auto; align-items: center; gap: 1px 6px; margin-right: 4px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: #f7f9fc; }
+.router-provider > span { grid-row: 1; color: var(--ink-3); font-size: 9px; font-weight: 760; text-transform: uppercase; letter-spacing: .05em; }
+.router-provider select { grid-row: 2; min-width: 156px; border: 0; outline: 0; color: var(--ink); background: transparent; font-size: 10px; font-weight: 720; }
+.router-provider small { grid-column: 2; grid-row: 1; justify-self: end; color: var(--green); font-size: 9px; font-weight: 720; }
+.router-provider small.is-error { color: var(--red); }
 .tool-button { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; border-radius: 7px; padding: 0 8px; color: #415575; background: transparent; cursor: pointer; font-size: 10.5px; }
 .tool-button:hover { color: var(--blue); background: var(--blue-soft); }
 .tool-button svg { width: 15px; height: 15px; }

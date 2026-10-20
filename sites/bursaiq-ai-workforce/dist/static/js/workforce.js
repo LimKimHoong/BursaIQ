@@ -2,6 +2,7 @@
   "use strict";
 
   var root = document.getElementById("page-root");
+  var appShell = document.getElementById("app-shell");
   var createButton = document.getElementById("create-button");
   var createMenu = document.getElementById("create-menu");
   var commandOverlay = document.getElementById("command-overlay");
@@ -13,12 +14,22 @@
   var experienceBody = document.getElementById("experience-body");
   var experienceFoot = document.getElementById("experience-foot");
   var lastFocusedControl = null;
+  function storedRoutingProvider() {
+    try {
+      var saved = window.localStorage.getItem("bursaiq-routing-provider");
+      return saved === "copilot" ? "copilot" : "ollama";
+    } catch (_error) {
+      return "ollama";
+    }
+  }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var state = {
     page: requestedPage,
     exchangeCategory: "featured",
     homeAssetCategory: "Featured",
+    routingProvider: storedRoutingProvider(),
+    modelProviders: [],
     assistantMessages: [],
     assistantCanvasTab: "plot",
     askBursaMessages: [],
@@ -38,7 +49,13 @@
     workspaceView: "projects",
     verificationFilter: "pending",
     notificationCount: 3,
-    reducedUpdates: false
+    reducedUpdates: false,
+    liveMissions: [],
+    missionLoading: true,
+    missionError: "",
+    selectedMissionId: null,
+    selectedVerificationMissionId: null,
+    missionPoll: null
   };
 
   var pages = {
@@ -74,6 +91,14 @@
     { title: "Cross-Department Meeting Prep", subtitle: "Market strategy working group", agents: ["RA", "KA", "RP"], progress: 91, stage: "Await approval", due: "Today", status: "Waiting review" }
   ];
 
+  var missionAgents = [
+    { name: "Mission Manager", initials: "MM", tone: "violet", job: "Validates scope, dependencies and review gates", state: "Ready" },
+    { name: "Data Agent", initials: "DA", tone: "blue", job: "Validates CSV schema, quality and eligible coverage", state: "Ready" },
+    { name: "Analysis Agent", initials: "AA", tone: "teal", job: "Calculates ADV, trends and contributions", state: "Ready" },
+    { name: "Insight Agent", initials: "IA", tone: "amber", job: "Writes bounded observations from verified metrics", state: "Ready" },
+    { name: "Report Agent", initials: "RA", tone: "blue", job: "Builds and validates the executive PDF", state: "Ready" }
+  ];
+
   var assets = [
     { title: "Policy Review Agent", type: "AI Agent", icon: "i-spark", tone: "blue", description: "Analyses policies and regulatory updates with cited recommendations.", owner: "Legal & Compliance", uses: "428 uses", verified: true },
     { title: "Board Pack Generator", type: "Workflow", icon: "i-automation", tone: "violet", description: "Creates board-ready materials from approved sources and structured inputs.", owner: "Corporate Secretariat", uses: "312 uses", verified: true },
@@ -106,6 +131,70 @@
     return String(value).replace(/[&<>"']/g, function (char) {
       return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
     });
+  }
+
+  function apiJson(url, options) {
+    var request = options || {};
+    request.headers = Object.assign({ "Content-Type": "application/json" }, request.headers || {});
+    return fetch(url, request).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (payload) {
+        if (!response.ok) throw new Error(payload.error || "The mission service could not complete this request.");
+        return payload;
+      });
+    });
+  }
+
+  function loadModelProviders() {
+    return apiJson("/api/model-providers").then(function (payload) {
+      state.modelProviders = payload.providers || [];
+      if (state.page === "home" || state.page === "settings") render();
+    }).catch(function () {
+      state.modelProviders = [];
+    });
+  }
+
+  function routingProviderControl() {
+    var selected = state.modelProviders.filter(function (item) { return item.id === state.routingProvider; })[0];
+    var availability = selected ? selected.available === true ? "Ready" : selected.available === false ? "Unavailable" : "Not checked" : "Checking";
+    return '<label class="router-provider"><span>Route with</span><select id="routing-provider" aria-label="Language model for semantic routing"><option value="ollama"' + (state.routingProvider === "ollama" ? " selected" : "") + '>Local model · Ollama</option><option value="copilot"' + (state.routingProvider === "copilot" ? " selected" : "") + '>Microsoft Copilot Studio</option></select><small class="' + (availability === "Unavailable" ? "is-error" : "") + '">' + escapeHtml(availability) + '</small></label>';
+  }
+
+  function loadMissions(quiet) {
+    if (!quiet) {
+      state.missionLoading = true;
+      state.missionError = "";
+      if (state.page === "workforce" || state.page === "verification") render();
+    }
+    return apiJson("/api/missions").then(function (payload) {
+      state.liveMissions = payload.missions || [];
+      state.missionLoading = false;
+      state.missionError = "";
+      if (state.page === "workforce" || state.page === "verification") render();
+      return state.liveMissions;
+    }).catch(function (error) {
+      state.missionLoading = false;
+      state.missionError = error.message;
+      if (state.page === "workforce" || state.page === "verification") render();
+      return [];
+    });
+  }
+
+  function missionById(id) {
+    return state.liveMissions.filter(function (mission) { return mission.id === id; })[0];
+  }
+
+  function missionDisplayStatus(value) {
+    return String(value || "PLANNED").replace(/_/g, " ").toLowerCase().replace(/^./, function (letter) { return letter.toUpperCase(); });
+  }
+
+  function missionStatus(value) {
+    var label = missionDisplayStatus(value);
+    var tone = value === "APPROVED" || value === "DRAFT READY" ? "green" : value === "FAILED" || value === "REVISION REQUESTED" ? "red" : value === "AWAITING REVIEW" ? "amber" : "blue";
+    return '<span class="status ' + tone + '">' + escapeHtml(label) + '</span>';
+  }
+
+  function formatMoneyBn(value) {
+    return "RM" + (Number(value || 0) / 1000000000).toFixed(2) + "bn";
   }
 
   function status(label) {
@@ -157,7 +246,7 @@
       "</section>",
       '<section class="panel command-centre"><h2>What would you like to accomplish today?</h2><div class="command-box">',
       '<textarea id="home-command" aria-label="Describe what you want BursaIQ to do" placeholder="Ask a question, delegate a task, find knowledge, or describe what you want to build…"></textarea>',
-      '<div class="command-tools"><div class="command-tools-left"><button class="tool-button" type="button" data-demo-action="attach">' + svg("i-paperclip") + 'Attach</button><button class="tool-button" type="button" data-assistant-prompt="Research our options for a new cross-department initiative">' + svg("i-research") + 'Deep Research</button><button class="tool-button" type="button" data-page-jump="automation">' + svg("i-flow") + 'Build workflow</button><button class="tool-button" type="button" data-page-jump="exchange">' + svg("i-book") + 'Search Exchange</button></div><button class="send-button" id="home-send" type="button" aria-label="Start with BursaIQ">' + svg("i-send") + "</button></div>",
+      '<div class="command-tools"><div class="command-tools-left">' + routingProviderControl() + '<button class="tool-button" type="button" data-demo-action="attach">' + svg("i-paperclip") + 'Attach</button><button class="tool-button" type="button" data-assistant-prompt="Research our options for a new cross-department initiative">' + svg("i-research") + 'Deep Research</button><button class="tool-button" type="button" data-page-jump="automation">' + svg("i-flow") + 'Build workflow</button><button class="tool-button" type="button" data-page-jump="exchange">' + svg("i-book") + 'Search Exchange</button></div><button class="send-button" id="home-send" type="button" aria-label="Start with BursaIQ">' + svg("i-send") + "</button></div>",
       "</div></section>",
       '<div class="quick-actions">' + quick.map(function (item) {
         return '<button class="quick-action" type="button" data-page-jump="' + item[4] + '">' + miniIcon(item[0], item[1]) + '<span><strong>' + item[2] + '</strong><small>' + item[3] + "</small></span></button>";
@@ -471,23 +560,23 @@
   }
 
   function workforcePage() {
+    var active = state.liveMissions.filter(function (mission) { return ["APPROVED", "FAILED"].indexOf(mission.status) === -1; });
+    var awaiting = state.liveMissions.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
+    var completed = state.liveMissions.filter(function (mission) { return ["DRAFT READY", "APPROVED"].indexOf(mission.status) !== -1; });
+    var missionRows = state.missionLoading ? '<tr><td colspan="7"><div class="mission-empty"><strong>Loading mission history…</strong><span>Connecting to the local mission service.</span></div></td></tr>' :
+      state.missionError ? '<tr><td colspan="7"><div class="mission-empty is-error"><strong>Mission service unavailable</strong><span>' + escapeHtml(state.missionError) + ' Start the Flask service, then retry.</span><button class="secondary-button" type="button" data-mission-refresh>Retry</button></div></td></tr>' :
+      state.liveMissions.length ? state.liveMissions.map(missionRow).join("") : '<tr><td colspan="7"><div class="mission-empty"><strong>No live missions yet</strong><span>Run the prepared ADV mission to create a persisted execution record.</span></div></td></tr>';
     return [
       '<section class="page page-enter">',
-      pageHead("My Workforce", "Your personal AI team, active missions and accountable work.", "Create mission", "mission"),
+      pageHead("My Workforce", "Run one traceable market-intelligence mission from approved synthetic data.", "Configure mission", "mission"),
+      '<section class="mission-launch panel"><div class="mission-launch-copy"><h2>Malaysia Equity Market ADV Intelligence Report</h2><p>Deterministic mission · two approved synthetic CSV files · human review required.</p><form class="mission-inline-intake" id="mission-inline-form" data-creation-type="mission"><input type="hidden" name="title" value="Malaysia Equity Market ADV Intelligence Report"><label><small>Objective</small><input name="description" maxlength="1000" value="Explain Malaysia equity-market ADV and key shifts" required></label><label><small>Start date</small><input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label><small>End date</small><input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label><label><small>Source scope</small><select name="scope"><option value="all">2 CSVs · all boards</option><option value="MAIN MARKET">Main Market only</option><option value="ACE MARKET">ACE Market only</option></select></label><label><small>Report output</small><select name="output"><option>Dashboard + chart + verified PDF</option></select></label></form></div><div class="mission-launch-action"><strong>Ready to run locally</strong><small>Edit the mission contract here, then start the persisted five-worker run.</small><p class="form-error" hidden></p><button class="primary-button" type="submit" form="mission-inline-form">Run mission</button></div></section>',
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' +
-      metric("i-agents", "blue", String(missions.length), "Active missions", "↑ 2 from last week") +
-      metric("i-shield", "violet", "3", "Pending approvals", "1 needs attention") +
-      metric("i-spark", "blue", "6", "AI agents working", "↑ 2 this week") +
-      metric("i-check", "teal", "12", "Completed this week", "↑ 33% from last week") +
-      "</div>",
-      '<section class="panel">' + panelHead("My AI Team", "i-agents", "manage-agents") + '<div class="agent-team"><div class="agent-cards">' + agents.map(agentCard).join("") + "</div></div></section>",
-      '<section class="panel">' + panelHead("Mission Control", "i-flow", "missions") + '<div class="table-wrap"><table class="mission-table"><thead><tr><th>Mission</th><th>Agents</th><th>Progress</th><th>Current stage</th><th>Due</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missions.map(missionRow).join("") + "</tbody></table></div>",
-      '<div class="journey-wrap"><div class="mission-journey"><div class="journey-step is-done" data-step="1"><strong>Research</strong>Retrieve governed sources</div><div class="journey-step is-done" data-step="2"><strong>Synthesis</strong>Analyse and draft</div><div class="journey-step is-active" data-step="3"><strong>Verification</strong>Fact-check and approve</div><div class="journey-step" data-step="4"><strong>Exchange</strong>Share or deliver</div></div></div></section>',
+      '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>5</b> controlled workers</span><span><b>' + completed.length + '</b> completed</span><em>Persisted locally · same dashboard and PDF payload</em></div>',
+      '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div>",
+      '<div class="journey-wrap"><div class="mission-journey"><div class="journey-step is-done" data-step="1"><strong>Research</strong>Validate approved CSVs</div><div class="journey-step is-done" data-step="2"><strong>Synthesis</strong>Calculate and explain</div><div class="journey-step is-active" data-step="3"><strong>Verification</strong>Review dashboard and PDF</div><div class="journey-step" data-step="4"><strong>Exchange</strong>Approve for reuse</div></div></div></section>',
       "</div><aside class=\"page-rail\">",
-      '<section class="panel rail-panel">' + panelHead("Agent Activity Feed", "i-spark", "activity") + '<ul class="agent-feed">' +
-      agents.slice(0, 5).map(function (agent, index) { return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + ["Searching approved ESG policies…", "Analysing uploaded data…", "Generating a report draft…", "Checking citations and claims…", "Updating the knowledge map…"][index] + '</small></span><small>' + (index * 3 + 2) + "m</small></li>"; }).join("") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Pending Approvals", "i-shield", "verification") + '<ul class="rail-list">' + railItem("i-document", "amber", "ESG Report Draft", "Requested 1 hour ago", "Review") + railItem("i-automation", "teal", "Access Request Workflow", "Requested 3 hours ago", "Approve") + "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Mission team", "i-agents") + '<ul class="agent-feed mission-agent-feed">' + missionAgents.map(function (agent) { return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + agent.job + '</small></span><span class="worker-ready">Ready</span></li>'; }).join("") + "</ul></section>",
+      '<section class="panel rail-panel mission-rulebook"><div class="panel-head"><h2>' + svg("i-shield") + 'Calculation contract</h2></div><dl><div><dt>Formula</dt><dd>Total eligible traded value ÷ distinct eligible trading days</dd></div><div><dt>Duplicates</dt><dd>Exact duplicate rows excluded</dd></div><div><dt>Interpretation</dt><dd>No unsupported causal claims</dd></div><div><dt>Classification</dt><dd>Synthetic demonstration data</dd></div></dl></section>',
       "</aside></div></section>"
     ].join("");
   }
@@ -500,8 +589,10 @@
     return '<article class="agent-card"><div class="agent-card-head">' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small><i class="dot"></i> ' + agent.state + '</small></span></div><p>' + agent.job + '</p><button type="button" data-agent-open="' + escapeHtml(agent.name) + '">Open ' + svg("i-arrow") + "</button></article>";
   }
 
-  function missionRow(mission, index) {
-    return '<tr><td><span class="mission-title">' + miniIcon(index % 2 ? "i-document" : "i-folder", index % 2 ? "violet" : "amber") + '<span><strong>' + mission.title + '</strong><small>' + mission.subtitle + '</small></span></span></td><td>' + avatarStack(mission.agents) + '</td><td><span class="table-progress"><span class="progress-track"><i style="width:' + mission.progress + '%"></i></span><span>' + mission.progress + '%</span></span></td><td>' + mission.stage + lifecycle(mission.progress) + '</td><td>' + mission.due + '</td><td>' + status(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + index + '">' + (index % 2 ? "Review" : "Continue") + "</button></td></tr>";
+  function missionRow(mission) {
+    var worker = mission.currentWorker ? mission.currentWorker.replace(/-/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); }) : "Mission Manager";
+    var updated = mission.updatedAt ? new Date(mission.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
+    return '<tr><td><span class="mission-title">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></span></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
   }
 
   function exchangePage() {
@@ -672,8 +763,12 @@
   }
 
   function verificationPage() {
-    var items = [["ESG Report Draft", "Report Agent", "12 claims · 8 sources", "High impact"], ["Access Request Workflow", "Workflow Agent", "6 actions · 2 systems", "Permission change"], ["Product Readiness Brief", "Research Agent", "19 claims · 12 sources", "Management briefing"], ["HR Policy Summary", "Knowledge Agent", "7 changes · 4 sources", "Employee guidance"]];
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect evidence, approvals and agent actions before work moves forward.", "Verification policy", "policy") + '<div class="metric-row">' + metric("i-shield", "amber", "4", "Pending review", "2 due today") + metric("i-check", "teal", "18", "Approved this week", "Median review 11m") + metric("i-document", "blue", "96%", "Citation coverage", "Above policy floor") + metric("i-clock", "violet", "2", "Escalations", "Owner assigned") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Pending <b>4</b></button><button type="button" data-demo-action="verification-history">History</button><button type="button" data-demo-action="audit-log">Audit log</button></div>' + items.map(function (item, index) { return '<button class="verification-item ' + (index === 0 ? "is-selected" : "") + '" type="button" data-verification-open="' + item[0] + '">' + miniIcon(index % 2 ? "i-automation" : "i-document", index % 2 ? "violet" : "amber") + '<span><strong>' + item[0] + '</strong><small>' + item[1] + ' · ' + item[2] + '</small></span><span class="status ' + (index < 2 ? "amber" : "blue") + '">' + item[3] + '</span>' + svg("i-chevron") + '</button>'; }).join("") + '</section><section class="panel evidence-preview"><div class="content-view-head"><div><h2>ESG Report Draft</h2><p>Verification package · requested 1 hour ago</p></div>' + status("Waiting review") + '</div><div class="evidence-score"><span><strong>92%</strong><small>Evidence coverage</small></span><div><b>11 claims supported</b><small>1 claim requires clarification</small></div></div><div class="claim-list"><article><span>' + svg("i-check") + '</span><div><strong>Scope 1 emissions decreased 8.4%</strong><small>Cited to FY2026 emissions register, table 3.2</small></div></article><article class="needs-review"><span>' + svg("i-help") + '</span><div><strong>Supplier coverage exceeds target</strong><small>Source gives 78%; draft states 82%. Confirm calculation.</small></div></article><article><span>' + svg("i-check") + '</span><div><strong>Board oversight expanded this year</strong><small>Cited to Governance Committee minutes, 18 Sep</small></div></article></div><div class="evidence-actions"><button class="secondary-button" type="button" data-demo-action="request-changes" data-action-context="ESG Report Draft">Request changes</button><button class="primary-button" type="button" data-demo-action="approve" data-action-context="ESG Report Draft">Approve package</button></div></section></div></section>';
+    var reviewable = state.liveMissions.filter(function (mission) { return ["AWAITING REVIEW", "APPROVED", "REVISION REQUESTED"].indexOf(mission.status) !== -1; });
+    var pending = reviewable.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
+    var selected = missionById(state.selectedVerificationMissionId) || pending[0] || reviewable[0];
+    var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : reviewable.length ? reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).join("") : '<div class="mission-empty"><strong>No mission packages awaiting review</strong><span>Complete an ADV mission and submit its draft from My Workforce.</span></div>';
+    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div><div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p><div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", "100%", "Metric traceability", "Same dashboard and PDF payload") + metric("i-clock", "violet", "2", "Source files", "Fingerprinted evidence") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
   }
 
   function connectorsPage() {
@@ -711,6 +806,7 @@
     experienceBody.innerHTML = options.body || "";
     experienceFoot.innerHTML = options.footer || '<button class="secondary-button" type="button" data-experience-close>Close</button>';
     experienceOverlay.hidden = false;
+    appShell.inert = true;
     document.body.style.overflow = "hidden";
     window.requestAnimationFrame(function () {
       experienceOverlay.classList.add("is-open");
@@ -721,6 +817,7 @@
 
   function closeExperience() {
     experienceOverlay.classList.remove("is-open");
+    appShell.inert = false;
     document.body.style.overflow = "";
     window.setTimeout(function () {
       experienceOverlay.hidden = true;
@@ -751,6 +848,15 @@
     }
     var config = creationConfig(type);
     if (!config) return;
+    if (type === "mission") {
+      openExperience({
+        title: "Configure ADV mission",
+        subtitle: "A real deterministic run over the two approved synthetic CSV files.",
+        body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission title<input name="title" maxlength="140" required value="Malaysia Equity Market ADV Intelligence Report"></label><label class="form-field">Business objective<textarea name="description" maxlength="1000" required>Analyse Malaysia\'s equity market Average Daily Trading Value (ADV), explain key shifts, visualise important patterns and prepare an executive report for review.</textarea></label><div class="form-split"><label class="form-field">Start date<input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label class="form-field">End date<input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label></div><fieldset class="mission-board-scope"><legend>Market-board scope</legend><label><input type="checkbox" name="board" value="MAIN MARKET" checked>Main Market</label><label><input type="checkbox" name="board" value="ACE MARKET" checked>ACE Market</label><label><input type="checkbox" name="board" value="LEAP MARKET" checked>LEAP Market</label><label><input type="checkbox" name="board" value="SECOND BOARD" checked>Second Board</label><label><input type="checkbox" name="board" value="STRCWARR" checked>Structured Warrants</label><label><input type="checkbox" name="board" value="EXCHANGE TRADED" checked>Exchange Traded</label><label><input type="checkbox" name="board" value="LOANS" checked>Loans</label></fieldset><div class="mission-worker-plan"><strong>Execution plan</strong><ol><li>Mission Manager validates scope</li><li>Data Agent checks source quality</li><li>Analysis Agent recomputes figures</li><li>Insight Agent writes bounded findings</li><li>Report Agent exports and verifies PDF</li></ol></div><p class="form-hint">Synthetic demonstration data only. The run is persisted locally and never sends data to a language model.</p><p class="form-error" id="mission-form-error" hidden></p></form>',
+        footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Create and run mission</button>'
+      });
+      return;
+    }
     openExperience({
       title: config[0],
       subtitle: config[1],
@@ -759,12 +865,77 @@
     });
   }
 
+  function routeHomeCommand(command) {
+    var button = document.getElementById("home-send");
+    if (button) {
+      button.disabled = true;
+      button.setAttribute("aria-label", "BursaIQ is routing your request");
+    }
+    return apiJson("/api/intent-route", {
+      method: "POST",
+      body: JSON.stringify({ command: command, provider: state.routingProvider })
+    }).then(function (decision) {
+      if (decision.route === "mission") {
+        openCreation("mission");
+        var form = document.getElementById("creation-form");
+        if (form) {
+          form.elements.title.value = decision.title;
+          form.elements.description.value = decision.objective;
+        }
+        toast("Live model routed this to My Workforce", decision.reason || "Review the mission scope, then start the governed run.");
+        return;
+      }
+      state.assistantMessages = [];
+      navigate("assistant");
+      window.setTimeout(function () { submitAssistant(command); }, 80);
+    }).catch(function (error) {
+      toast("Live routing unavailable", error.message + " No keyword fallback was used.");
+      if (button) {
+        button.disabled = false;
+        button.setAttribute("aria-label", "Start with BursaIQ");
+      }
+    });
+  }
+
   function completeCreation(form) {
     var data = new FormData(form);
     var type = form.dataset.creationType;
     var title = String(data.get("title") || "Untitled").trim();
     if (!title) return;
-    if (type === "mission") missions.unshift({ title: title, subtitle: "New synthetic mission", agents: ["RA", "VA"], progress: 8, stage: "Define scope", due: "Not set", status: "On track" });
+    if (type === "mission") {
+      var submit = form.querySelector('[type="submit"]') || document.querySelector('[type="submit"][form="' + form.id + '"]');
+      var error = form.querySelector(".form-error") || form.closest(".mission-launch") && form.closest(".mission-launch").querySelector(".form-error") || document.getElementById("mission-form-error");
+      var boards = Array.prototype.slice.call(form.querySelectorAll('[name="board"]:checked')).map(function (input) { return input.value; });
+      var scope = String(data.get("scope") || "");
+      if (!boards.length && scope === "all") boards = ["MAIN MARKET", "ACE MARKET", "LEAP MARKET", "SECOND BOARD", "STRCWARR", "EXCHANGE TRADED", "LOANS"];
+      else if (!boards.length && scope) boards = [scope];
+      if (!boards.length) {
+        error.hidden = false;
+        error.textContent = "Select at least one market board to continue.";
+        return;
+      }
+      submit.disabled = true;
+      submit.textContent = "Creating mission…";
+      apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: title, objective: String(data.get("description") || ""), requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart"), dateEnd: data.get("dateEnd"), boards: boards }) }).then(function (mission) {
+        return apiJson("/api/missions/" + encodeURIComponent(mission.id) + "/run", { method: "POST", body: "{}" }).then(function () { return mission; });
+      }).then(function (mission) {
+        if (form.closest("#experience-overlay")) closeExperience();
+        state.page = "workforce";
+        state.selectedMissionId = mission.id;
+        return loadMissions(true).then(function () {
+          render();
+          startMissionPolling(mission.id, true);
+          window.setTimeout(function () { openMission(mission.id); }, 220);
+          toast("Mission started", "The five-worker ADV mission is running against the approved CSV files.");
+        });
+      }).catch(function (problem) {
+        submit.disabled = false;
+        submit.textContent = "Create and run mission";
+        error.hidden = false;
+        error.textContent = problem.message;
+      });
+      return;
+    }
     if (type === "room") rooms.unshift({ id: "room-" + Date.now(), title: title, tag: "New", members: 1, agents: 2, description: String(data.get("description") || "New shared mission") });
     if (type === "skill") assets.unshift({ title: title, type: "AI Skill", icon: "i-cube", tone: "violet", description: String(data.get("description") || "New reusable capability"), owner: "Product Development", uses: "Draft", verified: false });
     closeExperience();
@@ -802,14 +973,92 @@
     });
   }
 
-  function openMission(index) {
-    var mission = missions[Number(index)] || missions[0];
-    openExperience({
-      title: mission.title,
-      subtitle: mission.subtitle + " · " + mission.progress + "% complete",
-      body: '<div class="mission-detail-progress"><div><span>Mission health</span>' + status(mission.status) + '</div><span class="progress-track"><i style="width:' + mission.progress + '%"></i></span></div><div class="mission-detail-journey"><article class="is-done">' + miniIcon("i-research", "teal") + '<span><strong>Research</strong><small>18 governed sources retrieved</small></span>' + svg("i-check") + '</article><article class="is-done">' + miniIcon("i-spark", "teal") + '<span><strong>Synthesis</strong><small>Working brief and risks assembled</small></span>' + svg("i-check") + '</article><article class="is-active">' + miniIcon("i-shield", "blue") + '<span><strong>Verification</strong><small>' + mission.stage + '</small></span><span class="status blue">Current</span></article><article>' + miniIcon("i-exchange", "violet") + '<span><strong>Exchange</strong><small>Share the approved result</small></span><span class="status">Next</span></article></div><div class="detail-callout">' + svg("i-clock") + '<span><strong>Next accountable action</strong><small>Review two flagged assumptions before ' + mission.due + '.</small></span></div>',
-      footer: '<button class="secondary-button" type="button" data-dialog-action="mission-note" data-context="' + escapeHtml(mission.title) + '">Add note</button><button class="primary-button" type="button" data-dialog-action="continue-mission" data-context="' + escapeHtml(mission.title) + '">Continue mission</button>'
-    });
+  function missionChart(monthly) {
+    if (!monthly || !monthly.length) return "";
+    var width = 520;
+    var height = 190;
+    var values = monthly.map(function (item) { return Number(item.advBn); });
+    var minimum = Math.min.apply(null, values) * .96;
+    var maximum = Math.max.apply(null, values) * 1.04;
+    var range = Math.max(.01, maximum - minimum);
+    var points = values.map(function (value, index) {
+      var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1));
+      var y = 138 - ((value - minimum) / range) * 96;
+      return x.toFixed(1) + "," + y.toFixed(1);
+    }).join(" ");
+    return '<div class="mission-result-chart"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Monthly Average Daily Trading Value in RM billions"><title>Monthly ADV</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g><polyline points="' + points + '"></polyline><g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle><text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(monthly[index].label.split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
+  }
+
+  function missionDetailMarkup(mission) {
+    var events = mission.events || [];
+    var latestByWorker = {};
+    events.forEach(function (event) { if (event.workerId !== "mission-manager" || !latestByWorker[event.workerId]) latestByWorker[event.workerId] = event; });
+    var workerMarkup = missionAgents.map(function (agent, index) {
+      var workerId = ["mission-manager", "data-agent", "analysis-agent", "insight-agent", "report-agent"][index];
+      var matching = events.filter(function (event) { return event.workerId === workerId; });
+      var event = matching[matching.length - 1];
+      var stateLabel = event ? event.status : "QUEUED";
+      var itemClass = stateLabel === "COMPLETED" || stateLabel === "DRAFT READY" ? "is-done" : stateLabel === "RUNNING" ? "is-active" : stateLabel === "FAILED" ? "is-failed" : "";
+      return '<article class="' + itemClass + '">' + miniIcon(index === 1 ? "i-folder" : index === 4 ? "i-document" : "i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + escapeHtml(event ? event.message : agent.job) + '</small>' + (event && event.payload && Object.keys(event.payload).length ? '<button type="button" data-worker-evidence="' + workerId + '">Inspect output</button>' : "") + '</span>' + missionStatus(stateLabel) + '</article>';
+    }).join("");
+    var result = mission.result;
+    var resultMarkup = "";
+    if (result) {
+      resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Period ADV</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' trading days</span></article><article><small>Total traded value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last month</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Monthly ADV change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible market rows</span></div></section>';
+    }
+    var failure = mission.error ? '<div class="mission-failure">' + svg("i-help") + '<span><strong>Mission failed</strong><small>' + escapeHtml(mission.error) + ' Correct the inputs and run again.</small></span></div>' : "";
+    return '<div class="mission-detail-progress"><div><span>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + failure + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
+  }
+
+  function missionFooter(mission) {
+    var controls = '<button class="secondary-button" type="button" data-mission-rerun="' + escapeHtml(mission.id) + '">Rerun with new dates</button>';
+    if (mission.downloadUrl) controls += '<a class="secondary-button" href="' + escapeHtml(mission.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>';
+    if (mission.status === "DRAFT READY" || mission.status === "REVISION REQUESTED") controls += '<button class="primary-button" type="button" data-mission-submit-review="' + escapeHtml(mission.id) + '">Submit for review</button>';
+    else if (mission.status === "AWAITING REVIEW") controls += '<button class="primary-button" type="button" data-page-target="verification">Open Verification Centre</button>';
+    else if (mission.status === "APPROVED") controls += '<span class="status green">Approved for reuse</span>';
+    return controls;
+  }
+
+  function openMission(id) {
+    state.selectedMissionId = id;
+    apiJson("/api/missions/" + encodeURIComponent(id)).then(function (mission) {
+      var existing = missionById(id);
+      if (existing) Object.assign(existing, mission);
+      else state.liveMissions.unshift(mission);
+      openExperience({ title: mission.title, subtitle: "Live mission · worker outputs, calculations and deliverables", body: missionDetailMarkup(mission), footer: missionFooter(mission) });
+      if (mission.status === "RUNNING" || mission.status === "PLANNED") startMissionPolling(id, false);
+    }).catch(function (error) { toast("Mission unavailable", error.message); });
+  }
+
+  function refreshOpenMission(mission) {
+    if (state.selectedMissionId !== mission.id || experienceOverlay.hidden) return;
+    experienceTitle.textContent = mission.title;
+    experienceSubtitle.textContent = "Live mission · " + missionDisplayStatus(mission.status) + " · " + mission.progress + "%";
+    experienceBody.innerHTML = missionDetailMarkup(mission);
+    experienceFoot.innerHTML = missionFooter(mission);
+  }
+
+  function startMissionPolling(id, forceOpen) {
+    if (state.missionPoll) window.clearInterval(state.missionPoll);
+    var poll = function () {
+      apiJson("/api/missions/" + encodeURIComponent(id)).then(function (mission) {
+        var existing = missionById(id);
+        if (existing) Object.assign(existing, mission);
+        else state.liveMissions.unshift(mission);
+        if (state.page === "workforce") render();
+        refreshOpenMission(mission);
+        if (["RUNNING", "PLANNED"].indexOf(mission.status) === -1) {
+          window.clearInterval(state.missionPoll);
+          state.missionPoll = null;
+          if (mission.status === "DRAFT READY") toast("Draft ready", "The dashboard and PDF were produced from the same verified metrics.");
+        }
+      }).catch(function () {
+        window.clearInterval(state.missionPoll);
+        state.missionPoll = null;
+      });
+    };
+    if (forceOpen) poll();
+    state.missionPoll = window.setInterval(poll, 650);
   }
 
   function openReview(context) {
@@ -885,9 +1134,12 @@
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
+    if (page === "workforce" || page === "verification") loadMissions(true);
   }
 
   function bindPageEvents() {
+    var inlineMissionForm = document.getElementById("mission-inline-form");
+    if (inlineMissionForm) inlineMissionForm.addEventListener("submit", function (event) { event.preventDefault(); completeCreation(inlineMissionForm); });
     root.querySelectorAll("[data-page-jump]").forEach(function (button) {
       button.addEventListener("click", function () { navigate(button.dataset.pageJump); });
     });
@@ -961,15 +1213,21 @@
       button.addEventListener("click", function () { state.homeAssetCategory = button.dataset.homeAssetType; render(); });
     });
 
+    var routingProvider = document.getElementById("routing-provider");
+    if (routingProvider) {
+      routingProvider.addEventListener("change", function () {
+        state.routingProvider = routingProvider.value;
+        try { window.localStorage.setItem("bursaiq-routing-provider", state.routingProvider); } catch (_error) {}
+        render();
+      });
+    }
     var homeSend = document.getElementById("home-send");
     if (homeSend) {
       homeSend.addEventListener("click", function () {
         var input = document.getElementById("home-command");
         var value = input.value.trim();
         if (!value) value = "Prepare a product launch readiness brief";
-        state.assistantMessages = [];
-        navigate("assistant");
-        window.setTimeout(function () { submitAssistant(value); }, 80);
+        routeHomeCommand(value);
       });
     }
 
@@ -1019,6 +1277,29 @@
     root.querySelectorAll("[data-mission]").forEach(function (button) {
       button.addEventListener("click", function () {
         openMission(button.dataset.mission);
+      });
+    });
+    var missionRefresh = root.querySelector("[data-mission-refresh]");
+    if (missionRefresh) missionRefresh.addEventListener("click", function () { loadMissions(false); });
+    root.querySelectorAll("[data-verification-mission]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        state.selectedVerificationMissionId = button.dataset.verificationMission;
+        render();
+      });
+    });
+    root.querySelectorAll("[data-mission-review]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var id = button.dataset.missionId;
+        button.disabled = true;
+        apiJson("/api/verification/" + encodeURIComponent(missionById(id).verificationCaseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.missionReview }) }).then(function () {
+          return loadMissions(true);
+        }).then(function () {
+          render();
+          toast(button.dataset.missionReview === "Approved" ? "Mission approved" : "Changes requested", "The human decision is persisted in the mission audit history.");
+        }).catch(function (error) {
+          button.disabled = false;
+          toast("Review action failed", error.message);
+        });
       });
     });
     root.querySelectorAll("[data-category]").forEach(function (button) {
@@ -1319,6 +1600,7 @@
 
   function closeMobileNav() {
     document.body.classList.remove("nav-open");
+    document.querySelector(".main-column").inert = false;
     document.getElementById("mobile-menu").setAttribute("aria-expanded", "false");
   }
 
@@ -1334,7 +1616,15 @@
     if (event.target === commandOverlay) closeCommandPalette();
   });
   document.addEventListener("keydown", function (event) {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+    if (event.key === "Tab" && !experienceOverlay.hidden) {
+      var focusable = Array.prototype.slice.call(experienceOverlay.querySelectorAll('button:not([disabled]), input:not([disabled]), textarea:not([disabled]), select:not([disabled]), a[href]')).filter(function (item) { return item.offsetParent !== null; });
+      if (focusable.length) {
+        var first = focusable[0];
+        var last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
       event.preventDefault();
       openCommandPalette();
     } else if (event.key === "Escape") {
@@ -1361,6 +1651,7 @@
   });
   document.getElementById("mobile-menu").addEventListener("click", function () {
     var open = document.body.classList.toggle("nav-open");
+    document.querySelector(".main-column").inert = open;
     this.setAttribute("aria-expanded", String(open));
   });
   document.getElementById("mobile-scrim").addEventListener("click", closeMobileNav);
@@ -1374,8 +1665,51 @@
     completeCreation(event.target);
   });
   experienceOverlay.addEventListener("click", function (event) {
-    var target = event.target.closest("[data-dialog-action], [data-page-target]");
+    var target = event.target.closest("[data-dialog-action], [data-page-target], [data-mission-rerun], [data-mission-submit-review], [data-worker-evidence], [data-mission-back]");
     if (!target) return;
+    if (target.dataset.missionBack) { openMission(target.dataset.missionBack); return; }
+    if (target.dataset.workerEvidence) {
+      var currentMission = missionById(state.selectedMissionId);
+      if (!currentMission) return;
+      var workerEvents = (currentMission.events || []).filter(function (item) { return item.workerId === target.dataset.workerEvidence; });
+      var workerEvent = workerEvents[workerEvents.length - 1];
+      var inputEvent = workerEvents.filter(function (item) { return item.status === "RUNNING" || item.status === "PLANNED"; })[0];
+      var failureEvent = workerEvents.filter(function (item) { return item.status === "FAILED"; }).slice(-1)[0];
+      var formatPayload = function (payload) { return Object.keys(payload || {}).length ? Object.keys(payload).map(function (key) { var value = payload[key]; return key.replace(/([A-Z])/g, " $1") + ": " + (Array.isArray(value) ? value.join(", ") : typeof value === "object" ? JSON.stringify(value) : value); }).join(" · ") : "None recorded"; };
+      var rows = '<div><dt>Status</dt><dd>' + escapeHtml(workerEvent ? workerEvent.status : "QUEUED") + '</dd></div><div><dt>Inputs</dt><dd>' + escapeHtml(formatPayload(inputEvent && inputEvent.payload)) + '</dd></div><div><dt>Outputs</dt><dd>' + escapeHtml(formatPayload(workerEvent && workerEvent.payload)) + '</dd></div><div><dt>Duration</dt><dd>' + escapeHtml(workerEvent && workerEvent.durationMs != null ? workerEvent.durationMs + " ms" : "Not completed") + '</dd></div><div><dt>Error detail</dt><dd>' + escapeHtml(failureEvent && failureEvent.payload ? failureEvent.payload.error : "No error") + '</dd></div>';
+      openExperience({ title: workerEvent ? workerEvent.workerName + " execution" : "Worker execution", subtitle: "Inputs, outputs, duration and failure detail · " + currentMission.id, body: '<dl class="worker-evidence-list">' + rows + '</dl>', footer: '<button class="primary-button" type="button" data-mission-back="' + escapeHtml(currentMission.id) + '">Back to mission</button>' });
+      return;
+    }
+    if (target.dataset.missionRerun) {
+      var original = missionById(target.dataset.missionRerun);
+      closeExperience();
+      window.setTimeout(function () {
+        openCreation("mission");
+        var form = document.getElementById("creation-form");
+        if (!form || !original) return;
+        form.elements.title.value = original.title + " — rerun";
+        form.elements.dateStart.value = original.dateStart === "2026-01-01" ? "2026-04-01" : original.dateStart;
+        form.elements.dateEnd.value = original.dateEnd;
+      }, 210);
+      return;
+    }
+    if (target.dataset.missionSubmitReview) {
+      var reviewId = target.dataset.missionSubmitReview;
+      target.disabled = true;
+      target.textContent = "Submitting…";
+      apiJson("/api/missions/" + encodeURIComponent(reviewId) + "/submit-review", { method: "POST", body: "{}" }).then(function (payload) {
+        var current = missionById(reviewId);
+        if (current) Object.assign(current, payload.mission);
+        closeExperience();
+        toast("Submitted for review", "The immutable draft is now assigned to the Market Intelligence Lead.");
+        loadMissions(true).then(function () { navigate("verification"); });
+      }).catch(function (error) {
+        target.disabled = false;
+        target.textContent = "Submit for review";
+        toast("Submission failed", error.message);
+      });
+      return;
+    }
     if (target.dataset.pageTarget) {
       var page = target.dataset.pageTarget;
       closeExperience();
@@ -1403,4 +1737,6 @@
   });
 
   render();
+  loadMissions(false);
+  loadModelProviders();
 })();

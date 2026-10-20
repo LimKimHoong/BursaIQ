@@ -46,6 +46,16 @@ test('AI Assistant is a governed question-and-answer workspace', () => {
   assert.doesNotMatch(js, /Delegate as mission<\/button>/);
 });
 
+test('home commands use live semantic routing without a keyword fallback', () => {
+  assert.match(js, /apiJson\("\/api\/intent-route"/);
+  assert.match(js, /decision\.route === "mission"/);
+  assert.match(js, /No keyword fallback was used/);
+  assert.match(js, /Local model · Ollama/);
+  assert.match(js, /Microsoft Copilot Studio/);
+  assert.match(js, /provider: state\.routingProvider/);
+  assert.match(js, /bursaiq-routing-provider/);
+});
+
 test('Decision Canvas exposes plot, analysis, source, and action views', () => {
   assert.match(js, /var tabs = \["plot", "analysis", "source", "action"\]/);
   assert.match(js, /data-assistant-canvas-tab/);

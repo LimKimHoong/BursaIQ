@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import json
 import tempfile
 import unittest
 from pathlib import Path
@@ -10,7 +11,8 @@ from pypdf import PdfReader
 
 from bursaiq.data_loader import LocalDataRepository
 from bursaiq.metrics import MetricEngine
-from bursaiq.copilot_studio import CopilotReply, CopilotStudioService
+from bursaiq.copilot_studio import CopilotReply, CopilotRequestError, CopilotStudioService
+from bursaiq.model_providers import ModelReply, OllamaService
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
@@ -53,6 +55,67 @@ class IngestionTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_live_model_routes_semantic_work_request_to_adv_mission(self) -> None:
+        from server import app
+
+        model_result = json.dumps({
+            "route": "mission",
+            "missionType": "adv-analysis",
+            "title": "Liquidity movement review",
+            "objective": "Validate the approved data, analyse average daily trading value shifts, and prepare the report.",
+            "reason": "The request asks for the complete governed analysis deliverable.",
+        })
+        with patch("server.copilot.ask", return_value=CopilotReply(model_result, "route-conversation", [])) as ask:
+            with app.test_client() as client:
+                response = client.post("/api/intent-route", json={
+                    "command": "Please investigate how trading liquidity evolved and give management a checked briefing.",
+                    "provider": "copilot",
+                })
+        payload = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["route"], "mission")
+        self.assertEqual(payload["missionType"], "adv-analysis")
+        self.assertEqual(payload["provider"], "copilot")
+        self.assertEqual(payload["routedBy"], "copilot-studio-language-model")
+        self.assertIn("User command", ask.call_args.args[0])
+
+    def test_live_router_does_not_use_a_keyword_fallback(self) -> None:
+        from server import app
+
+        with patch("server.copilot.ask", side_effect=CopilotRequestError("model offline")):
+            with app.test_client() as client:
+                response = client.post("/api/intent-route", json={"command": "Create an ADV report", "provider": "copilot"})
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("model offline", response.get_json()["error"])
+
+    def test_local_ollama_can_be_selected_for_semantic_routing(self) -> None:
+        from server import app
+
+        model_result = json.dumps({"route": "assistant", "reason": "This is an explanatory question."})
+        with patch("server.ollama.ask", return_value=ModelReply(model_result, "ollama-request")) as ask:
+            with app.test_client() as client:
+                response = client.post("/api/intent-route", json={
+                    "command": "Could you help me understand trading liquidity?",
+                    "provider": "ollama",
+                })
+        payload = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["route"], "assistant")
+        self.assertEqual(payload["provider"], "ollama")
+        self.assertEqual(payload["routedBy"], "ollama-local-language-model")
+        ask.assert_called_once()
+
+    def test_ollama_uses_structured_non_streaming_chat(self) -> None:
+        service = OllamaService()
+        with patch.object(service, "_request_json", return_value={"message": {"content": '{"route":"assistant"}'}}) as request_json:
+            reply = service.ask("route this request")
+        self.assertEqual(reply.text, '{"route":"assistant"}')
+        payload = request_json.call_args.kwargs["payload"]
+        self.assertEqual(request_json.call_args.args[0], "/api/chat")
+        self.assertEqual(payload["format"], "json")
+        self.assertFalse(payload["stream"])
+        self.assertEqual(payload["options"]["temperature"], 0)
+
     def test_routing_guardrail_blocks_people_questions(self) -> None:
         self.assertEqual(choose_workspace("What are the product options available in Bursa?", "market"), ("learn", "policy-router"))
         self.assertEqual(choose_workspace("What is a candidate's application status?", "learn"), ("blocked", "policy-router"))
