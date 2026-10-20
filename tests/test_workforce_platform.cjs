@@ -210,6 +210,19 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   }
 });
 
+test('Knowledge Administration manages the persisted Ask Bursa document lifecycle', () => {
+  assert.match(html, /data-page="knowledge-admin"/);
+  assert.match(js, /function knowledgeAdministrationPage/);
+  assert.match(js, /\/api\/knowledge-admin\/documents/);
+  assert.match(js, /data-knowledge-ingest/);
+  assert.match(js, /data-knowledge-reindex/);
+  assert.match(js, /data-knowledge-remove/);
+  assert.match(js, /knowledge-suggestion-row/);
+  assert.match(js, /allowedRoles/);
+  assert.match(js, /replacesDocumentId/);
+  assert.match(css, /\.knowledge-admin-page/);
+});
+
 test('live backend state survives page refresh routes', () => {
   assert.match(js, /apiJson\("\/api\/missions"/);
   assert.match(js, /apiJson\("\/api\/verification\?role=securities"/);
@@ -267,8 +280,12 @@ test('Workflow Builder uses registries and supports persisted approval resume', 
   assert.match(js, /name="agentId"/);
   assert.match(js, /name="capabilityId"/);
   assert.match(js, /name="maxRetries"/);
-  assert.match(js, /data-workflow-decision="APPROVE"/);
-  assert.match(js, /\/api\/workflow-runs\/" \+ encodeURIComponent\(form\.dataset\.workflowApproval\) \+ "\/decision/);
+  assert.match(js, /Review in Verification Centre/);
+  assert.match(js, /data-case-review="Approved"/);
+  assert.match(js, /data-case-review="Rejected"/);
+  assert.match(js, /data-case-review="Changes requested"/);
+  assert.match(js, /\/api\/verification\//);
+  assert.doesNotMatch(js, /data-workflow-decision=/);
   assert.match(js, /Inputs, outputs, errors, retries, and approval transitions/);
 });
 

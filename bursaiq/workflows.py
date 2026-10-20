@@ -73,6 +73,8 @@ class WorkflowStore:
                 connection.execute("ALTER TABLE workflow_runs ADD COLUMN state_json TEXT NOT NULL DEFAULT '{}'")
             if "workflow_snapshot_json" not in columns:
                 connection.execute("ALTER TABLE workflow_runs ADD COLUMN workflow_snapshot_json TEXT NOT NULL DEFAULT '{}'")
+            if "verification_case_id" not in columns:
+                connection.execute("ALTER TABLE workflow_runs ADD COLUMN verification_case_id TEXT")
 
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         workflow_id = f"WF-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
@@ -323,17 +325,34 @@ class WorkflowStore:
         if run["status"] != "WAITING_APPROVAL":
             raise ValueError("Only a run waiting for approval can be decided.")
         normalized = decision.upper()
-        if normalized not in {"APPROVE", "REJECT"}:
-            raise ValueError("decision must be APPROVE or REJECT.")
+        if normalized not in {"APPROVE", "REJECT", "CHANGES"}:
+            raise ValueError("decision must be APPROVE, REJECT, or CHANGES.")
         workflow = run["workflowSnapshot"] or self.get(run["workflowId"])
         approval_node = next((node for node in workflow["nodes"] if node["id"] == run["state"].get("approvalNodeId")), {"id": "approval", "name": "Human Approval", "type": "human-approval"})
         events = list(run["events"])
-        transition = {"from": "WAITING_APPROVAL", "to": "APPROVED" if normalized == "APPROVE" else "REJECTED", "actor": actor, "comment": comment}
-        events.append(self._event(approval_node, "APPROVED" if normalized == "APPROVE" else "REJECTED", f"Approval {normalized.lower()}d by {actor}.", outputs={"decision": normalized, "actor": actor, "comment": comment}, transition=transition))
-        if normalized == "REJECT":
-            return self._update_run(run_id, "REJECTED", events, run["state"], completed=True)
+        final_status = "APPROVED" if normalized == "APPROVE" else "REJECTED" if normalized == "REJECT" else "CHANGES_REQUESTED"
+        transition = {"from": "WAITING_APPROVAL", "to": final_status, "actor": actor, "comment": comment}
+        message = f"Approval {'approved' if normalized == 'APPROVE' else 'rejected' if normalized == 'REJECT' else 'returned for changes'} by {actor}."
+        events.append(self._event(approval_node, final_status, message, outputs={"decision": normalized, "actor": actor, "comment": comment}, transition=transition))
+        if normalized in {"REJECT", "CHANGES"}:
+            self.update(run["workflowId"], {"status": "DRAFT"})
+            return self._update_run(run_id, final_status, events, run["state"], completed=True)
         status, events, state = self._execute(workflow, executor, events, run["state"])
+        self.update(run["workflowId"], {"status": "ACTIVE" if status in {"COMPLETED", "WAITING_APPROVAL"} else "DRAFT"})
         return self._update_run(run_id, status, events, state, completed=status != "WAITING_APPROVAL")
+
+    def attach_verification(self, run_id: str, case_id: str) -> dict[str, Any]:
+        run = self.get_run(run_id)
+        if run["status"] != "WAITING_APPROVAL":
+            raise ValueError("Only a run waiting for approval can be linked to verification.")
+        with self._connect() as connection:
+            connection.execute("UPDATE workflow_runs SET verification_case_id=? WHERE id=?", (case_id, run_id))
+        return self.get_run(run_id)
+
+    def by_verification_case(self, case_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM workflow_runs WHERE verification_case_id=?", (case_id,)).fetchone()
+        return self._run(row) if row else None
 
     def list_runs(self, workflow_id: str | None = None) -> list[dict[str, Any]]:
         with self._connect() as connection:
@@ -392,4 +411,4 @@ class WorkflowStore:
     @staticmethod
     def _run(row: sqlite3.Row) -> dict[str, Any]:
         keys = set(row.keys())
-        return {"id": row["id"], "workflowId": row["workflow_id"], "mode": row["mode"], "status": row["status"], "startedAt": row["started_at"], "completedAt": row["completed_at"], "events": json.loads(row["events_json"]), "validation": json.loads(row["validation_json"]), "state": json.loads(row["state_json"]) if "state_json" in keys else {}, "workflowSnapshot": json.loads(row["workflow_snapshot_json"]) if "workflow_snapshot_json" in keys else {}}
+        return {"id": row["id"], "workflowId": row["workflow_id"], "mode": row["mode"], "status": row["status"], "startedAt": row["started_at"], "completedAt": row["completed_at"], "events": json.loads(row["events_json"]), "validation": json.loads(row["validation_json"]), "state": json.loads(row["state_json"]) if "state_json" in keys else {}, "workflowSnapshot": json.loads(row["workflow_snapshot_json"]) if "workflow_snapshot_json" in keys else {}, "verificationCaseId": row["verification_case_id"] if "verification_case_id" in keys else None}

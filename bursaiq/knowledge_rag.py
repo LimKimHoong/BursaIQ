@@ -10,7 +10,7 @@ import math
 import re
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
@@ -41,7 +41,7 @@ class KnowledgeIndex:
                     id TEXT PRIMARY KEY, relative_path TEXT UNIQUE NOT NULL, filename TEXT NOT NULL,
                     department TEXT NOT NULL, classification TEXT NOT NULL, allowed_roles_json TEXT NOT NULL,
                     owner TEXT NOT NULL, effective_date TEXT, version TEXT NOT NULL, sha256 TEXT NOT NULL,
-                    indexed_at TEXT NOT NULL
+                    indexed_at TEXT NOT NULL, expiry_date TEXT, replaces_document_id TEXT
                 );
                 CREATE TABLE IF NOT EXISTS knowledge_chunks (
                     id TEXT PRIMARY KEY, document_id TEXT NOT NULL, ordinal INTEGER NOT NULL,
@@ -53,6 +53,7 @@ class KnowledgeIndex:
                     id TEXT PRIMARY KEY, document_id TEXT NOT NULL, question TEXT NOT NULL,
                     question_key TEXT NOT NULL, description TEXT NOT NULL, department TEXT NOT NULL,
                     allowed_roles_json TEXT NOT NULL, source_version TEXT NOT NULL, generated_at TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'ACTIVE',
                     FOREIGN KEY(document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
                 );
                 CREATE INDEX IF NOT EXISTS knowledge_suggestions_role ON knowledge_suggestions(department, generated_at DESC);
@@ -67,6 +68,14 @@ class KnowledgeIndex:
                 );
                 """
             )
+            document_columns = {row["name"] for row in connection.execute("PRAGMA table_info(knowledge_documents)").fetchall()}
+            if "expiry_date" not in document_columns:
+                connection.execute("ALTER TABLE knowledge_documents ADD COLUMN expiry_date TEXT")
+            if "replaces_document_id" not in document_columns:
+                connection.execute("ALTER TABLE knowledge_documents ADD COLUMN replaces_document_id TEXT")
+            suggestion_columns = {row["name"] for row in connection.execute("PRAGMA table_info(knowledge_suggestions)").fetchall()}
+            if "status" not in suggestion_columns:
+                connection.execute("ALTER TABLE knowledge_suggestions ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE'")
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path, timeout=30)
@@ -127,12 +136,13 @@ class KnowledgeIndex:
         with self._connect() as connection:
             rows = connection.execute(
                 """SELECT c.*, d.filename, d.department, d.classification, d.allowed_roles_json,
-                          d.owner, d.version, d.relative_path
+                          d.owner, d.version, d.relative_path, d.expiry_date
                    FROM knowledge_chunks c JOIN knowledge_documents d ON d.id = c.document_id"""
             ).fetchall()
         ranked = []
+        replaced_ids = self._replaced_document_ids()
         for row in rows:
-            if role not in json.loads(row["allowed_roles_json"]):
+            if role not in json.loads(row["allowed_roles_json"]) or row["document_id"] in replaced_ids or self._is_expired(row["expiry_date"]):
                 continue
             score = cosine(query, json.loads(row["embedding_json"]))
             ranked.append({
@@ -155,18 +165,125 @@ class KnowledgeIndex:
             chunks = connection.execute("SELECT COUNT(*) FROM knowledge_chunks").fetchone()[0]
             suggestions = connection.execute("SELECT COUNT(*) FROM knowledge_suggestions").fetchone()[0]
             run = connection.execute("SELECT * FROM knowledge_ingestion_runs ORDER BY completed_at DESC LIMIT 1").fetchone()
-        return {"documents": documents, "chunks": chunks, "suggestions": suggestions, "supportedExtensions": sorted(SUPPORTED_EXTENSIONS), "departments": sorted(DEPARTMENTS), "lastIngestion": dict(run) if run else None}
+        return {"documents": documents, "chunks": chunks, "suggestions": suggestions, "supportedExtensions": sorted(SUPPORTED_EXTENSIONS), "departments": sorted(DEPARTMENTS), "lastIngestion": self._run_dict(run) if run else None}
+
+    def administration(self) -> dict[str, Any]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT d.*, COUNT(DISTINCT c.id) AS chunk_count, COUNT(DISTINCT s.id) AS suggestion_count
+                   FROM knowledge_documents d
+                   LEFT JOIN knowledge_chunks c ON c.document_id=d.id
+                   LEFT JOIN knowledge_suggestions s ON s.document_id=d.id
+                   GROUP BY d.id ORDER BY d.indexed_at DESC"""
+            ).fetchall()
+            runs = connection.execute("SELECT * FROM knowledge_ingestion_runs ORDER BY completed_at DESC LIMIT 20").fetchall()
+            suggestions = connection.execute(
+                """SELECT s.*, d.filename FROM knowledge_suggestions s
+                   JOIN knowledge_documents d ON d.id=s.document_id ORDER BY s.generated_at DESC, s.rowid DESC"""
+            ).fetchall()
+        replaced_ids = self._replaced_document_ids()
+        documents = []
+        for row in rows:
+            lifecycle = "REPLACED" if row["id"] in replaced_ids else "EXPIRED" if self._is_expired(row["expiry_date"]) else "ACTIVE"
+            documents.append({
+                "id": row["id"], "filename": row["filename"], "relativePath": row["relative_path"],
+                "department": row["department"], "departmentLabel": display_department(row["department"]),
+                "classification": row["classification"], "allowedRoles": json.loads(row["allowed_roles_json"]),
+                "owner": row["owner"], "effectiveDate": row["effective_date"], "expiryDate": row["expiry_date"],
+                "version": row["version"], "replacesDocumentId": row["replaces_document_id"],
+                "indexedAt": row["indexed_at"], "chunks": row["chunk_count"], "suggestions": row["suggestion_count"],
+                "lifecycle": lifecycle,
+            })
+        return {
+            **self.status(), "documentsList": documents,
+            "ingestionRuns": [self._run_dict(row) for row in runs],
+            "suggestionsList": [{
+                "id": row["id"], "documentId": row["document_id"], "sourceDocument": row["filename"],
+                "question": row["question"], "description": row["description"], "department": display_department(row["department"]),
+                "allowedRoles": json.loads(row["allowed_roles_json"]), "sourceVersion": row["source_version"],
+                "generatedAt": row["generated_at"], "status": row["status"],
+            } for row in suggestions],
+            "roles": DEFAULT_ROLES,
+        }
+
+    def save_upload(self, filename: str, content: bytes, metadata: dict[str, Any]) -> dict[str, Any]:
+        suffix = Path(filename).suffix.lower()
+        if suffix not in SUPPORTED_EXTENSIONS:
+            raise ValueError(f"Unsupported document type. Use: {', '.join(sorted(SUPPORTED_EXTENSIONS))}.")
+        safe_name = re.sub(r"[^A-Za-z0-9._ -]+", "_", Path(filename).name).strip(" .")
+        if not safe_name:
+            raise ValueError("Document filename is invalid.")
+        department = str(metadata.get("department") or "").strip().lower()
+        if department not in DEPARTMENTS:
+            raise ValueError("A configured department is required.")
+        self._validate_governance(metadata)
+        folder = self.knowledge_root / department
+        folder.mkdir(parents=True, exist_ok=True)
+        path = folder / safe_name
+        if path.exists():
+            raise ValueError("A document with this filename already exists in the selected department. Remove it first or upload a versioned filename.")
+        path.write_bytes(content)
+        self._write_metadata(path, metadata)
+        return {"filename": safe_name, "relativePath": path.relative_to(self.knowledge_root).as_posix(), "department": department}
+
+    def update_document(self, document_id: str, metadata: dict[str, Any]) -> dict[str, Any]:
+        path = self._indexed_path(document_id)
+        current = self._metadata(path)
+        mapping = {
+            "owner": "owner", "document_owner": "owner", "classification": "classification",
+            "version": "version", "effectiveDate": "effective_date", "effective_date": "effective_date",
+            "expiryDate": "expiry_date", "expiry_date": "expiry_date", "replacesDocumentId": "replaces_document_id",
+            "replaces_document_id": "replaces_document_id", "allowedRoles": "allowed_roles", "allowed_roles": "allowed_roles",
+        }
+        for supplied, normalized in mapping.items():
+            if supplied in metadata and metadata[supplied] is not None:
+                current[normalized] = metadata[supplied]
+        self._validate_governance(current, document_id)
+        self._write_metadata(path, current)
+        self._force_changed(document_id)
+        ingestion = self.ingest()
+        document = next(item for item in self.administration()["documentsList"] if item["id"] == document_id)
+        return {"document": document, "ingestion": ingestion}
+
+    def reindex_document(self, document_id: str) -> dict[str, Any]:
+        self._indexed_path(document_id)
+        self._force_changed(document_id)
+        return self.ingest()
+
+    def remove_document(self, document_id: str) -> dict[str, Any]:
+        path = self._indexed_path(document_id)
+        path.unlink()
+        metadata_path = path.with_name(path.name + ".metadata.json")
+        if metadata_path.exists():
+            metadata_path.unlink()
+        return self.ingest()
+
+    def update_suggestion(self, suggestion_id: str, status: str, question: str | None = None, description: str | None = None) -> dict[str, Any]:
+        normalized = status.upper()
+        if normalized not in {"ACTIVE", "HIDDEN"}:
+            raise ValueError("Suggestion status must be ACTIVE or HIDDEN.")
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM knowledge_suggestions WHERE id=?", (suggestion_id,)).fetchone()
+            if row is None:
+                raise KeyError(suggestion_id)
+            next_question = (question or row["question"]).strip()
+            if len(next_question) < 8 or len(next_question) > 180 or not next_question.endswith("?"):
+                raise ValueError("Suggested question must be 8–180 characters and end with a question mark.")
+            next_description = (description if description is not None else row["description"]).strip()[:220]
+            connection.execute("UPDATE knowledge_suggestions SET question=?, question_key=?, description=?, status=? WHERE id=?", (next_question, normalize_question(next_question), next_description, normalized, suggestion_id))
+        return {"id": suggestion_id, "question": next_question, "description": next_description, "status": normalized}
 
     def list_suggestions(self, role: str, limit: int = 8) -> list[dict[str, Any]]:
         with self._connect() as connection:
             rows = connection.execute(
-                """SELECT s.*, d.filename FROM knowledge_suggestions s
+                """SELECT s.*, d.filename, d.expiry_date FROM knowledge_suggestions s
                    JOIN knowledge_documents d ON d.id = s.document_id
-                   ORDER BY s.generated_at DESC, s.rowid DESC"""
+                   WHERE s.status='ACTIVE' ORDER BY s.generated_at DESC, s.rowid DESC"""
             ).fetchall()
         grouped: dict[str, dict[str, Any]] = {}
+        replaced_ids = self._replaced_document_ids()
         for row in rows:
-            if role not in json.loads(row["allowed_roles_json"]):
+            if role not in json.loads(row["allowed_roles_json"]) or row["document_id"] in replaced_ids or self._is_expired(row["expiry_date"]):
                 continue
             item = grouped.get(row["question_key"])
             if item:
@@ -196,8 +313,8 @@ class KnowledgeIndex:
 
     def document_path(self, document_id: str, role: str) -> Path:
         with self._connect() as connection:
-            row = connection.execute("SELECT relative_path, allowed_roles_json FROM knowledge_documents WHERE id = ?", (document_id,)).fetchone()
-        if row is None or role not in json.loads(row["allowed_roles_json"]):
+            row = connection.execute("SELECT relative_path, allowed_roles_json, expiry_date FROM knowledge_documents WHERE id = ?", (document_id,)).fetchone()
+        if row is None or role not in json.loads(row["allowed_roles_json"]) or document_id in self._replaced_document_ids() or self._is_expired(row["expiry_date"]):
             raise KeyError(document_id)
         path = (self.knowledge_root / row["relative_path"]).resolve()
         if self.knowledge_root not in path.parents or not path.is_file():
@@ -225,7 +342,77 @@ class KnowledgeIndex:
         normalized_roles = [item.strip().lower() for item in roles]
         if "employee" in normalized_roles:
             normalized_roles.extend(DEFAULT_ROLES)
-        return {"department": department, "classification": str(values.get("classification", "Internal")), "allowed_roles": sorted(set(normalized_roles)), "owner": str(values.get("document_owner", display_department(department))), "effective_date": str(values.get("effective_date", "")) or None, "version": str(values.get("version", "1.0"))}
+        return {"department": department, "classification": str(values.get("classification", "Internal")), "allowed_roles": sorted(set(normalized_roles)), "owner": str(values.get("document_owner", values.get("owner", display_department(department)))), "effective_date": str(values.get("effective_date", values.get("effectiveDate", ""))) or None, "expiry_date": str(values.get("expiry_date", values.get("expiryDate", ""))) or None, "version": str(values.get("version", "1.0")), "replaces_document_id": str(values.get("replaces_document_id", values.get("replacesDocumentId", ""))) or None}
+
+    def _write_metadata(self, path: Path, values: dict[str, Any]) -> None:
+        roles = values.get("allowed_roles", values.get("allowedRoles", DEFAULT_ROLES))
+        payload = {
+            "classification": str(values.get("classification") or "Internal"),
+            "allowed_roles": roles,
+            "document_owner": str(values.get("document_owner", values.get("owner")) or display_department(path.parent.name)),
+            "effective_date": str(values.get("effective_date", values.get("effectiveDate")) or ""),
+            "expiry_date": str(values.get("expiry_date", values.get("expiryDate")) or ""),
+            "version": str(values.get("version") or "1.0"),
+            "replaces_document_id": str(values.get("replaces_document_id", values.get("replacesDocumentId")) or ""),
+        }
+        if not isinstance(roles, list) or not roles:
+            raise ValueError("At least one allowed role is required.")
+        path.with_name(path.name + ".metadata.json").write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+    def _validate_governance(self, values: dict[str, Any], current_id: str | None = None) -> None:
+        roles = values.get("allowed_roles", values.get("allowedRoles", DEFAULT_ROLES))
+        normalized_roles = {str(role).strip().lower() for role in roles} if isinstance(roles, list) else set()
+        if not normalized_roles or not normalized_roles.issubset(set(DEFAULT_ROLES) | {"employee"}):
+            raise ValueError("Allowed roles must contain one or more configured BursaIQ roles.")
+        effective = str(values.get("effective_date", values.get("effectiveDate", "")) or "")
+        expiry = str(values.get("expiry_date", values.get("expiryDate", "")) or "")
+        try:
+            effective_date = date.fromisoformat(effective) if effective else None
+            expiry_date = date.fromisoformat(expiry) if expiry else None
+        except ValueError as exc:
+            raise ValueError("Effective and expiry dates must use YYYY-MM-DD.") from exc
+        if effective_date and expiry_date and expiry_date < effective_date:
+            raise ValueError("Expiry date cannot be earlier than the effective date.")
+        replacement = str(values.get("replaces_document_id", values.get("replacesDocumentId", "")) or "")
+        if replacement:
+            if replacement == current_id:
+                raise ValueError("A document cannot replace itself.")
+            with self._connect() as connection:
+                exists = connection.execute("SELECT 1 FROM knowledge_documents WHERE id=?", (replacement,)).fetchone()
+            if exists is None:
+                raise ValueError("The replaced source does not exist.")
+
+    def _indexed_path(self, document_id: str) -> Path:
+        with self._connect() as connection:
+            row = connection.execute("SELECT relative_path FROM knowledge_documents WHERE id=?", (document_id,)).fetchone()
+        if row is None:
+            raise KeyError(document_id)
+        path = (self.knowledge_root / row["relative_path"]).resolve()
+        if self.knowledge_root not in path.parents or not path.is_file():
+            raise KeyError(document_id)
+        return path
+
+    def _force_changed(self, document_id: str) -> None:
+        with self._connect() as connection:
+            connection.execute("UPDATE knowledge_documents SET sha256='' WHERE id=?", (document_id,))
+
+    def _replaced_document_ids(self) -> set[str]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT replaces_document_id FROM knowledge_documents WHERE replaces_document_id IS NOT NULL AND replaces_document_id != ''").fetchall()
+        return {row[0] for row in rows}
+
+    @staticmethod
+    def _is_expired(value: str | None) -> bool:
+        if not value:
+            return False
+        try:
+            return date.fromisoformat(value) < datetime.now(timezone.utc).date()
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _run_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {"id": row["id"], "startedAt": row["started_at"], "completedAt": row["completed_at"], "indexed": row["indexed_count"], "unchanged": row["unchanged_count"], "removed": row["removed_count"], "errors": json.loads(row["errors_json"])}
 
     def _document_by_path(self, relative: str) -> sqlite3.Row | None:
         with self._connect() as connection:
@@ -242,18 +429,23 @@ class KnowledgeIndex:
             connection.execute("DELETE FROM knowledge_chunks WHERE document_id = ?", (document_id,))
             connection.execute("DELETE FROM knowledge_suggestions WHERE document_id = ?", (document_id,))
             connection.execute(
-                """INSERT INTO knowledge_documents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """INSERT INTO knowledge_documents
+                   (id, relative_path, filename, department, classification, allowed_roles_json, owner, effective_date, version, sha256, indexed_at, expiry_date, replaces_document_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET filename=excluded.filename, department=excluded.department,
                    classification=excluded.classification, allowed_roles_json=excluded.allowed_roles_json,
                    owner=excluded.owner, effective_date=excluded.effective_date, version=excluded.version,
-                   sha256=excluded.sha256, indexed_at=excluded.indexed_at""",
-                (document_id, relative, filename, metadata["department"], metadata["classification"], json.dumps(metadata["allowed_roles"]), metadata["owner"], metadata["effective_date"], metadata["version"], digest, utc_now()),
+                   sha256=excluded.sha256, indexed_at=excluded.indexed_at, expiry_date=excluded.expiry_date,
+                   replaces_document_id=excluded.replaces_document_id""",
+                (document_id, relative, filename, metadata["department"], metadata["classification"], json.dumps(metadata["allowed_roles"]), metadata["owner"], metadata["effective_date"], metadata["version"], digest, utc_now(), metadata["expiry_date"], metadata["replaces_document_id"]),
             )
             for ordinal, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 connection.execute("INSERT INTO knowledge_chunks VALUES (?, ?, ?, ?, ?, ?)", (f"CHK-{uuid.uuid4().hex[:12].upper()}", document_id, ordinal, chunk["location"], chunk["text"], json.dumps(embedding)))
             for suggestion in suggestions:
                 question_key = normalize_question(suggestion["question"])
-                connection.execute("INSERT INTO knowledge_suggestions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (f"SUG-{uuid.uuid4().hex[:12].upper()}", document_id, suggestion["question"], question_key, suggestion["description"], metadata["department"], json.dumps(metadata["allowed_roles"]), metadata["version"], utc_now()))
+                connection.execute("""INSERT INTO knowledge_suggestions
+                    (id, document_id, question, question_key, description, department, allowed_roles_json, source_version, generated_at, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'ACTIVE')""", (f"SUG-{uuid.uuid4().hex[:12].upper()}", document_id, suggestion["question"], question_key, suggestion["description"], metadata["department"], json.dumps(metadata["allowed_roles"]), metadata["version"], utc_now()))
 
 
 def extract_sections(path: Path) -> list[tuple[str, str]]:

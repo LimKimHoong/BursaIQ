@@ -254,6 +254,39 @@ def workflow_resource_errors(workflow: dict[str, Any]) -> list[str]:
     return errors
 
 
+def attach_workflow_verification(run: dict[str, Any]) -> dict[str, Any]:
+    if run.get("status") != "WAITING_APPROVAL" or run.get("verificationCaseId"):
+        return run
+    workflow = workflows.get(run["workflowId"])
+    waiting = run["events"][-1] if run.get("events") else {}
+    case = verification.create_case(
+        f"Workflow approval · {workflow['name']}",
+        "Automation Studio",
+        workflow["owner"],
+        details={
+            "kind": "workflow-approval",
+            "workflowId": workflow["id"],
+            "workflowRunId": run["id"],
+            "approvalNodeId": waiting.get("nodeId"),
+            "question": waiting.get("message", "Review the workflow checkpoint."),
+            "answerTitle": workflow["name"],
+            "answerText": workflow.get("description") or "Review persisted workflow inputs and outputs before continuation.",
+            "context": {"Run": run["id"], "Completed nodes": len([event for event in run.get("events", []) if event.get("status") == "COMPLETED"]), "Requested next step": "Resume the next node after approval"},
+            "nodeEvents": run.get("events", []),
+            "outputs": run.get("state", {}).get("outputs", {}),
+            "sources": [],
+        },
+    )
+    return workflows.attach_verification(run["id"], case["id"])
+
+
+def ensure_workflow_verifications() -> None:
+    """Backfill the shared review queue for runs created before approval linking existed."""
+    for run in workflows.list_runs():
+        if run.get("status") == "WAITING_APPROVAL" and not run.get("verificationCaseId"):
+            attach_workflow_verification(run)
+
+
 def execute_registered_agent(agent: dict[str, Any], prompt: str) -> dict[str, Any]:
     """Execute an active registry agent through its configured live provider."""
     if agent["status"] != "ACTIVE":
@@ -1132,11 +1165,12 @@ def list_workflows():
 def pending_action_count():
     """Return attention items for the active role from persisted backend state."""
     role = str(request.args.get("role", "")).lower()
+    ensure_workflow_verifications()
     assigned, _, _ = verification_access_scope(role)
     review_actions = [
         {
             "id": case["id"],
-            "type": "verification",
+            "type": "workflow-approval" if case.get("details", {}).get("kind") == "workflow-approval" else "verification",
             "title": case.get("title") or "Verification review",
             "detail": f"{case.get('workspace') or 'BursaIQ'} · {case.get('reviewer') or 'Assigned reviewer'}",
             "status": case["status"],
@@ -1144,23 +1178,11 @@ def pending_action_count():
         }
         for case in assigned if case.get("status") == "Pending review"
     ]
-    workflow_names = {workflow["id"]: workflow.get("name") or workflow["id"] for workflow in workflows.list()}
-    workflow_actions = [
-        {
-            "id": run["id"],
-            "type": "workflow-approval",
-            "title": workflow_names.get(run.get("workflowId"), "Workflow approval"),
-            "detail": f"Run {run['id']} is waiting for human approval",
-            "status": run["status"],
-            "page": "automation",
-        }
-        for run in workflows.list_runs() if run.get("status") == "WAITING_APPROVAL"
-    ]
-    actions = review_actions + workflow_actions
+    actions = review_actions
     return jsonify({
         "count": len(actions),
-        "pendingReviews": len(review_actions),
-        "pendingWorkflowApprovals": len(workflow_actions),
+        "pendingReviews": len([item for item in review_actions if item.get("type") == "verification"]),
+        "pendingWorkflowApprovals": len([item for item in review_actions if item.get("type") == "workflow-approval"]),
         "actions": actions,
     })
 
@@ -1219,7 +1241,7 @@ def test_workflow(workflow_id: str):
 @app.post("/api/workflows/<workflow_id>/run")
 def run_workflow(workflow_id: str):
     try:
-        run = workflows.run(workflow_id, execute_workflow_node)
+        run = attach_workflow_verification(workflows.run(workflow_id, execute_workflow_node))
     except KeyError:
         return jsonify({"error": "Workflow not found."}), 404
     return jsonify(run)
@@ -1229,6 +1251,9 @@ def run_workflow(workflow_id: str):
 def decide_workflow_run(run_id: str):
     payload = body_json()
     try:
+        current = workflows.get_run(run_id)
+        if current.get("verificationCaseId"):
+            return jsonify({"error": "Use the linked Verification Centre case to decide this workflow approval."}), 409
         run = workflows.decide_approval(
             run_id,
             bounded_text(payload, "decision", 20),
@@ -1304,6 +1329,79 @@ def ask_bursa_suggestions():
     if role not in ROLE_WORKSPACES:
         raise ValueError("role is not a recognised demo identity.")
     return jsonify({"suggestions": knowledge.list_suggestions(role)})
+
+
+@app.get("/api/knowledge-admin")
+def knowledge_administration():
+    return jsonify(knowledge.administration())
+
+
+@app.post("/api/knowledge-admin/documents")
+def upload_knowledge_document():
+    uploaded = request.files.get("file")
+    if uploaded is None or not uploaded.filename:
+        return jsonify({"error": "Select a document to upload."}), 400
+    try:
+        metadata = json.loads(request.form.get("metadata", "{}"))
+        if not isinstance(metadata, dict):
+            raise ValueError("Document metadata must be an object.")
+        content = uploaded.read()
+        if not content:
+            raise ValueError("The uploaded document is empty.")
+        if len(content) > app.config["MAX_CONTENT_LENGTH"]:
+            raise ValueError("The uploaded document exceeds the 32 MB limit.")
+        saved = knowledge.save_upload(uploaded.filename, content, metadata)
+        ingestion = knowledge.ingest()
+        return jsonify({"document": saved, "ingestion": ingestion, "administration": knowledge.administration()}), 201
+    except (ValueError, json.JSONDecodeError) as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.post("/api/knowledge-admin/ingest")
+def ingest_knowledge_documents():
+    return jsonify({"ingestion": knowledge.ingest(), "administration": knowledge.administration()})
+
+
+@app.patch("/api/knowledge-admin/documents/<document_id>")
+def update_knowledge_document(document_id: str):
+    try:
+        return jsonify(knowledge.update_document(document_id, body_json()))
+    except KeyError:
+        return jsonify({"error": "Knowledge document not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.post("/api/knowledge-admin/documents/<document_id>/reindex")
+def reindex_knowledge_document(document_id: str):
+    try:
+        return jsonify({"ingestion": knowledge.reindex_document(document_id), "administration": knowledge.administration()})
+    except KeyError:
+        return jsonify({"error": "Knowledge document not found."}), 404
+
+
+@app.delete("/api/knowledge-admin/documents/<document_id>")
+def remove_knowledge_document(document_id: str):
+    try:
+        return jsonify({"ingestion": knowledge.remove_document(document_id), "administration": knowledge.administration()})
+    except KeyError:
+        return jsonify({"error": "Knowledge document not found."}), 404
+
+
+@app.patch("/api/knowledge-admin/suggestions/<suggestion_id>")
+def update_knowledge_suggestion(suggestion_id: str):
+    payload = body_json()
+    try:
+        return jsonify(knowledge.update_suggestion(
+            suggestion_id,
+            bounded_text(payload, "status", 20),
+            bounded_text(payload, "question", 180, required=False) or None,
+            bounded_text(payload, "description", 220, required=False) if "description" in payload else None,
+        ))
+    except KeyError:
+        return jsonify({"error": "Suggested question not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
 
 
 @app.post("/api/ask-bursa")
@@ -1599,6 +1697,7 @@ def download_report(filename: str):
 @app.get("/api/verification")
 def list_verification():
     role = str(request.args.get("role", "")).lower()
+    ensure_workflow_verifications()
     assigned, requested, accessible = verification_access_scope(role)
     return jsonify({"cases": accessible, "assigned": assigned, "requested": requested, "reviewerAccess": bool(reviewer_assignments(role))})
 
@@ -1626,19 +1725,27 @@ def review_verification(case_id: str):
             return jsonify({"error": "This verification case is not assigned to the active reviewer."}), 403
         requested_status = bounded_text(payload, "status", 30)
         reviewer_comment = bounded_text(payload, "comment", 1000, required=False)
-        if requested_status == "Changes requested" and not reviewer_comment:
-            return jsonify({"error": "A reviewer comment is required when requesting changes."}), 400
-        case = verification.update_status(case_id, requested_status, DEMO_IDENTITIES.get(role, "Demo reviewer"), reviewer_comment)
+        workflow_run = workflows.by_verification_case(case_id)
         mission = missions.by_verification_case(case_id)
+        if requested_status in {"Changes requested", "Rejected"} and not reviewer_comment:
+            return jsonify({"error": "A reviewer comment is required when requesting changes or rejecting work."}), 400
+        if requested_status == "Rejected" and mission:
+            return jsonify({"error": "Mission reviews support approval or requested changes."}), 400
+        if workflow_run and workflow_run["status"] != "WAITING_APPROVAL":
+            return jsonify({"error": "This workflow approval is no longer awaiting a decision."}), 409
+        case = verification.update_status(case_id, requested_status, DEMO_IDENTITIES.get(role, "Demo reviewer"), reviewer_comment)
         if mission:
             mission_status = "APPROVED" if requested_status == "Approved" else "REVISION REQUESTED"
             missions.update(mission["id"], status=mission_status, current_worker="mission-manager")
             missions.event(mission["id"], "mission-manager", mission_status, f"Human review recorded: {requested_status}.", {"verificationCaseId": case_id, "reviewer": DEMO_IDENTITIES.get(role, "Demo reviewer"), "comment": reviewer_comment, "version": mission.get("version", 1)})
+        elif workflow_run:
+            decision = {"Approved": "APPROVE", "Rejected": "REJECT", "Changes requested": "CHANGES"}[requested_status]
+            workflow_run = workflows.decide_approval(workflow_run["id"], decision, DEMO_IDENTITIES.get(role, "Demo reviewer"), reviewer_comment, execute_workflow_node)
     except KeyError:
         return jsonify({"error": "Verification case not found."}), 404
     except ValueError as error:
         return jsonify({"error": str(error)}), 409
-    return jsonify(case)
+    return jsonify({"case": case, "workflowRun": workflow_run} if workflow_run else case)
 
 
 @app.get("/api/verification/<case_id>/history")

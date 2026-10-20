@@ -24,7 +24,7 @@
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
-  if (["assistant", "ask-bursa", "workforce", "agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  if (["assistant", "ask-bursa", "knowledge-admin", "workforce", "agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var requestedWorkflowId = new URLSearchParams(window.location.search).get("workflow");
   var requestedAgentId = new URLSearchParams(window.location.search).get("agent");
   var requestedTeamId = new URLSearchParams(window.location.search).get("team");
@@ -53,6 +53,8 @@
     askBursaConversationId: null,
     askBursaKnowledge: null,
     askBursaSuggestions: [],
+    knowledgeAdmin: null,
+    knowledgeAdminError: "",
     savedDecisions: [],
     emailAutomations: [],
     selectedNode: "trigger",
@@ -98,6 +100,7 @@
     home: ["Home", "Your command centre", "i-home", "blue"],
     assistant: ["AI Assistant", "Ask, understand, decide", "i-spark", "violet"],
     "ask-bursa": ["Ask Bursa", "Internal knowledge Q&A", "i-book", "blue"],
+    "knowledge-admin": ["Knowledge Administration", "Govern Ask Bursa documents and topics", "i-folder", "teal"],
     workforce: ["My Workforce", "Agents, tasks and missions", "i-agents", "blue"],
     "agent-library": ["Agent Library", "Create and govern reusable AI agents", "i-agents", "violet"],
     "agent-builder": ["Agent Builder", "Configure models, tools and permissions", "i-spark", "violet"],
@@ -149,6 +152,15 @@
     });
   }
 
+  function apiForm(url, formData) {
+    return fetch(url, { method: "POST", body: formData }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (payload) {
+        if (!response.ok) throw new Error(payload.error || "The knowledge service could not complete this request.");
+        return payload;
+      });
+    });
+  }
+
   function loadModelProviders() {
     return apiJson("/api/model-providers").then(function (payload) {
       state.modelProviders = payload.providers || [];
@@ -177,6 +189,19 @@
     }).catch(function () {
       state.askBursaSuggestions = [];
       return [];
+    });
+  }
+
+  function loadKnowledgeAdmin() {
+    return apiJson("/api/knowledge-admin").then(function (payload) {
+      state.knowledgeAdmin = payload;
+      state.knowledgeAdminError = "";
+      if (state.page === "knowledge-admin") render();
+      return payload;
+    }).catch(function (error) {
+      state.knowledgeAdminError = error.message;
+      if (state.page === "knowledge-admin") render();
+      return null;
     });
   }
 
@@ -598,7 +623,7 @@
     var documentCount = state.askBursaKnowledge ? Number(state.askBursaKnowledge.documents || 0) : null;
     return [
       '<section class="ask-bursa-page">',
-      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><span class="context-state"><i class="dot"></i> ' + (documentCount === null ? "Checking knowledge index" : documentCount + " indexed document" + (documentCount === 1 ? "" : "s")) + '</span></header>',
+      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><div class="page-head-actions"><span class="context-state"><i class="dot"></i> ' + (documentCount === null ? "Checking knowledge index" : documentCount + " indexed document" + (documentCount === 1 ? "" : "s")) + '</span><button class="secondary-button" type="button" data-page-jump="knowledge-admin">Manage knowledge</button></div></header>',
       '<div class="ask-bursa-main">',
       '<div class="assistant-thread ask-bursa-thread" id="ask-bursa-thread">',
       state.askBursaMessages.length ? messages : askBursaWelcome(),
@@ -615,6 +640,22 @@
 
   function bursaSuggestion(title, description) {
     return '<button class="suggestion" type="button" data-bursa-prompt="' + escapeHtml(title) + '"><strong>' + escapeHtml(title) + '</strong><small>' + escapeHtml(description) + '</small></button>';
+  }
+
+  function knowledgeAdministrationPage() {
+    var data = state.knowledgeAdmin;
+    if (!data) return '<section class="page page-enter">' + pageHead("Knowledge Administration", "Upload, govern, index, and retire Ask Bursa sources.") + '<div class="clean-empty"><strong>' + escapeHtml(state.knowledgeAdminError || "Loading knowledge catalogue…") + '</strong></div></section>';
+    var departments = (data.departments || []).map(function (item) { return '<option value="' + escapeHtml(item) + '">' + escapeHtml(item.replace(/_/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); })) + '</option>'; }).join("");
+    var roles = (data.roles || []).map(function (role) { return '<label><input type="checkbox" name="allowedRoles" value="' + escapeHtml(role) + '" checked>' + escapeHtml(role.toUpperCase()) + '</label>'; }).join("");
+    var replacementOptions = '<option value="">Does not replace another source</option>' + (data.documentsList || []).map(function (item) { return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.filename + " · v" + item.version) + '</option>'; }).join("");
+    var documents = (data.documentsList || []).map(function (item) {
+      var roleChecks = (data.roles || []).map(function (role) { return '<label><input type="checkbox" name="allowedRoles" value="' + escapeHtml(role) + '"' + (item.allowedRoles.indexOf(role) !== -1 ? " checked" : "") + '>' + escapeHtml(role.toUpperCase()) + '</label>'; }).join("");
+      var lifecycleTone = item.lifecycle === "ACTIVE" ? "teal" : "amber";
+      return '<article class="knowledge-document-card"><div class="knowledge-document-summary">' + miniIcon("i-document", lifecycleTone) + '<span><strong>' + escapeHtml(item.filename) + '</strong><small>' + escapeHtml(item.departmentLabel + " · " + item.classification + " · v" + item.version) + '</small><small>' + Number(item.chunks) + ' chunks · ' + Number(item.suggestions) + ' suggested questions · indexed ' + escapeHtml(formatWorkflowDate(item.indexedAt)) + '</small></span>' + status(item.lifecycle) + '</div><details><summary>Edit governance and permissions</summary><form class="knowledge-metadata-form" data-document-id="' + escapeHtml(item.id) + '"><div class="form-split"><label class="form-field">Owner<input name="owner" required maxlength="120" value="' + escapeHtml(item.owner) + '"></label><label class="form-field">Classification<select name="classification"><option' + (item.classification === "Internal" ? " selected" : "") + '>Internal</option><option' + (item.classification === "Confidential" ? " selected" : "") + '>Confidential</option><option' + (item.classification === "Public" ? " selected" : "") + '>Public</option></select></label></div><div class="form-split"><label class="form-field">Version<input name="version" required maxlength="40" value="' + escapeHtml(item.version) + '"></label><label class="form-field">Effective date<input name="effectiveDate" type="date" value="' + escapeHtml(item.effectiveDate || "") + '"></label></div><div class="form-split"><label class="form-field">Expiry date<input name="expiryDate" type="date" value="' + escapeHtml(item.expiryDate || "") + '"></label><label class="form-field">Replaces source<select name="replacesDocumentId">' + replacementOptions.replace('value="' + item.id + '"', 'value="' + item.id + '" disabled') .replace('value="' + (item.replacesDocumentId || "__none__") + '"', 'value="' + (item.replacesDocumentId || "__none__") + '" selected') + '</select></label></div><fieldset class="knowledge-role-list"><legend>Permitted roles</legend>' + roleChecks + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-knowledge-remove="' + escapeHtml(item.id) + '">Remove source</button><button class="secondary-button" type="button" data-knowledge-reindex="' + escapeHtml(item.id) + '">Re-index</button><button class="primary-button" type="submit">Save metadata</button></div></form></details></article>';
+    }).join("");
+    var suggestions = (data.suggestionsList || []).map(function (item) { return '<form class="knowledge-suggestion-row" data-suggestion-id="' + escapeHtml(item.id) + '"><div><strong>' + escapeHtml(item.sourceDocument) + '</strong><small>' + escapeHtml(item.department + " · source v" + item.sourceVersion) + '</small></div><label class="form-field">Question<input name="question" maxlength="180" value="' + escapeHtml(item.question) + '" required></label><label class="form-field">Description<input name="description" maxlength="220" value="' + escapeHtml(item.description) + '"></label><select name="status" aria-label="Suggestion visibility"><option value="ACTIVE"' + (item.status === "ACTIVE" ? " selected" : "") + '>Visible</option><option value="HIDDEN"' + (item.status === "HIDDEN" ? " selected" : "") + '>Hidden</option></select><button class="secondary-button" type="submit">Save</button></form>'; }).join("");
+    var runs = (data.ingestionRuns || []).map(function (run) { var errors = (run.errors || []).map(function (error) { return '<li><strong>' + escapeHtml(error.path) + '</strong> — ' + escapeHtml(error.error) + '</li>'; }).join(""); return '<article class="ingestion-run"><div><strong>' + escapeHtml(run.id) + '</strong><small>' + escapeHtml(formatWorkflowDate(run.completedAt)) + '</small></div><span>Indexed ' + Number(run.indexed) + ' · unchanged ' + Number(run.unchanged) + ' · removed ' + Number(run.removed) + '</span>' + (errors ? '<details><summary>' + run.errors.length + ' failure' + (run.errors.length === 1 ? "" : "s") + '</summary><ul>' + errors + '</ul></details>' : status("Completed")) + '</article>'; }).join("");
+    return '<section class="page page-enter knowledge-admin-page"><header class="page-head"><div><h1>Knowledge Administration</h1><p>Maintain the governed document collection used by Ask Bursa.</p></div><div class="page-head-actions"><button class="secondary-button" type="button" data-page-jump="ask-bursa">Open Ask Bursa</button><button class="primary-button" type="button" data-knowledge-ingest>Run ingestion</button></div></header>' + (state.knowledgeAdminError ? '<div class="mission-failure"><strong>Knowledge service unavailable</strong><small>' + escapeHtml(state.knowledgeAdminError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-document", "blue", String(data.documents || 0), "Indexed documents", "Permission filtered") + metric("i-cube", "teal", String(data.chunks || 0), "Searchable passages", "Embedded locally") + metric("i-spark", "violet", String(data.suggestions || 0), "Generated topics", "Reviewable below") + metric("i-clock", "amber", String((data.documentsList || []).filter(function (item) { return item.lifecycle !== "ACTIVE"; }).length), "Expired or replaced", "Excluded from retrieval") + '</div><section class="panel knowledge-upload-panel"><div class="panel-head"><div><h2>Upload an approved source</h2><p>The file is stored in its department folder and indexed using its governance metadata.</p></div></div><form id="knowledge-upload-form" class="knowledge-upload-form"><label class="form-field">Document<input name="file" type="file" required accept="' + escapeHtml((data.supportedExtensions || []).join(",")) + '"></label><div class="form-split"><label class="form-field">Department<select name="department" required>' + departments + '</select></label><label class="form-field">Owner<input name="owner" maxlength="120" required></label></div><div class="form-split"><label class="form-field">Classification<select name="classification"><option>Internal</option><option>Confidential</option><option>Public</option></select></label><label class="form-field">Version<input name="version" value="1.0" maxlength="40" required></label></div><div class="form-split"><label class="form-field">Effective date<input name="effectiveDate" type="date"></label><label class="form-field">Expiry date<input name="expiryDate" type="date"></label></div><label class="form-field">Replaces source<select name="replacesDocumentId">' + replacementOptions + '</select></label><fieldset class="knowledge-role-list"><legend>Permitted roles</legend>' + roles + '</fieldset><button class="primary-button" type="submit">Upload and index</button></form></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Document catalogue</h2><p>Edit access, re-index changed sources, or remove retired content.</p></div></div><div class="knowledge-document-list">' + (documents || '<div class="clean-empty"><strong>No indexed documents</strong><p>Upload the first approved source above.</p></div>') + '</div></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Suggested question review</h2><p>Only visible questions can appear on the Ask Bursa welcome screen.</p></div></div><div class="knowledge-suggestion-list">' + (suggestions || '<div class="clean-empty"><strong>No generated questions</strong><p>Questions are generated when supported documents are ingested.</p></div>') + '</div></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Ingestion history and failures</h2><p>Extraction, embedding, and suggestion errors remain visible for remediation.</p></div></div><div class="ingestion-run-list">' + (runs || '<div class="clean-empty"><strong>No ingestion runs yet</strong></div>') + '</div></section></section>';
   }
 
   function bursaMessageHtml(message, messageIndex) {
@@ -936,7 +977,7 @@
     var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<select name="agentId"><option value="">Select a registered agent</option>' + assignableAgents.map(function (agent) { return '<option value="' + escapeHtml(agent.id) + '"' + (agent.id === (selectedConfig.agentId || selectedConfig.agent) ? " selected" : "") + '>' + escapeHtml(agent.name + " · " + agent.provider + " · v" + agent.version) + '</option>'; }).join("") + '</select></label><button class="canvas-action-link" type="button" data-page-jump="agent-library">Manage Agent Library ' + svg("i-arrow") + '</button><label class="form-field">Registered capability<select name="capabilityId"><option value="">No capability constraint</option>' + capabilityOptions + '</select></label><button class="canvas-action-link" type="button" data-page-jump="capability-library">View Capability Registry ' + svg("i-arrow") + '</button><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="e.g. agent.response contains approved"></label><div class="form-split"><label class="form-field">Maximum retries<input type="number" name="maxRetries" min="0" max="3" value="' + Number(selectedConfig.maxRetries || 0) + '"></label><label class="form-field">Approver<input name="approver" maxlength="100" value="' + escapeHtml(selectedConfig.approver || workflow.owner) + '"></label></div><label class="form-field">Publish / Send integration<select name="integration"><option value=""' + (!selectedConfig.integration ? " selected" : "") + '>No configured integration</option><option value="publish-approved-mission"' + (selectedConfig.integration === "publish-approved-mission" ? " selected" : "") + '>Publish approved mission to Exchange</option></select></label><label class="form-field">Approved mission ID<input name="missionId" maxlength="100" value="' + escapeHtml(selectedConfig.missionId || "") + '" placeholder="Required only for Exchange publication"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
     var latestRun = state.workflowRuns[0];
     var runEvents = latestRun && latestRun.events ? latestRun.events.map(function (event) { return '<article class="agent-run-row">' + workflowStatus(event.status) + '<span><strong>' + escapeHtml(event.nodeName || "Validation") + '</strong><small>' + escapeHtml(event.message) + (event.retries ? " · retries: " + event.retries : "") + (event.error ? " · error: " + event.error : "") + '</small></span><time>' + escapeHtml(formatWorkflowDate(event.occurredAt)) + '</time></article>'; }).join("") : "";
-    var approvalActions = latestRun && latestRun.status === "WAITING_APPROVAL" ? '<form class="workflow-approval-form" data-workflow-approval="' + escapeHtml(latestRun.id) + '"><label class="form-field">Approval comment<textarea name="comment" maxlength="1000" placeholder="Record the reason for this decision"></textarea></label><div class="evidence-actions"><button class="danger-button" type="button" data-workflow-decision="REJECT">Reject</button><button class="primary-button" type="button" data-workflow-decision="APPROVE">Approve and resume</button></div></form>' : "";
+    var approvalActions = latestRun && latestRun.status === "WAITING_APPROVAL" ? '<div class="detail-callout">' + svg("i-shield") + '<span><strong>Review in Verification Centre</strong><small>This run is linked to the shared review queue and audit history.</small></span><button class="primary-button" type="button" data-page-jump="verification">Open review</button></div>' : "";
     return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="automation">← Automation Studio</button><div><input id="workflow-name" maxlength="120" value="' + escapeHtml(workflow.name) + '" aria-label="Workflow name"><p>' + escapeHtml(workflow.id) + ' · Last saved ' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</p></div><div class="builder-actions"><button class="danger-button" type="button" data-workflow-action="delete">Delete</button><button class="secondary-button" type="button" data-workflow-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-workflow-action="test">Test Workflow</button><button class="secondary-button" type="button" data-workflow-action="save">Save Draft</button><button class="primary-button" type="button" data-workflow-action="run">Run Workflow</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Workflow canvas</strong><label>Add step<select id="workflow-node-type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '">' + item[1] + '</option>'; }).join("") + '</select></label><button class="secondary-button" type="button" data-node-add>Add step</button></div><div class="builder-flow">' + (nodes || '<div class="clean-empty"><strong>No steps yet</strong><p>Add a Trigger to begin.</p></div>') + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Node configuration</h2></div>' + config + '</aside></div><section class="panel builder-history"><div class="content-view-head"><div><h2>Validation &amp; execution history</h2><p>Inputs, outputs, errors, retries, and approval transitions are persisted by the Flask backend.</p></div>' + workflowStatus(workflow.status) + '</div>' + (latestRun ? '<div class="run-result">' + workflowStatus(latestRun.status) + '<span><strong>' + escapeHtml(latestRun.mode + " · " + latestRun.id) + '</strong><small>' + escapeHtml(latestRun.events.length ? latestRun.events[latestRun.events.length - 1].message : (latestRun.validation.errors || []).join(" ")) + '</small></span></div>' + approvalActions + '<div class="agent-run-list">' + runEvents + '</div>' : '<div class="clean-empty compact"><strong>No tests or runs yet</strong></div>') + '</section></section>';
   }
 
@@ -1024,13 +1065,18 @@
     var selectedCase = selected ? state.verificationCases.filter(function (item) { return item.id === selected.verificationCaseId; })[0] : null;
     var linkedCaseIds = state.liveMissions.map(function (item) { return item.verificationCaseId; }).filter(Boolean);
     var standaloneCases = state.verificationCases.filter(function (item) { return linkedCaseIds.indexOf(item.id) === -1; });
-    var standaloneSelected = state.selectedVerificationCaseId ? standaloneCases.filter(function (item) { return item.id === state.selectedVerificationCaseId; })[0] : null;
+    var standaloneSelected = state.selectedVerificationCaseId ? standaloneCases.filter(function (item) { return item.id === state.selectedVerificationCaseId; })[0] : (!state.selectedVerificationMissionId && !pending.length ? standaloneCases.filter(function (item) { return item.status === "Pending review"; })[0] || standaloneCases[0] : null);
     if (standaloneSelected) { selected = null; selectedCase = standaloneSelected; }
     var retainedComment = selectedCase && selectedCase.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment retained</strong><small>' + escapeHtml(selectedCase.reviewerComment) + '</small></span></div>' : "";
     var queueItems = reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).concat(standaloneCases.map(function (item) { return '<button class="verification-item ' + (standaloneSelected && standaloneSelected.id === item.id ? "is-selected" : "") + '" type="button" data-verification-case="' + escapeHtml(item.id) + '">' + miniIcon("i-document", item.status === "Pending review" ? "amber" : "teal") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.workspace) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>'; }));
     var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : queueItems.length ? queueItems.join("") : '<div class="mission-empty"><strong>No packages awaiting review</strong><span>Submit a mission draft or verify an Assistant answer.</span></div>';
-    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + missionResultSections(selected.result) + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : '') + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect versioned mission outputs, evidence, and review history before they move forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Assigned reviewer") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Persisted output and source payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions are recorded with the active reviewer identity and persisted in the audit store.</p></section>';
+    var missionPreview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + missionResultSections(selected.result) + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : '') + '</div>' : "";
+    var caseDetails = standaloneSelected && standaloneSelected.details || {};
+    var caseEvents = (caseDetails.nodeEvents || []).map(function (event) { return '<article class="agent-run-row">' + workflowStatus(event.status) + '<span><strong>' + escapeHtml(event.nodeName || "Workflow step") + '</strong><small>' + escapeHtml(event.message || "") + (event.error ? " · " + event.error : "") + '</small></span><time>' + escapeHtml(formatWorkflowDate(event.occurredAt)) + '</time></article>'; }).join("");
+    var isWorkflowReview = caseDetails.kind === "workflow-approval";
+    var casePreview = standaloneSelected ? '<div class="content-view-head"><div><h2>' + escapeHtml(standaloneSelected.title) + '</h2><p>' + escapeHtml(standaloneSelected.id) + ' · ' + escapeHtml(standaloneSelected.workspace) + '</p></div>' + status(standaloneSelected.status) + '</div>' + retainedComment + '<div class="detail-callout">' + svg(isWorkflowReview ? "i-flow" : "i-shield") + '<span><strong>' + escapeHtml(caseDetails.answerTitle || standaloneSelected.title) + '</strong><small>' + escapeHtml(caseDetails.answerText || caseDetails.question || standaloneSelected.scope) + '</small></span></div>' + (caseEvents ? '<div class="agent-run-list">' + caseEvents + '</div>' : '') + (standaloneSelected.status === "Pending review" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="case-review-comment" maxlength="1000" placeholder="Required for rejection or requested changes"></textarea></label><div class="evidence-actions">' + (isWorkflowReview ? '<button class="danger-button" type="button" data-case-review="Rejected" data-case-id="' + escapeHtml(standaloneSelected.id) + '">Reject</button>' : '') + '<button class="secondary-button" type="button" data-case-review="Changes requested" data-case-id="' + escapeHtml(standaloneSelected.id) + '">Request changes</button><button class="primary-button" type="button" data-case-review="Approved" data-case-id="' + escapeHtml(standaloneSelected.id) + '">' + (isWorkflowReview ? "Approve and resume" : "Approve") + '</button></div>' : '') : "";
+    var preview = missionPreview || casePreview || '<div class="mission-empty"><strong>Select a review package</strong><span>Its evidence, audit context, and review actions will appear here.</span></div>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect versioned mission outputs, evidence, and review history before they move forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length + state.verificationCases.filter(function (item) { return item.status === "Pending review" && linkedCaseIds.indexOf(item.id) === -1; }).length), "Pending review", "Assigned reviewer") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Persisted output and source payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Review queue <b>' + queueItems.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions are recorded with the active reviewer identity and persisted in the audit store.</p></section>';
   }
 
   function connectorsPage() {
@@ -1040,7 +1086,8 @@
 
   function actionPage() {
     var pendingRows = state.pendingActions.map(function (item) {
-      return '<button class="verification-item" type="button" data-page-jump="' + escapeHtml(item.page) + '">' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
+      var target = item.type === "workflow-approval" ? ' data-verification-case="' + escapeHtml(item.id) + '"' : ' data-page-jump="' + escapeHtml(item.page) + '"';
+      return '<button class="verification-item" type="button"' + target + '>' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
     }).join("");
     var decisionRows = state.savedDecisions.map(function (item) {
       return '<article class="action-record"><span class="action-record-icon">' + svg("i-brief") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.owner) + ' · ' + escapeHtml(item.created) + '</small></div><button type="button" data-action-open="' + escapeHtml(item.id) + '" aria-label="Open ' + escapeHtml(item.title) + '">' + svg("i-chevron") + '</button></article>';
@@ -1488,7 +1535,7 @@
     if (action === "notifications") {
       var pending = state.liveMissions.filter(function (item) { return item.status === "AWAITING REVIEW"; });
       var waits = state.workflowRuns.filter(function (item) { return item.status === "WAITING_APPROVAL"; });
-      var notificationRows = pending.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.title) + '</strong><small>Mission awaiting review</small></span>' + svg("i-chevron") + '</button>'; }).concat(waits.map(function (item) { return '<button type="button" data-page-target="automation"><span><strong>' + escapeHtml(item.id) + '</strong><small>Workflow waiting for approval</small></span>' + svg("i-chevron") + '</button>'; }));
+      var notificationRows = pending.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.title) + '</strong><small>Mission awaiting review</small></span>' + svg("i-chevron") + '</button>'; }).concat(waits.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.id) + '</strong><small>Workflow waiting for approval</small></span>' + svg("i-chevron") + '</button>'; }));
       openExperience({ title: "Notifications", subtitle: notificationRows.length ? notificationRows.length + " pending actions" : "You are all caught up", body: notificationRows.length ? '<div class="focus-list">' + notificationRows.join("") + '</div>' : '<div class="clean-empty"><strong>No notifications</strong><p>Approvals and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
       return;
     }
@@ -1515,6 +1562,7 @@
     if (state.page === "home") html = homePage();
     else if (state.page === "assistant") html = assistantPage();
     else if (state.page === "ask-bursa") html = askBursaPage();
+    else if (state.page === "knowledge-admin") html = knowledgeAdministrationPage();
     else if (state.page === "workforce") html = workforcePage();
     else if (state.page === "agent-library") html = agentLibraryPage();
     else if (state.page === "agent-builder") html = agentBuilderPage();
@@ -1534,7 +1582,7 @@
     else html = homePage();
     root.innerHTML = html;
     document.querySelectorAll(".nav-link[data-page]").forEach(function (button) {
-      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || ["agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
+      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || state.page === "knowledge-admin" && button.dataset.page === "ask-bursa" || ["agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
       button.classList.toggle("is-active", active);
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
@@ -1617,6 +1665,34 @@
     root.querySelectorAll("[data-page-jump]").forEach(function (button) {
       button.addEventListener("click", function () { navigate(button.dataset.pageJump); });
     });
+    var knowledgeUpload = document.getElementById("knowledge-upload-form");
+    if (knowledgeUpload) knowledgeUpload.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var data = new FormData(knowledgeUpload);
+      var roles = data.getAll("allowedRoles");
+      if (!roles.length) { toast("Permissions required", "Select at least one role allowed to retrieve this source."); return; }
+      var requestData = new FormData();
+      requestData.append("file", data.get("file"));
+      requestData.append("metadata", JSON.stringify({ department: data.get("department"), owner: data.get("owner"), classification: data.get("classification"), version: data.get("version"), effectiveDate: data.get("effectiveDate"), expiryDate: data.get("expiryDate"), replacesDocumentId: data.get("replacesDocumentId"), allowedRoles: roles }));
+      var submit = knowledgeUpload.querySelector('[type="submit"]');
+      submit.disabled = true;
+      apiForm("/api/knowledge-admin/documents", requestData).then(function (payload) { state.knowledgeAdmin = payload.administration; return Promise.all([loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { render(); var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Upload stored; ingestion needs attention" : "Document indexed", failed ? "Open ingestion history to review the recorded failure." : "The source, metadata, permissions, and generated topics are now persisted."); }).catch(function (error) { submit.disabled = false; toast("Upload failed", error.message); });
+    });
+    root.querySelectorAll(".knowledge-metadata-form").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var data = new FormData(form);
+        var roles = data.getAll("allowedRoles");
+        if (!roles.length) { toast("Permissions required", "Select at least one permitted role."); return; }
+        var submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(form.dataset.documentId), { method: "PATCH", body: JSON.stringify({ owner: data.get("owner"), classification: data.get("classification"), version: data.get("version"), effectiveDate: data.get("effectiveDate"), expiryDate: data.get("expiryDate"), replacesDocumentId: data.get("replacesDocumentId"), allowedRoles: roles }) }).then(function (payload) { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Metadata saved; re-index needs attention" : "Metadata saved", failed ? "Review the recorded ingestion failure." : "Permissions and lifecycle metadata were re-indexed."); }).catch(function (error) { submit.disabled = false; toast("Metadata update failed", error.message); });
+      });
+    });
+    root.querySelectorAll("[data-knowledge-reindex]").forEach(function (button) { button.addEventListener("click", function () { button.disabled = true; apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(button.dataset.knowledgeReindex) + "/reindex", { method: "POST", body: "{}" }).then(function (payload) { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Re-index needs attention" : "Document re-indexed", failed ? "Review the failure in ingestion history." : "Content, embeddings, and suggested questions were rebuilt."); }).catch(function (error) { button.disabled = false; toast("Re-index failed", error.message); }); }); });
+    root.querySelectorAll("[data-knowledge-remove]").forEach(function (button) { button.addEventListener("click", function () { if (!window.confirm("Remove this source, its passages, and its generated questions?")) return; button.disabled = true; apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(button.dataset.knowledgeRemove), { method: "DELETE" }).then(function () { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]); }).then(function () { toast("Source removed", "The document is no longer available to Ask Bursa."); }).catch(function (error) { button.disabled = false; toast("Removal failed", error.message); }); }); });
+    root.querySelectorAll(".knowledge-suggestion-row").forEach(function (form) { form.addEventListener("submit", function (event) { event.preventDefault(); var data = new FormData(form); var submit = form.querySelector('[type="submit"]'); submit.disabled = true; apiJson("/api/knowledge-admin/suggestions/" + encodeURIComponent(form.dataset.suggestionId), { method: "PATCH", body: JSON.stringify({ question: data.get("question"), description: data.get("description"), status: data.get("status") }) }).then(function () { return Promise.all([loadKnowledgeAdmin(), loadAskBursaSuggestions()]); }).then(function () { toast("Suggested topic saved", "Ask Bursa visibility has been updated."); }).catch(function (error) { submit.disabled = false; toast("Suggestion update failed", error.message); }); }); });
+    root.querySelectorAll("[data-knowledge-ingest]").forEach(function (button) { button.addEventListener("click", function () { button.disabled = true; apiJson("/api/knowledge-admin/ingest", { method: "POST", body: "{}" }).then(function (payload) { state.knowledgeAdmin = payload.administration; return Promise.all([loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { render(); var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Ingestion completed with failures" : "Ingestion completed", failed ? "Review the failure details recorded below." : "The catalogue and ingestion history have been refreshed."); }).catch(function (error) { button.disabled = false; toast("Ingestion failed", error.message); }); }); });
     root.querySelectorAll("[data-assistant-prompt]").forEach(function (button) {
       button.addEventListener("click", function () {
         var prompt = button.dataset.assistantPrompt;
@@ -1824,7 +1900,7 @@
       button.addEventListener("click", function () {
         state.selectedVerificationMissionId = null;
         state.selectedVerificationCaseId = button.dataset.verificationCase;
-        render();
+        if (state.page !== "verification") navigate("verification"); else render();
       });
     });
     root.querySelectorAll("[data-mission-review]").forEach(function (button) {
@@ -1847,6 +1923,21 @@
           button.disabled = false;
           toast("Review action failed", error.message);
         });
+      });
+    });
+    root.querySelectorAll("[data-case-review]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var commentField = document.getElementById("case-review-comment");
+        var comment = commentField ? commentField.value.trim() : "";
+        if (["Rejected", "Changes requested"].indexOf(button.dataset.caseReview) !== -1 && !comment) {
+          toast("Reviewer comment required", "Record why the workflow is rejected or what the owner must change.");
+          if (commentField) commentField.focus();
+          return;
+        }
+        button.disabled = true;
+        apiJson("/api/verification/" + encodeURIComponent(button.dataset.caseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.caseReview, comment: comment }) }).then(function (payload) {
+          return Promise.all([loadVerification(), loadWorkflows(), loadPendingActionCount()]).then(function () { render(); var run = payload.workflowRun; toast("Review decision recorded", run && run.status === "COMPLETED" ? "The approved workflow resumed and completed." : button.dataset.caseReview + " is recorded in the shared audit history."); });
+        }).catch(function (error) { button.disabled = false; toast("Review action failed", error.message); });
       });
     });
     root.querySelectorAll("[data-mission-revise]").forEach(function (button) {
@@ -1966,16 +2057,6 @@
     });
     root.querySelectorAll("[data-workflow-action]").forEach(function (button) {
       button.addEventListener("click", function () { executeWorkflowAction(button.dataset.workflowAction); });
-    });
-    root.querySelectorAll("[data-workflow-decision]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var form = button.closest("[data-workflow-approval]");
-        if (!form) return;
-        button.disabled = true;
-        apiJson("/api/workflow-runs/" + encodeURIComponent(form.dataset.workflowApproval) + "/decision", { method: "POST", body: JSON.stringify({ decision: button.dataset.workflowDecision, actor: "Lim Kim Hoong", comment: form.elements.comment.value.trim() }) }).then(function (run) {
-          return apiJson("/api/workflows/" + encodeURIComponent(state.activeWorkflow.id)).then(function (payload) { state.activeWorkflow = payload.workflow; state.workflowRuns = payload.runs || []; render(); toast("Approval decision recorded", run.status === "COMPLETED" ? "The workflow resumed and completed." : "The workflow run is now " + run.status.toLowerCase().replace(/_/g, " ") + "."); return loadPendingActionCount(); });
-        }).catch(function (error) { button.disabled = false; toast("Approval decision failed", error.message); });
-      });
     });
     root.querySelectorAll("[data-template-use]").forEach(function (button) {
       button.addEventListener("click", function () { openCreation("workflow"); var title = document.querySelector('#creation-form [name="title"]'); if (title) title.value = button.dataset.templateUse + " Workflow"; });
@@ -2457,6 +2538,7 @@
   loadModelProviders();
   loadAskBursaStatus();
   loadAskBursaSuggestions();
+  loadKnowledgeAdmin();
   loadPlatform();
   loadAgents().then(function () {
     if (requestedPage === "agent-builder") openAgentBuilder(requestedAgentId);
