@@ -185,6 +185,16 @@ test('Automation Studio uses a persistent visual Workflow Builder', () => {
   assert.doesNotMatch(js, /function openRunPanel\(name\)[\s\S]{0,700}Trigger validated/);
 });
 
+test('Create Workflow waits for form submission before calling the backend', () => {
+  const openCreationBody = js.slice(js.indexOf('function openCreation(type)'), js.indexOf('function openPlatformCreate'));
+  const completionBody = js.slice(js.indexOf('function completeCreation(form)'), js.indexOf('function configuredTitle'));
+  assert.doesNotMatch(openCreationBody, /apiJson\("\/api\/workflows"/);
+  assert.match(completionBody, /if \(type === "workflow"\)/);
+  assert.match(completionBody, /apiJson\("\/api\/workflows", \{ method: "POST"/);
+  assert.doesNotMatch(js, /toast\("Approval recorded"/);
+  assert.doesNotMatch(js, /toast\("Mission resumed"/);
+});
+
 test('employee workspace modules load and mutate persistent backend state', () => {
   assert.match(js, /apiJson\("\/api\/platform"/);
   assert.match(js, /apiJson\("\/api\/platform\/" \+ encodeURIComponent\(type\)/);

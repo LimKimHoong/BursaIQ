@@ -1047,21 +1047,6 @@
       });
       return;
     }
-    if (type === "workflow") {
-      var workflowSubmit = document.querySelector('[type="submit"][form="creation-form"]');
-      if (workflowSubmit) { workflowSubmit.disabled = true; workflowSubmit.textContent = "Creating workflow…"; }
-      var triggerId = "node-" + Date.now();
-      apiJson("/api/workflows", { method: "POST", body: JSON.stringify({ name: title, description: String(data.get("description") || ""), owner: String(data.get("owner") || "Lim Kim Hoong"), nodes: [{ id: triggerId, type: "trigger", name: "Trigger", config: { inputs: String(data.get("description") || ""), outputs: "", agent: "", expression: "" } }], connections: [] }) }).then(function (workflow) {
-        closeExperience();
-        state.workflows.unshift(workflow);
-        window.setTimeout(function () { openWorkflowBuilder(workflow.id); }, 190);
-        toast("Workflow draft created", "Configure the trigger and add steps in Workflow Builder.");
-      }).catch(function (error) {
-        if (workflowSubmit) { workflowSubmit.disabled = false; workflowSubmit.textContent = "Open workflow builder"; }
-        toast("Workflow creation failed", error.message);
-      });
-      return;
-    }
     openExperience({
       title: config[0],
       subtitle: config[1],
@@ -1152,6 +1137,21 @@
         submit.textContent = "Create and run mission";
         error.hidden = false;
         error.textContent = problem.message;
+      });
+      return;
+    }
+    if (type === "workflow") {
+      var workflowSubmit = form.querySelector('[type="submit"]') || document.querySelector('[type="submit"][form="' + form.id + '"]');
+      if (workflowSubmit) { workflowSubmit.disabled = true; workflowSubmit.textContent = "Creating workflow…"; }
+      var triggerId = "node-" + Date.now();
+      apiJson("/api/workflows", { method: "POST", body: JSON.stringify({ name: title, description: String(data.get("description") || ""), owner: String(data.get("owner") || "Lim Kim Hoong"), nodes: [{ id: triggerId, type: "trigger", name: "Trigger", config: { inputs: String(data.get("description") || ""), outputs: "", agent: "", expression: "" } }], connections: [] }) }).then(function (workflow) {
+        closeExperience();
+        state.workflows.unshift(workflow);
+        window.setTimeout(function () { openWorkflowBuilder(workflow.id); }, 190);
+        toast("Workflow draft created", "Configure the trigger and add steps in Workflow Builder.");
+      }).catch(function (error) {
+        if (workflowSubmit) { workflowSubmit.disabled = false; workflowSubmit.textContent = "Open workflow builder"; }
+        toast("Workflow creation failed", error.message);
       });
       return;
     }
@@ -2226,11 +2226,10 @@
       window.setTimeout(function () { submitAssistant("Act as the " + context + " for this governed task: " + task); }, 220);
       return;
     }
-    if (action === "continue-mission") { closeExperience(); window.setTimeout(function () { toast("Mission resumed", context + " is continuing from its verification stage."); }, 220); return; }
+    if (action === "continue-mission") { closeExperience(); navigate("workforce"); return; }
     if (action === "request-connector") { closeExperience(); window.setTimeout(function () { openCreation("connector"); }, 200); return; }
     if (action === "manage-connector") { closeExperience(); navigate("settings"); return; }
-    if (action === "approve-package") { closeExperience(); window.setTimeout(function () { toast("Approval recorded", context + " can continue to its next governed step."); }, 220); return; }
-    if (action === "request-change") { closeExperience(); window.setTimeout(function () { toast("Changes requested", context + " returned to its accountable owner."); }, 220); return; }
+    if (action === "approve-package" || action === "request-change") { closeExperience(); navigate("verification"); return; }
     if (action === "mark-read") {
       state.notificationCount = 0;
       var badge = document.querySelector(".top-icon.has-badge i");
