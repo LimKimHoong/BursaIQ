@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from bursaiq.workflows import WorkflowStore
 
@@ -109,6 +109,32 @@ class WorkflowBuilderTests(unittest.TestCase):
                 listed = client.get("/api/workflows").get_json()
                 self.assertEqual(listed["workflows"][0]["runCount"], 2)
                 self.assertEqual(len(listed["runs"]), 2)
+
+    def test_pending_action_count_uses_only_persisted_attention_statuses(self) -> None:
+        from server import app
+
+        verification_store = Mock()
+        verification_store.list_cases.return_value = [
+            {"id": "pending", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Pending review"},
+            {"id": "approved", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Approved"},
+            {"id": "cancelled", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Cancelled"},
+            {"id": "unassigned", "reviewer": "Another reviewer", "requestedBy": "Other", "status": "Pending review"},
+        ]
+        workflow_store = Mock()
+        workflow_store.list_runs.return_value = [
+            {"id": "waiting-1", "status": "WAITING_APPROVAL"},
+            {"id": "waiting-2", "status": "WAITING_APPROVAL"},
+            {"id": "complete", "status": "COMPLETED"},
+            {"id": "rejected", "status": "REJECTED"},
+        ]
+
+        with patch("server.verification", verification_store), patch("server.workflows", workflow_store):
+            with app.test_client() as client:
+                payload = client.get("/api/actions/pending-count?role=securities").get_json()
+
+        self.assertEqual(payload["count"], 3)
+        self.assertEqual(payload["pendingReviews"], 1)
+        self.assertEqual(payload["pendingWorkflowApprovals"], 2)
 
 
 if __name__ == "__main__":

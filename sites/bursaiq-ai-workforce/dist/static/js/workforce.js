@@ -59,7 +59,6 @@
     verificationCases: [],
     verificationError: "",
     pendingActionCount: null,
-    pendingReviewCount: null,
     workflows: [],
     workflowRuns: [],
     activeWorkflow: null,
@@ -193,18 +192,12 @@
   function loadVerification() {
     return apiJson("/api/verification?role=securities").then(function (payload) {
       state.verificationCases = payload.cases || [];
-      state.pendingReviewCount = (payload.assigned || []).filter(function (item) { return item.status === "Pending review"; }).length;
-      refreshPendingActionCount();
       state.verificationError = "";
-      updateActionBadge();
       if (state.page === "verification") render();
       return state.verificationCases;
     }).catch(function (error) {
       state.verificationCases = [];
-      state.pendingReviewCount = null;
-      refreshPendingActionCount();
       state.verificationError = error.message;
-      updateActionBadge();
       if (state.page === "verification") render();
       return [];
     });
@@ -215,7 +208,6 @@
     return apiJson("/api/workflows").then(function (payload) {
       state.workflows = payload.workflows || [];
       state.workflowRuns = payload.runs || [];
-      refreshPendingActionCount();
       state.workflowError = "";
       state.workflowLoading = false;
       if (state.page === "automation") render();
@@ -311,10 +303,16 @@
     badge.textContent = count > 0 ? String(count) : "";
   }
 
-  function refreshPendingActionCount() {
-    if (state.pendingReviewCount === null) { state.pendingActionCount = null; updateActionBadge(); return; }
-    state.pendingActionCount = state.pendingReviewCount + state.workflowRuns.filter(function (item) { return item.status === "WAITING_APPROVAL"; }).length;
-    updateActionBadge();
+  function loadPendingActionCount() {
+    return apiJson("/api/actions/pending-count?role=securities").then(function (payload) {
+      state.pendingActionCount = Math.max(0, Number(payload.count) || 0);
+      updateActionBadge();
+      return state.pendingActionCount;
+    }).catch(function () {
+      state.pendingActionCount = null;
+      updateActionBadge();
+      return null;
+    });
   }
 
   function missionById(id) {
@@ -1445,6 +1443,7 @@
         state.activeWorkflow = null;
         navigate("automation");
         toast("Workflow deleted", "The draft and its run history were removed.");
+        return loadPendingActionCount();
       }).catch(function (error) { toast("Delete failed", error.message); });
       return;
     }
@@ -1468,6 +1467,7 @@
         render();
         var detail = run.events.length ? run.events[run.events.length - 1].message : (run.validation.errors || []).join(" ");
         toast(action === "test" ? "Workflow test recorded" : "Workflow run recorded", run.status + (detail ? " · " + detail : ""));
+        return loadPendingActionCount();
       });
     }).catch(function (error) { toast("Workflow action failed", error.message); });
   }
@@ -1640,7 +1640,7 @@
         }
         button.disabled = true;
         apiJson("/api/verification/" + encodeURIComponent(missionById(id).verificationCaseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.missionReview, comment: comment }) }).then(function () {
-          return Promise.all([loadMissions(true), loadVerification()]);
+          return Promise.all([loadMissions(true), loadVerification(), loadPendingActionCount()]);
         }).then(function () {
           render();
           toast(button.dataset.missionReview === "Approved" ? "Mission approved" : "Changes requested", "The human decision is persisted in the mission audit history.");
@@ -1929,7 +1929,7 @@
     var answer = assistantCurrentAnswer();
     if (!answer) return;
     apiJson("/api/verification", { method: "POST", body: JSON.stringify({ title: answer.title, workspace: "AI Assistant", requestedBy: "Lim Kim Hoong", details: { question: assistantCurrentQuestion(), answerTitle: answer.title, answerText: answer.body, sources: answer.sources || [] } }) }).then(function (verificationCase) {
-      return Promise.all([loadVerification(), loadMissions(true)]).then(function () { toast("Verification requested", verificationCase.id + " is assigned to the Market Intelligence Lead."); navigate("verification"); });
+      return Promise.all([loadVerification(), loadMissions(true), loadPendingActionCount()]).then(function () { toast("Verification requested", verificationCase.id + " is assigned to the Market Intelligence Lead."); navigate("verification"); });
     }).catch(function (error) { toast("Verification request failed", error.message); });
   }
 
@@ -2192,7 +2192,7 @@
         if (current) Object.assign(current, payload.mission);
         closeExperience();
         toast("Submitted for review", "The immutable draft is now assigned to the Market Intelligence Lead.");
-        loadMissions(true).then(function () { navigate("verification"); });
+        Promise.all([loadMissions(true), loadPendingActionCount()]).then(function () { navigate("verification"); });
       }).catch(function (error) {
         target.disabled = false;
         target.textContent = "Submit for review";
@@ -2243,6 +2243,7 @@
     }
   });
   loadVerification();
+  loadPendingActionCount();
   loadExchangeAssets();
   loadModelProviders();
   loadPlatform();

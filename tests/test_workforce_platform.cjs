@@ -154,11 +154,12 @@ test('Action workspace manages decision memory and email schedules', () => {
 test('Action sidebar badge reflects pending backend assignments and hides zero', () => {
   assert.match(html, /id="action-nav-count"[^>]*hidden/);
   assert.doesNotMatch(html, /id="action-nav-count"[^>]*>\s*[0-9]+\s*</);
-  assert.match(js, /\(payload\.assigned \|\| \[\]\)\.filter/);
-  assert.match(js, /item\.status === "Pending review"/);
+  assert.match(js, /apiJson\("\/api\/actions\/pending-count\?role=securities"\)/);
+  assert.match(js, /state\.pendingActionCount = Math\.max\(0, Number\(payload\.count\) \|\| 0\)/);
   assert.match(js, /badge\.hidden = !\(count > 0\)/);
   assert.match(js, /badge\.textContent = count > 0 \? String\(count\) : ""/);
   assert.doesNotMatch(js, /actionCount\.textContent = String\(state\.savedDecisions\.length/);
+  assert.doesNotMatch(js, /pendingReviewCount/);
   assert.match(css, /\.nav-link b\[hidden\] \{ display: none; \}/);
 });
 

@@ -751,6 +751,20 @@ def list_workflows():
     return jsonify({"workflows": workflows.list(), "runs": workflows.list_runs()})
 
 
+@app.get("/api/actions/pending-count")
+def pending_action_count():
+    """Return attention items for the active role from persisted backend state."""
+    role = str(request.args.get("role", "")).lower()
+    assigned, _, _ = verification_access_scope(role)
+    pending_reviews = sum(case.get("status") == "Pending review" for case in assigned)
+    pending_workflow_approvals = sum(run.get("status") == "WAITING_APPROVAL" for run in workflows.list_runs())
+    return jsonify({
+        "count": pending_reviews + pending_workflow_approvals,
+        "pendingReviews": pending_reviews,
+        "pendingWorkflowApprovals": pending_workflow_approvals,
+    })
+
+
 @app.post("/api/workflows")
 def create_workflow():
     payload = workflow_payload(body_json())
