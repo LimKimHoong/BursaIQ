@@ -1040,10 +1040,10 @@
     if (!config) return;
     if (type === "mission") {
       openExperience({
-        title: "Configure ADV mission",
-        subtitle: "A real deterministic run over the two approved synthetic CSV files.",
-        body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission title<input name="title" maxlength="140" required value="Malaysia Equity Market ADV Intelligence Report"></label><label class="form-field">Business objective<textarea name="description" maxlength="1000" required>Analyse Malaysia\'s equity market Average Daily Trading Value (ADV), explain key shifts, visualise important patterns and prepare an executive report for review.</textarea></label><div class="form-split"><label class="form-field">Start date<input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label class="form-field">End date<input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label></div><fieldset class="mission-board-scope"><legend>Market-board scope</legend><label><input type="checkbox" name="board" value="MAIN MARKET" checked>Main Market</label><label><input type="checkbox" name="board" value="ACE MARKET" checked>ACE Market</label><label><input type="checkbox" name="board" value="LEAP MARKET" checked>LEAP Market</label><label><input type="checkbox" name="board" value="SECOND BOARD" checked>Second Board</label><label><input type="checkbox" name="board" value="STRCWARR" checked>Structured Warrants</label><label><input type="checkbox" name="board" value="EXCHANGE TRADED" checked>Exchange Traded</label><label><input type="checkbox" name="board" value="LOANS" checked>Loans</label></fieldset><div class="mission-worker-plan"><strong>Execution plan</strong><ol><li>Mission Manager validates scope</li><li>Data Agent checks source quality</li><li>Analysis Agent recomputes figures</li><li>Insight Agent writes bounded findings</li><li>Report Agent exports and verifies PDF</li></ol></div><p class="form-hint">Synthetic demonstration data only. The run is persisted locally and never sends data to a language model.</p><p class="form-error" id="mission-form-error" hidden></p></form>',
-        footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Create and run mission</button>'
+        title: "Create AI mission",
+        subtitle: "Describe the outcome. Your selected AI model will identify the supported mission capability and prepare the governed run.",
+        body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission name<input name="title" maxlength="140" required placeholder="e.g. Review operational incidents and prepare a management brief"></label><label class="form-field">What should the AI workforce accomplish?<textarea name="description" maxlength="1000" required placeholder="Describe the question, business outcome, evidence to use, and decisions this mission should support."></textarea></label><div class="form-split"><label class="form-field">Analysis period from <small>Optional</small><input type="date" name="dateStart"></label><label class="form-field">Analysis period to <small>Optional</small><input type="date" name="dateEnd"></label></div><div class="form-split"><label class="form-field">Preferred output<select name="output"><option>Interactive analysis and report</option><option>Executive briefing</option><option>Evidence review package</option><option>Reusable intelligence asset</option></select></label><label class="form-field">Governance<select name="governance"><option>Human review before publishing</option><option>High-impact approval</option><option>Draft for internal review</option></select></label></div><div class="detail-callout">' + svg("i-spark") + '<span><strong>AI-planned, capability-governed</strong><small>The live model interprets the request. BursaIQ starts work only when an executable mission capability and required data are available.</small></span></div><p class="form-error" id="mission-form-error" hidden></p></form>',
+        footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Plan and run mission</button>'
       });
       return;
     }
@@ -1086,6 +1086,7 @@
         if (form) {
           form.elements.title.value = decision.title;
           form.elements.description.value = decision.objective;
+          form.dataset.routed = "true";
         }
         toast("Live model routed this to My Workforce", decision.reason || "Review the mission scope, then start the governed run.");
         return;
@@ -1110,18 +1111,17 @@
     if (type === "mission") {
       var submit = form.querySelector('[type="submit"]') || document.querySelector('[type="submit"][form="' + form.id + '"]');
       var error = form.querySelector(".form-error") || form.closest(".mission-launch") && form.closest(".mission-launch").querySelector(".form-error") || document.getElementById("mission-form-error");
-      var boards = Array.prototype.slice.call(form.querySelectorAll('[name="board"]:checked')).map(function (input) { return input.value; });
-      var scope = String(data.get("scope") || "");
-      if (!boards.length && scope === "all") boards = ["MAIN MARKET", "ACE MARKET", "LEAP MARKET", "SECOND BOARD", "STRCWARR", "EXCHANGE TRADED", "LOANS"];
-      else if (!boards.length && scope) boards = [scope];
-      if (!boards.length) {
-        error.hidden = false;
-        error.textContent = "Select at least one market board to continue.";
-        return;
-      }
+      var boards = ["MAIN MARKET", "ACE MARKET", "LEAP MARKET", "SECOND BOARD", "STRCWARR", "EXCHANGE TRADED", "LOANS"];
+      var objective = String(data.get("description") || "").trim();
+      var routingCommand = title + ". " + objective + " Preferred output: " + String(data.get("output") || "Interactive analysis and report") + ". Governance: " + String(data.get("governance") || "Human review before publishing") + ".";
       submit.disabled = true;
-      submit.textContent = "Creating mission…";
-      apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: title, objective: String(data.get("description") || ""), requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart"), dateEnd: data.get("dateEnd"), boards: boards }) }).then(function (mission) {
+      submit.textContent = "Planning mission…";
+      var routing = form.dataset.routed === "true" ? Promise.resolve({ route: "mission", title: title, objective: objective }) : apiJson("/api/intent-route", { method: "POST", body: JSON.stringify({ command: routingCommand, provider: state.routingProvider }) });
+      routing.then(function (decision) {
+        if (decision.route !== "mission") throw new Error(decision.reason || "No executable mission capability currently supports this request. Add the required dataset and mission implementation before running it.");
+        submit.textContent = "Creating mission…";
+        return apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: decision.title || title, objective: decision.objective || objective, requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart") || "2026-01-01", dateEnd: data.get("dateEnd") || "2026-09-30", boards: boards }) });
+      }).then(function (mission) {
         return apiJson("/api/missions/" + encodeURIComponent(mission.id) + "/run", { method: "POST", body: "{}" }).then(function () { return mission; });
       }).then(function (mission) {
         if (form.closest("#experience-overlay")) closeExperience();
@@ -1130,11 +1130,11 @@
         return loadMissions(true).then(function () {
           startMissionPolling(mission.id, true);
           window.setTimeout(function () { openMission(mission.id); }, 220);
-          toast("Mission started", "The five-worker ADV mission is running against the approved CSV files.");
+          toast("Mission started", "The AI-routed mission is running through its governed workforce.");
         });
       }).catch(function (problem) {
         submit.disabled = false;
-        submit.textContent = "Create and run mission";
+        submit.textContent = "Plan and run mission";
         error.hidden = false;
         error.textContent = problem.message;
       });

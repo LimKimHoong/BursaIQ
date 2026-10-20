@@ -61,6 +61,19 @@ test('home commands use live semantic routing without a keyword fallback', () =>
   assert.match(js, /bursaiq-routing-provider/);
 });
 
+test('New AI Mission uses a general model-routed intake', () => {
+  assert.match(js, /title: "Create AI mission"/);
+  assert.match(js, /What should the AI workforce accomplish\?/);
+  assert.match(js, /Preferred output/);
+  assert.match(js, /AI-planned, capability-governed/);
+  assert.match(js, /Plan and run mission/);
+  assert.match(js, /form\.dataset\.routed === "true"/);
+  assert.match(js, /apiJson\("\/api\/intent-route"/);
+  assert.doesNotMatch(js, /Configure ADV mission/);
+  assert.doesNotMatch(js, /Market-board scope/);
+  assert.doesNotMatch(js, /<strong>Execution plan<\/strong>/);
+});
+
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
   const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function createMissionRevision('));
