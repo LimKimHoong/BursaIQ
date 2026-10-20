@@ -121,9 +121,10 @@ class WorkflowBuilderTests(unittest.TestCase):
             {"id": "unassigned", "reviewer": "Another reviewer", "requestedBy": "Other", "status": "Pending review"},
         ]
         workflow_store = Mock()
+        workflow_store.list.return_value = [{"id": "WF-1", "name": "Weekly report"}]
         workflow_store.list_runs.return_value = [
-            {"id": "waiting-1", "status": "WAITING_APPROVAL"},
-            {"id": "waiting-2", "status": "WAITING_APPROVAL"},
+            {"id": "waiting-1", "workflowId": "WF-1", "status": "WAITING_APPROVAL"},
+            {"id": "waiting-2", "workflowId": "WF-1", "status": "WAITING_APPROVAL"},
             {"id": "complete", "status": "COMPLETED"},
             {"id": "rejected", "status": "REJECTED"},
         ]
@@ -135,6 +136,9 @@ class WorkflowBuilderTests(unittest.TestCase):
         self.assertEqual(payload["count"], 3)
         self.assertEqual(payload["pendingReviews"], 1)
         self.assertEqual(payload["pendingWorkflowApprovals"], 2)
+        self.assertEqual(len(payload["actions"]), 3)
+        self.assertEqual(payload["actions"][0]["page"], "verification")
+        self.assertEqual(payload["actions"][1]["title"], "Weekly report")
 
 
 if __name__ == "__main__":

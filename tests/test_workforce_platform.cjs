@@ -156,6 +156,9 @@ test('Action sidebar badge reflects pending backend assignments and hides zero',
   assert.doesNotMatch(html, /id="action-nav-count"[^>]*>\s*[0-9]+\s*</);
   assert.match(js, /apiJson\("\/api\/actions\/pending-count\?role=securities"\)/);
   assert.match(js, /state\.pendingActionCount = Math\.max\(0, Number\(payload\.count\) \|\| 0\)/);
+  assert.match(js, /state\.pendingActions = payload\.actions \|\| \[\]/);
+  assert.match(js, /Needs your attention/);
+  assert.match(js, /The same persisted review and approval queue shown by the sidebar badge/);
   assert.match(js, /badge\.hidden = !\(count > 0\)/);
   assert.match(js, /badge\.textContent = count > 0 \? String\(count\) : ""/);
   assert.doesNotMatch(js, /actionCount\.textContent = String\(state\.savedDecisions\.length/);

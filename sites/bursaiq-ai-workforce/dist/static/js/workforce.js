@@ -59,6 +59,7 @@
     verificationCases: [],
     verificationError: "",
     pendingActionCount: null,
+    pendingActions: [],
     workflows: [],
     workflowRuns: [],
     activeWorkflow: null,
@@ -306,10 +307,12 @@
   function loadPendingActionCount() {
     return apiJson("/api/actions/pending-count?role=securities").then(function (payload) {
       state.pendingActionCount = Math.max(0, Number(payload.count) || 0);
+      state.pendingActions = payload.actions || [];
       updateActionBadge();
       return state.pendingActionCount;
     }).catch(function () {
       state.pendingActionCount = null;
+      state.pendingActions = [];
       updateActionBadge();
       return null;
     });
@@ -954,6 +957,9 @@
   }
 
   function actionPage() {
+    var pendingRows = state.pendingActions.map(function (item) {
+      return '<button class="verification-item" type="button" data-page-jump="' + escapeHtml(item.page) + '">' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
+    }).join("");
     var decisionRows = state.savedDecisions.map(function (item) {
       return '<article class="action-record"><span class="action-record-icon">' + svg("i-brief") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.owner) + ' · ' + escapeHtml(item.created) + '</small></div><button type="button" data-action-open="' + escapeHtml(item.id) + '" aria-label="Open ' + escapeHtml(item.title) + '">' + svg("i-chevron") + '</button></article>';
     }).join("");
@@ -962,7 +968,8 @@
     }).join("");
     return '<section class="page page-enter action-page">' + pageHead("Action", "Decision records and scheduled follow-ups created from governed answers.") +
       '<section class="action-summary"><div>' + miniIcon("i-check", "teal") + '<span><strong>From answer to accountable follow-up</strong><p>Actions preserve the original question and evidence trail. Email schedules remain reviewable and reversible.</p></span></div><button class="primary-button" type="button" data-page-jump="assistant">Ask a new question</button></section>' +
-      '<div class="metric-row action-metrics">' + metric("i-brief", "blue", String(state.savedDecisions.length), "Decision memories", "Recorded with evidence") + metric("i-send", "violet", String(state.emailAutomations.length), "Email automations", "Reviewable schedules") + metric("i-shield", "teal", state.savedDecisions.length || state.emailAutomations.length ? "100%" : "—", "Governed actions", state.savedDecisions.length || state.emailAutomations.length ? "Source context retained" : "Available after the first action") + metric("i-clock", "amber", "0", "External sends", "Synthetic demo only") + '</div>' +
+      '<div class="metric-row action-metrics">' + metric("i-clock", "amber", String(state.pendingActionCount || 0), "Pending actions", state.pendingActionCount ? "Human attention required" : "You are all caught up") + metric("i-brief", "blue", String(state.savedDecisions.length), "Decision memories", "Recorded with evidence") + metric("i-send", "violet", String(state.emailAutomations.length), "Email automations", "Reviewable schedules") + metric("i-shield", "teal", state.savedDecisions.length || state.emailAutomations.length ? "100%" : "—", "Governed actions", state.savedDecisions.length || state.emailAutomations.length ? "Source context retained" : "Available after the first action") + '</div>' +
+      '<section class="panel action-panel"><div class="content-view-head"><div><h2>Needs your attention</h2><p>The same persisted review and approval queue shown by the sidebar badge.</p></div>' + (state.pendingActionCount ? '<span class="status amber">' + state.pendingActionCount + ' pending</span>' : '') + '</div><div class="verification-queue">' + (pendingRows || '<div class="action-empty"><strong>No pending actions</strong><p>Completed, approved, rejected, cancelled, and inactive items are excluded.</p></div>') + '</div></section>' +
       '<div class="action-workspace"><section class="panel action-panel"><div class="content-view-head"><div><h2>Decision Memory</h2><p>Answers saved with their question, owner, and evidence context.</p></div><button class="secondary-button" type="button" data-page-jump="assistant">Add from AI Assistant</button></div><div class="action-list">' + (decisionRows || '<div class="action-empty"><strong>No saved decisions yet</strong><p>Save a governed answer from the AI Assistant Decision Canvas.</p></div>') + '</div></section>' +
       '<section class="panel action-panel"><div class="content-view-head"><div><h2>Email automations</h2><p>Questions refreshed on a schedule with a current source snapshot.</p></div><span class="status blue">Local demo</span></div><div class="action-list">' + (emailRows || '<div class="action-empty"><strong>No email automations yet</strong><p>Choose Automate by Email from an AI Assistant answer.</p></div>') + '</div></section></div>' +
       '<p class="action-disclosure">Decision and automation records are persisted in the BursaIQ SQLite store. External email remains unavailable until a connector is approved and configured.</p></section>';

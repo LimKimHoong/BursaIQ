@@ -756,12 +756,35 @@ def pending_action_count():
     """Return attention items for the active role from persisted backend state."""
     role = str(request.args.get("role", "")).lower()
     assigned, _, _ = verification_access_scope(role)
-    pending_reviews = sum(case.get("status") == "Pending review" for case in assigned)
-    pending_workflow_approvals = sum(run.get("status") == "WAITING_APPROVAL" for run in workflows.list_runs())
+    review_actions = [
+        {
+            "id": case["id"],
+            "type": "verification",
+            "title": case.get("title") or "Verification review",
+            "detail": f"{case.get('workspace') or 'BursaIQ'} · {case.get('reviewer') or 'Assigned reviewer'}",
+            "status": case["status"],
+            "page": "verification",
+        }
+        for case in assigned if case.get("status") == "Pending review"
+    ]
+    workflow_names = {workflow["id"]: workflow.get("name") or workflow["id"] for workflow in workflows.list()}
+    workflow_actions = [
+        {
+            "id": run["id"],
+            "type": "workflow-approval",
+            "title": workflow_names.get(run.get("workflowId"), "Workflow approval"),
+            "detail": f"Run {run['id']} is waiting for human approval",
+            "status": run["status"],
+            "page": "automation",
+        }
+        for run in workflows.list_runs() if run.get("status") == "WAITING_APPROVAL"
+    ]
+    actions = review_actions + workflow_actions
     return jsonify({
-        "count": pending_reviews + pending_workflow_approvals,
-        "pendingReviews": pending_reviews,
-        "pendingWorkflowApprovals": pending_workflow_approvals,
+        "count": len(actions),
+        "pendingReviews": len(review_actions),
+        "pendingWorkflowApprovals": len(workflow_actions),
+        "actions": actions,
     })
 
 
