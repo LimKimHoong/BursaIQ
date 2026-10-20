@@ -90,9 +90,9 @@ test('Decision Canvas exposes plot, analysis, source, and action views', () => {
 
 test('sidebar reflects the focused navigation model', () => {
   assert.match(html, /data-page="assistant"[\s\S]*data-page="ask-bursa"/);
+  assert.match(html, /data-page="workforce"[\s\S]*data-page="automation"[\s\S]*data-page="exchange"/);
   assert.match(html, /data-page="exchange"[\s\S]*data-page="action"[\s\S]*data-page="verification"/);
   assert.match(html, /data-page="connectors"[\s\S]*class="sidebar-footer"[\s\S]*data-page="settings"/);
-  assert.doesNotMatch(html, /data-page="automation"/);
   assert.doesNotMatch(html, /data-page="rooms"/);
   assert.doesNotMatch(html, /data-page="workspace"/);
   assert.doesNotMatch(html, /data-page="brief"/);
