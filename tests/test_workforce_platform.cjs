@@ -74,6 +74,16 @@ test('New AI Mission uses a general model-routed intake', () => {
   assert.doesNotMatch(js, /<strong>Execution plan<\/strong>/);
 });
 
+test('My Workforce and shared page UI remain mission-neutral', () => {
+  const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
+  assert.match(workforcePageSource, /Create, run, and monitor governed AI missions/);
+  assert.match(workforcePageSource, /data-create="mission"/);
+  assert.match(workforcePageSource, /Mission governance/);
+  assert.doesNotMatch(workforcePageSource, /Malaysia Equity Market|prepared ADV|Period ADV|Calculation contract|mission-inline-form/);
+  assert.doesNotMatch(js, /function assistantAnswer\(/);
+  assert.doesNotMatch(js, /Monthly ADV|immutable ADV draft|Calculates ADV/);
+});
+
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
   const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function createMissionRevision('));

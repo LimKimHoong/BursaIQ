@@ -109,11 +109,11 @@
   var missions = [];
 
   var missionAgents = [
-    { name: "Mission Manager", initials: "MM", tone: "violet", job: "Validates scope, dependencies and review gates", state: "Ready" },
-    { name: "Data Agent", initials: "DA", tone: "blue", job: "Validates CSV schema, quality and eligible coverage", state: "Ready" },
-    { name: "Analysis Agent", initials: "AA", tone: "teal", job: "Calculates ADV, trends and contributions", state: "Ready" },
-    { name: "Insight Agent", initials: "IA", tone: "amber", job: "Writes bounded observations from verified metrics", state: "Ready" },
-    { name: "Report Agent", initials: "RA", tone: "blue", job: "Builds and validates the executive PDF", state: "Ready" }
+    { name: "Mission Manager", initials: "MM", tone: "violet", job: "Plans scope, dependencies and review gates", state: "Ready" },
+    { name: "Data Agent", initials: "DA", tone: "blue", job: "Validates permitted inputs and data quality", state: "Ready" },
+    { name: "Analysis Agent", initials: "AA", tone: "teal", job: "Runs the selected analytical capability", state: "Ready" },
+    { name: "Insight Agent", initials: "IA", tone: "amber", job: "Develops evidence-bounded findings", state: "Ready" },
+    { name: "Report Agent", initials: "RA", tone: "blue", job: "Assembles and validates mission deliverables", state: "Ready" }
   ];
 
   var assets = [];
@@ -484,10 +484,10 @@
 
   function assistantWelcome() {
     return '<div class="assistant-welcome"><span class="assistant-eyebrow">Governed question &amp; answer</span><h2>What would you like to <span>understand?</span></h2><p>Ask a question and BursaIQ will explain the answer, show the calculation, and keep every source in view.</p><div class="suggestion-grid">' +
-      suggestion("How did July market activity compare with June?", "Compare trading activity and explain the movement behind the figures.") +
-      suggestion("What is driving the change in average daily value?", "Separate the strongest signals from short-term market noise.") +
-      suggestion("Explain Bursa Malaysia's market structure", "Get a concise overview of markets, participants, and governance.") +
-      suggestion("Which governed sources support the latest market view?", "See the approved evidence, ownership, and coverage behind the answer.") +
+      suggestion("Summarise the evidence behind a current decision", "Review approved sources, assumptions, and evidence gaps.") +
+      suggestion("Compare two approved internal sources", "Identify aligned findings and material differences.") +
+      suggestion("Explain a Bursa process in plain language", "Turn governed guidance into a concise explanation.") +
+      suggestion("Which sources support the latest answer?", "See approved evidence, ownership, and coverage.") +
       "</div></div>";
   }
 
@@ -610,91 +610,6 @@
     return "answer-" + Math.abs(hash).toString(36);
   }
 
-  function assistantAnswer(question) {
-    var value = String(question || "").toLowerCase();
-    if (/\b(prepare|build|automate|create|turn .* into|delegate)\b/.test(value)) {
-      return {
-        title: "This space is for questions and evidence",
-        summary: "I can explain the topic, compare information, or show the evidence behind a decision. To run multi-step work, use My Workforce or the Action workspace.",
-        stats: [["Q&A", "Assistant mode"], ["3", "Approved source groups"], ["100%", "Evidence visible"]],
-        takeaway: "Rephrase the request as a question and I will answer it here with analysis and sources.",
-        analysis: "The AI Assistant is intentionally scoped to knowledge work: asking, explaining, comparing, and tracing evidence. Task execution remains in the governed workforce areas.",
-        method: "Intent classified as task execution; no external action was started.",
-        plotTitle: "Workspace routing",
-        plotValues: [82, 48, 64, 91, 73],
-        plotLabels: ["Ask", "Find", "Explain", "Verify", "Decide"],
-        observation: "The request is best answered after it is framed as a question.",
-        sources: defaultAssistantSources()
-      };
-    }
-    if (/\b(july|june|market activity|average daily value|adv|trading|market view)\b/.test(value)) {
-      return {
-        title: "July market activity was firmer than June",
-        summary: "Synthetic governed data indicates higher average daily value and steadier participation in July. The increase was broad enough to suggest a genuine improvement rather than a single-session spike.",
-        stats: [["RM 2.31b", "July average daily value"], ["+8.5%", "Compared with June"], ["19 / 22", "Sessions above June median"]],
-        takeaway: "Activity strengthened across most of the month, but the gain should still be read alongside sector concentration and foreign-flow context.",
-        analysis: "July's improvement was supported by more consistently active sessions, with financials and industrial counters contributing most to the uplift. The highest-volume days did not dominate the monthly result.",
-        method: "Average daily value = total on-market trading value divided by trading sessions. July is compared with the same governed measure for June.",
-        plotTitle: "Average daily trading value",
-        plotValues: [1.92, 2.04, 2.13, 2.07, 2.31],
-        plotLabels: ["Mar", "Apr", "May", "Jun", "Jul"],
-        observation: "July reached RM 2.31b, up 8.5% from June's RM 2.13b in this synthetic demo series.",
-        sources: defaultAssistantSources()
-      };
-    }
-    if (/\b(structure|participant|governance|exchange)\b/.test(value)) {
-      return {
-        title: "Bursa Malaysia connects markets, participants, and oversight",
-        summary: "At a high level, the exchange ecosystem brings together listed issuers, investors, brokers, clearing and depository services, with rules and surveillance supporting an orderly market.",
-        stats: [["3", "Core market layers"], ["2", "Post-trade functions"], ["1", "Governed ecosystem"]],
-        takeaway: "The useful mental model is a connected lifecycle: raise and list capital, trade through approved participants, then clear, settle, and supervise the activity.",
-        analysis: "The market layer supports listing and trading. The participant layer connects investors through licensed intermediaries. The infrastructure and governance layer provides clearing, depository, rules, and surveillance.",
-        method: "The explanation consolidates approved introductory material into a functional market-lifecycle view.",
-        plotTitle: "Market ecosystem coverage",
-        plotValues: [76, 92, 84, 88, 96],
-        plotLabels: ["Issuers", "Trading", "Brokers", "Post-trade", "Oversight"],
-        observation: "Trading and oversight are the most connected parts of the simplified ecosystem view.",
-        sources: defaultAssistantSources()
-      };
-    }
-    if (/\b(source|evidence|support|citation|document)\b/.test(value)) {
-      return {
-        title: "The latest market view is supported by three governed source groups",
-        summary: "The answer uses an approved market activity dataset, the internal methodology note, and a verified market commentary brief. Each item is versioned and owned.",
-        stats: [["3", "Source groups"], ["92%", "Evidence coverage"], ["14 Oct", "Latest verification"]],
-        takeaway: "The calculation is traceable to primary internal data, while interpretation is separated and labelled in the analysis.",
-        analysis: "Quantitative claims are grounded in the market activity dataset. Definitions come from the methodology note. Narrative context comes from the verified market commentary brief.",
-        method: "Claims are mapped to a source owner, freshness date, and verification state before inclusion.",
-        plotTitle: "Evidence coverage by claim type",
-        plotValues: [98, 95, 86, 90, 92],
-        plotLabels: ["Volume", "Value", "Method", "Context", "Overall"],
-        observation: "All numeric claims have direct coverage; contextual interpretation has one open corroboration item.",
-        sources: defaultAssistantSources()
-      };
-    }
-    return {
-      title: "Here is the governed view",
-      summary: "BursaIQ has interpreted your question against the approved knowledge available in this demonstration workspace and separated the answer from its supporting evidence.",
-      stats: [["3", "Approved sources"], ["92%", "Evidence coverage"], ["Current", "Workspace context"]],
-      takeaway: "Use the Decision Canvas to inspect the pattern, reasoning, and exact source trail before relying on the answer.",
-      analysis: "The answer combines approved organisational knowledge with the current workspace context. Assumptions and interpretation remain visible so they can be challenged.",
-      method: "Relevant source passages are retrieved, compared, and summarised; claims without sufficient support are excluded.",
-      plotTitle: "Evidence confidence",
-      plotValues: [68, 74, 81, 88, 92],
-      plotLabels: ["Retrieve", "Match", "Compare", "Verify", "Answer"],
-      observation: "Confidence improves as evidence is matched, compared, and verified.",
-      sources: defaultAssistantSources()
-    };
-  }
-
-  function defaultAssistantSources() {
-    return [
-      { title: "Monthly Market Activity", meta: "Market Data · market-activity-jul-2026.csv", detail: "Trading value, sessions, and participation measures", coverage: "Primary data" },
-      { title: "Trading Statistics Methodology", meta: "Data Governance · methodology-v3.2.pdf", detail: "Approved definitions and calculation rules", coverage: "Method" },
-      { title: "Market Commentary Brief", meta: "Strategy · verified 14 Oct 2026", detail: "Governed context for interpreting the latest movement", coverage: "Context" }
-    ];
-  }
-
   function assistantCanvas(answer) {
     var tabs = ["plot", "analysis", "source", "action"];
     var content = answer ? assistantCanvasContent(answer) : '<div class="canvas-empty">' + miniIcon("i-spark", "blue") + '<h3>Your answer will become explorable</h3><p>Ask a question to reveal its visual pattern, reasoning, and governed source trail.</p><div><span>1</span><span>Question</span><i></i><span>2</span><span>Answer</span><i></i><span>3</span><span>Evidence</span></div></div>';
@@ -746,17 +661,17 @@
     var completed = state.liveMissions.filter(function (mission) { return ["DRAFT READY", "APPROVED"].indexOf(mission.status) !== -1; });
     var missionRows = state.missionLoading ? '<tr><td colspan="7"><div class="mission-empty"><strong>Loading mission history…</strong><span>Connecting to the local mission service.</span></div></td></tr>' :
       state.missionError ? '<tr><td colspan="7"><div class="mission-empty is-error"><strong>Mission service unavailable</strong><span>' + escapeHtml(state.missionError) + ' Start the Flask service, then retry.</span><button class="secondary-button" type="button" data-mission-refresh>Retry</button></div></td></tr>' :
-      state.liveMissions.length ? state.liveMissions.map(missionRow).join("") : '<tr><td colspan="7"><div class="mission-empty"><strong>No live missions yet</strong><span>Run the prepared ADV mission to create a persisted execution record.</span></div></td></tr>';
+      state.liveMissions.length ? state.liveMissions.map(missionRow).join("") : '<tr><td colspan="7"><div class="mission-empty"><strong>No missions yet</strong><span>Create a mission to plan and run work through the available AI capabilities.</span><button class="secondary-button" type="button" data-create="mission">Create mission</button></div></td></tr>';
     return [
       '<section class="page page-enter">',
-      pageHead("My Workforce", "Run one traceable market-intelligence mission from approved synthetic data.", "Configure mission", "mission"),
-      '<section class="mission-launch panel"><div class="mission-launch-copy"><h2>Malaysia Equity Market ADV Intelligence Report</h2><p>Deterministic mission · two approved synthetic CSV files · human review required.</p><form class="mission-inline-intake" id="mission-inline-form" data-creation-type="mission"><input type="hidden" name="title" value="Malaysia Equity Market ADV Intelligence Report"><label><small>Objective</small><input name="description" maxlength="1000" value="Explain Malaysia equity-market ADV and key shifts" required></label><label><small>Start date</small><input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label><small>End date</small><input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label><label><small>Source scope</small><select name="scope"><option value="all">2 CSVs · all boards</option><option value="MAIN MARKET">Main Market only</option><option value="ACE MARKET">ACE Market only</option></select></label><label><small>Report output</small><select name="output"><option>Dashboard + chart + verified PDF</option></select></label></form></div><div class="mission-launch-action"><strong>Ready to run locally</strong><small>Edit the mission contract here, then start the persisted five-worker run.</small><p class="form-error" hidden></p><button class="primary-button" type="submit" form="mission-inline-form">Run mission</button></div></section>',
+      pageHead("My Workforce", "Create, run, and monitor governed AI missions.", "New AI mission", "mission"),
+      '<section class="mission-launch panel"><div class="mission-launch-copy"><span class="assistant-eyebrow">AI-planned missions</span><h2>What outcome should your AI workforce deliver?</h2><p>Describe the objective, reporting period, and expected output. BursaIQ uses the selected live model to route the request to an available capability and retains the execution history for review.</p></div><div class="mission-launch-action"><strong>Start with an objective</strong><small>The mission plan and required inputs are determined from your request.</small><button class="primary-button" type="button" data-create="mission">Create mission</button></div></section>',
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>5</b> controlled workers</span><span><b>' + completed.length + '</b> completed</span><em>Persisted locally · same dashboard and PDF payload</em></div>',
+      '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>' + state.liveMissions.length + '</b> total missions</span><span><b>' + completed.length + '</b> completed</span><em>Mission state and review history are persisted by the backend</em></div>',
       '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div></section>",
       "</div><aside class=\"page-rail\">",
       '<section class="panel rail-panel">' + panelHead("Mission team", "i-agents") + '<ul class="agent-feed mission-agent-feed">' + missionAgents.map(function (agent) { return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + agent.job + '</small></span><span class="worker-ready">Ready</span></li>'; }).join("") + "</ul></section>",
-      '<section class="panel rail-panel mission-rulebook"><div class="panel-head"><h2>' + svg("i-shield") + 'Calculation contract</h2></div><dl><div><dt>Formula</dt><dd>Total eligible traded value ÷ distinct eligible trading days</dd></div><div><dt>Duplicates</dt><dd>Exact duplicate rows excluded</dd></div><div><dt>Interpretation</dt><dd>No unsupported causal claims</dd></div><div><dt>Classification</dt><dd>Synthetic demonstration data</dd></div></dl></section>',
+      '<section class="panel rail-panel mission-rulebook"><div class="panel-head"><h2>' + svg("i-shield") + 'Mission governance</h2></div><dl><div><dt>Scope</dt><dd>Objective, inputs, and output are retained with each mission</dd></div><div><dt>Evidence</dt><dd>Results remain linked to their permitted sources</dd></div><div><dt>Review</dt><dd>Human approval is required before publication</dd></div><div><dt>History</dt><dd>Revisions and reviewer decisions remain auditable</dd></div></dl></section>',
       "</aside></div></section>"
     ].join("");
   }
@@ -964,8 +879,8 @@
     var retainedComment = selectedCase && selectedCase.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment retained</strong><small>' + escapeHtml(selectedCase.reviewerComment) + '</small></span></div>' : "";
     var queueItems = reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).concat(standaloneCases.map(function (item) { return '<button class="verification-item ' + (standaloneSelected && standaloneSelected.id === item.id ? "is-selected" : "") + '" type="button" data-verification-case="' + escapeHtml(item.id) + '">' + miniIcon("i-document", item.status === "Pending review" ? "amber" : "teal") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.workspace) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>'; }));
     var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : queueItems.length ? queueItems.join("") : '<div class="mission-empty"><strong>No packages awaiting review</strong><span>Submit a mission draft or verify an Assistant answer.</span></div>';
-    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + '<div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p>' + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Same dashboard and PDF payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
+    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + '<div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' source rows used</b><small>' + selected.result.metrics.tradingDays + ' reporting periods · source files fingerprinted</small></div></div><div class="review-scope"><div><small>Primary result</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p>' + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open deliverable</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect versioned mission outputs, evidence, and review history before they move forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Assigned reviewer") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Persisted output and source payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions are recorded with the active reviewer identity and persisted in the audit store.</p></section>';
   }
 
   function connectorsPage() {
@@ -1237,7 +1152,7 @@
       var y = 138 - ((value - minimum) / range) * 96;
       return x.toFixed(1) + "," + y.toFixed(1);
     }).join(" ");
-    return '<div class="mission-result-chart"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Monthly Average Daily Trading Value in RM billions"><title>Monthly ADV</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g><polyline points="' + points + '"></polyline><g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle><text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(monthly[index].label.split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
+    return '<div class="mission-result-chart"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Monthly mission result"><title>Monthly mission trend</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g><polyline points="' + points + '"></polyline><g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle><text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(monthly[index].label.split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
   }
 
   function missionLifecycleMarkup(mission) {
@@ -1273,7 +1188,7 @@
     var result = mission.result;
     var resultMarkup = "";
     if (result) {
-      resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Period ADV</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' trading days</span></article><article><small>Total traded value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last month</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Monthly ADV change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible market rows</span></div></section>';
+      resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Primary result</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' reporting periods</span></article><article><small>Total measured value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last period</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Result change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible source rows</span></div></section>';
     }
     var failure = mission.error ? '<div class="mission-failure">' + svg("i-help") + '<span><strong>Mission failed</strong><small>' + escapeHtml(mission.error) + ' Correct the inputs and run again.</small></span></div>' : "";
     var reviewComment = mission.verification && mission.verification.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment</strong><small>' + escapeHtml(mission.verification.reviewerComment) + '</small></span></div>' : "";
@@ -1497,8 +1412,6 @@
   }
 
   function bindPageEvents() {
-    var inlineMissionForm = document.getElementById("mission-inline-form");
-    if (inlineMissionForm) inlineMissionForm.addEventListener("submit", function (event) { event.preventDefault(); completeCreation(inlineMissionForm); });
     root.querySelectorAll("[data-page-jump]").forEach(function (button) {
       button.addEventListener("click", function () { navigate(button.dataset.pageJump); });
     });
