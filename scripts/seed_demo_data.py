@@ -1,7 +1,8 @@
-"""Create the controlled synthetic Excel and PDF source pack for BursaIQ."""
+"""Validate mission CSV inputs and create the controlled BursaIQ source pack."""
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
 
@@ -18,10 +19,38 @@ from reportlab.platypus import PageBreak, Paragraph, SimpleDocTemplate, Spacer, 
 
 ROOT = Path(__file__).resolve().parents[1]
 INPUT = ROOT / "Input"
+MISSION_INPUT = ROOT / "input"
+MISSION_CSV_SCHEMAS = {
+    "market_trades_demo.csv": {
+        "trading_date", "stock_code", "sector", "market_board", "traded_value_myr", "traded_volume",
+    },
+    "investor_participation_demo.csv": {
+        "trade_date", "investor_group", "buy_value_myr", "sell_value_myr",
+    },
+}
 NAVY = "07171D"
 TEAL = "39D3BC"
 GOLD = "E6BB63"
 PALE = "E9F4F1"
+
+
+def validate_mission_csvs(directory: Path = MISSION_INPUT) -> list[Path]:
+    """Fail early when either committed mission dataset is absent or malformed."""
+    validated: list[Path] = []
+    for filename, required_columns in MISSION_CSV_SCHEMAS.items():
+        path = directory / filename
+        if not path.is_file():
+            raise FileNotFoundError(f"Required mission CSV is missing: {path}")
+        with path.open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            columns = set(reader.fieldnames or [])
+            missing = required_columns - columns
+            if missing:
+                raise ValueError(f"{filename} is missing columns: {', '.join(sorted(missing))}")
+            if next(reader, None) is None:
+                raise ValueError(f"{filename} must contain at least one data row.")
+        validated.append(path)
+    return validated
 
 
 def style_sheet(sheet, widths: list[int]) -> None:
@@ -225,10 +254,12 @@ def create_source_pdfs() -> None:
 
 
 def main() -> None:
+    mission_csvs = validate_mission_csvs()
     create_market_workbook()
     create_regulation_guide()
     create_source_pdfs()
-    print(f"Synthetic demo pack created under {INPUT}")
+    print(f"Validated {len(mission_csvs)} mission CSVs under {MISSION_INPUT}")
+    print(f"Synthetic knowledge pack created under {INPUT}")
 
 
 if __name__ == "__main__":

@@ -42,6 +42,8 @@ cp .env.example .env
 ./myenv/bin/python server.py
 ```
 
+The seed command first validates the two committed mission datasets under lowercase `input/`, then generates the supporting knowledge pack under uppercase `Input/`. The executable ADV mission requires only `market_trades_demo.csv` and `investor_participation_demo.csv`; no additional CSV is needed.
+
 Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
 
 No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, Local Analysis uploads, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.

@@ -9,12 +9,20 @@ from pypdf import PdfReader
 
 from bursaiq.mission_engine import AdvMissionAnalyser, MissionRunner, MissionStore
 from bursaiq.reporting import BriefingGenerator
+from scripts.seed_demo_data import validate_mission_csvs
 
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class AdvMissionTests(unittest.TestCase):
+    def test_seed_preflight_validates_both_required_mission_csvs(self) -> None:
+        validated = validate_mission_csvs(ROOT / "input")
+        self.assertEqual(
+            {path.name for path in validated},
+            {"market_trades_demo.csv", "investor_participation_demo.csv"},
+        )
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.base = Path(self.temp.name)
