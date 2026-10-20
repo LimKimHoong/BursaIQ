@@ -84,6 +84,19 @@ test('My Workforce and shared page UI remain mission-neutral', () => {
   assert.doesNotMatch(js, /Monthly ADV|immutable ADV draft|Calculates ADV/);
 });
 
+test('Agent Library is persistent and Workflow Builder assigns registry agents', () => {
+  assert.match(js, /function agentLibraryPage\(\)/);
+  assert.match(js, /function agentBuilderPage\(\)/);
+  assert.match(js, /apiJson\("\/api\/agents\?role=employee&includeArchived=true"/);
+  assert.match(js, /\/api\/agents\/" \+ encodeURIComponent\(state\.activeAgent\.id\) \+ "\/test"/);
+  assert.match(js, /data-agent-action="duplicate"/);
+  assert.match(js, /data-agent-action="archive"/);
+  assert.match(js, /name="agentId"/);
+  assert.match(js, /Select a registered agent/);
+  assert.doesNotMatch(js, /var agents = \[\s*\{/);
+  assert.doesNotMatch(js, /var missionAgents = \[/);
+});
+
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
   const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function createMissionRevision('));

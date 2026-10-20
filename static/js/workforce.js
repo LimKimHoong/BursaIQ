@@ -24,14 +24,20 @@
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
-  if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  if (["assistant", "ask-bursa", "workforce", "agent-library", "agent-builder", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var requestedWorkflowId = new URLSearchParams(window.location.search).get("workflow");
+  var requestedAgentId = new URLSearchParams(window.location.search).get("agent");
   var state = {
     page: requestedPage,
     exchangeCategory: "featured",
     homeAssetCategory: "Featured",
     routingProvider: storedRoutingProvider(),
     modelProviders: [],
+    registeredAgents: [],
+    activeAgent: null,
+    agentExecutions: [],
+    agentLoading: false,
+    agentError: "",
     assistantMessages: [],
     assistantConversationId: null,
     assistantCanvasTab: "plot",
@@ -85,6 +91,8 @@
     assistant: ["AI Assistant", "Ask, understand, decide", "i-spark", "violet"],
     "ask-bursa": ["Ask Bursa", "Internal knowledge Q&A", "i-book", "blue"],
     workforce: ["My Workforce", "Agents, tasks and missions", "i-agents", "blue"],
+    "agent-library": ["Agent Library", "Create and govern reusable AI agents", "i-agents", "violet"],
+    "agent-builder": ["Agent Builder", "Configure models, tools and permissions", "i-spark", "violet"],
     exchange: ["Intelligence Exchange", "Discover approved capabilities", "i-exchange", "teal"],
     automation: ["Automation Studio", "Build intelligent workflows", "i-automation", "violet"],
     "workflow-builder": ["Workflow Builder", "Configure nodes, dependencies and execution", "i-flow", "violet"],
@@ -97,24 +105,9 @@
     settings: ["Settings", "Preferences, access and governance", "i-settings", "blue"]
   };
 
-  var agents = [
-    { name: "Research Agent", initials: "RA", tone: "violet", job: "Internal research and knowledge retrieval", state: "Active" },
-    { name: "Data Analyst Agent", initials: "DA", tone: "blue", job: "Data analysis, validation and insights", state: "Active" },
-    { name: "Workflow Agent", initials: "WA", tone: "teal", job: "Process automation and orchestration", state: "Working" },
-    { name: "Report Agent", initials: "RP", tone: "amber", job: "Business reports and presentations", state: "Active" },
-    { name: "Verifier Agent", initials: "VA", tone: "red", job: "Fact checking, evidence and compliance", state: "Active" },
-    { name: "Knowledge Agent", initials: "KA", tone: "blue", job: "Organisational knowledge and learning", state: "Active" }
-  ];
+  var agents = [];
 
   var missions = [];
-
-  var missionAgents = [
-    { name: "Mission Manager", initials: "MM", tone: "violet", job: "Plans scope, dependencies and review gates", state: "Ready" },
-    { name: "Data Agent", initials: "DA", tone: "blue", job: "Validates permitted inputs and data quality", state: "Ready" },
-    { name: "Analysis Agent", initials: "AA", tone: "teal", job: "Runs the selected analytical capability", state: "Ready" },
-    { name: "Insight Agent", initials: "IA", tone: "amber", job: "Develops evidence-bounded findings", state: "Ready" },
-    { name: "Report Agent", initials: "RA", tone: "blue", job: "Assembles and validates mission deliverables", state: "Ready" }
-  ];
 
   var assets = [];
 
@@ -242,6 +235,48 @@
       state.workflowLoading = false;
       if (state.page === "automation") render();
       return [];
+    });
+  }
+
+  function loadAgents() {
+    state.agentLoading = true;
+    return apiJson("/api/agents?role=employee&includeArchived=true").then(function (payload) {
+      state.registeredAgents = payload.agents || [];
+      agents = state.registeredAgents;
+      state.agentLoading = false;
+      state.agentError = "";
+      if (["workforce", "agent-library", "agent-builder", "workflow-builder"].indexOf(state.page) !== -1) render();
+      return agents;
+    }).catch(function (error) {
+      state.agentLoading = false;
+      state.agentError = error.message;
+      if (["workforce", "agent-library", "agent-builder", "workflow-builder"].indexOf(state.page) !== -1) render();
+      return [];
+    });
+  }
+
+  function openAgentBuilder(id) {
+    state.agentLoading = true;
+    state.page = "agent-builder";
+    if (!id) {
+      state.activeAgent = { name: "", description: "", instructions: "", owner: "Lim Kim Hoong", department: "Product Development", provider: "ollama", model: "qwen2.5:3b", generation: { temperature: 0.2, maxTokens: 1200 }, knowledgeCollections: [], connectors: [], tools: [], capabilities: [], inputSchema: { type: "object" }, outputSchema: { type: "object" }, approvalPolicy: "human-review", roles: ["employee"], status: "ACTIVE", version: 1 };
+      state.agentExecutions = [];
+      state.agentLoading = false;
+      window.history.replaceState(null, "", "?page=agent-builder");
+      render();
+      return;
+    }
+    window.history.replaceState(null, "", "?page=agent-builder&agent=" + encodeURIComponent(id));
+    apiJson("/api/agents/" + encodeURIComponent(id) + "?role=employee").then(function (payload) {
+      state.activeAgent = payload.agent;
+      state.agentExecutions = payload.executions || [];
+      state.agentLoading = false;
+      render();
+    }).catch(function (error) {
+      state.agentError = error.message;
+      state.activeAgent = null;
+      state.agentLoading = false;
+      render();
     });
   }
 
@@ -659,6 +694,7 @@
     var active = state.liveMissions.filter(function (mission) { return ["APPROVED", "FAILED"].indexOf(mission.status) === -1; });
     var awaiting = state.liveMissions.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
     var completed = state.liveMissions.filter(function (mission) { return ["DRAFT READY", "APPROVED"].indexOf(mission.status) !== -1; });
+    var availableAgents = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; }).slice(0, 5);
     var missionRows = state.missionLoading ? '<tr><td colspan="7"><div class="mission-empty"><strong>Loading mission history…</strong><span>Connecting to the local mission service.</span></div></td></tr>' :
       state.missionError ? '<tr><td colspan="7"><div class="mission-empty is-error"><strong>Mission service unavailable</strong><span>' + escapeHtml(state.missionError) + ' Start the Flask service, then retry.</span><button class="secondary-button" type="button" data-mission-refresh>Retry</button></div></td></tr>' :
       state.liveMissions.length ? state.liveMissions.map(missionRow).join("") : '<tr><td colspan="7"><div class="mission-empty"><strong>No missions yet</strong><span>Create a mission to plan and run work through the available AI capabilities.</span><button class="secondary-button" type="button" data-create="mission">Create mission</button></div></td></tr>';
@@ -670,7 +706,7 @@
       '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>' + state.liveMissions.length + '</b> total missions</span><span><b>' + completed.length + '</b> completed</span><em>Mission state and review history are persisted by the backend</em></div>',
       '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div></section>",
       "</div><aside class=\"page-rail\">",
-      '<section class="panel rail-panel">' + panelHead("Mission team", "i-agents") + '<ul class="agent-feed mission-agent-feed">' + missionAgents.map(function (agent) { return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + agent.job + '</small></span><span class="worker-ready">Ready</span></li>'; }).join("") + "</ul></section>",
+      '<section class="panel rail-panel"><div class="panel-head"><h2>' + svg("i-agents") + 'Agent Library</h2><button type="button" data-page-jump="agent-library">Manage</button></div><ul class="agent-feed mission-agent-feed">' + (availableAgents.length ? availableAgents.map(function (agent) { return '<li>' + miniIcon("i-spark", agent.provider === "ollama" ? "blue" : "violet") + '<span><strong>' + escapeHtml(agent.name) + '</strong><small>' + escapeHtml(agent.description) + '</small></span><button class="worker-ready" type="button" data-agent-id="' + escapeHtml(agent.id) + '">Open</button></li>'; }).join("") : '<li><span></span><span><strong>No active agents</strong><small>Create or enable an agent in the library.</small></span></li>') + "</ul><div class=\"rail-panel-action\"><button class=\"secondary-button\" type=\"button\" data-agent-new>Create agent</button></div></section>",
       '<section class="panel rail-panel mission-rulebook"><div class="panel-head"><h2>' + svg("i-shield") + 'Mission governance</h2></div><dl><div><dt>Scope</dt><dd>Objective, inputs, and output are retained with each mission</dd></div><div><dt>Evidence</dt><dd>Results remain linked to their permitted sources</dd></div><div><dt>Review</dt><dd>Human approval is required before publication</dd></div><div><dt>History</dt><dd>Revisions and reviewer decisions remain auditable</dd></div></dl></section>',
       "</aside></div></section>"
     ].join("");
@@ -681,7 +717,25 @@
   }
 
   function agentCard(agent) {
-    return '<article class="agent-card"><div class="agent-card-head">' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small><i class="dot"></i> ' + agent.state + '</small></span></div><p>' + agent.job + '</p><button type="button" data-agent-open="' + escapeHtml(agent.name) + '">Open ' + svg("i-arrow") + "</button></article>";
+    return '<article class="agent-card registry-agent-card" data-filter-text="' + escapeHtml(agent.name + " " + agent.department + " " + agent.provider) + '"><div class="agent-card-head">' + miniIcon("i-spark", agent.provider === "ollama" ? "blue" : "violet") + '<span><strong>' + escapeHtml(agent.name) + '</strong><small>' + escapeHtml(agent.status) + ' · v' + Number(agent.version) + '</small></span></div><p>' + escapeHtml(agent.description) + '</p><div class="agent-card-meta"><span>' + escapeHtml(agent.department) + '</span><span>' + escapeHtml(agent.provider === "ollama" ? "Ollama" : "Copilot Studio") + '</span></div><button type="button" data-agent-id="' + escapeHtml(agent.id) + '">Configure ' + svg("i-arrow") + "</button></article>";
+  }
+
+  function agentLibraryPage() {
+    var active = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; });
+    var custom = state.registeredAgents.filter(function (agent) { return !agent.builtIn; });
+    var cards = state.agentLoading ? '<div class="clean-empty"><strong>Loading registered agents…</strong></div>' : state.agentError ? '<div class="mission-failure"><strong>Agent Registry unavailable</strong><small>' + escapeHtml(state.agentError) + '</small></div>' : state.registeredAgents.length ? '<div class="agent-cards registry-agent-grid">' + state.registeredAgents.map(agentCard).join("") + '</div><div class="empty-state" id="agent-library-empty" hidden><h3>No agents match</h3></div>' : '<div class="clean-empty"><strong>No permitted agents</strong><p>Create an agent or ask an administrator for access.</p></div>';
+    return '<section class="page page-enter agent-library-page">' + pageHead("Agent Library", "Create, configure, test, and govern reusable agents for missions and workflows.", "Create agent", "agent") + '<div class="metric-row">' + metric("i-spark", "teal", String(active.length), "Active agents", "Available for assignment") + metric("i-agents", "violet", String(custom.length), "Custom agents", "Created in this registry") + metric("i-shield", "amber", String(state.registeredAgents.filter(function (agent) { return agent.approvalPolicy !== "none"; }).length), "Approval governed", "Human controls retained") + metric("i-flow", "blue", String(state.registeredAgents.reduce(function (total, agent) { return total + agent.capabilities.length; }, 0)), "Capability assignments", "Declared and versioned") + '</div><section class="panel"><div class="tabs-toolbar"><button class="secondary-button" type="button" data-page-jump="workforce">← My Workforce</button><label class="inline-search">' + svg("i-search") + '<input id="agent-search" type="search" placeholder="Search agents, departments or providers…"></label><span class="toolbar-spacer"></span><button class="primary-button" type="button" data-agent-new>Create agent</button></div>' + cards + '</section></section>';
+  }
+
+  function agentListValue(values) { return (values || []).join(", "); }
+
+  function agentBuilderPage() {
+    if (state.agentLoading) return '<section class="page page-enter"><div class="clean-empty"><strong>Opening Agent Builder…</strong></div></section>';
+    if (!state.activeAgent) return '<section class="page page-enter">' + pageHead("Agent Builder", "The selected agent could not be opened.") + '<div class="mission-failure"><strong>Agent unavailable</strong><small>' + escapeHtml(state.agentError || "Return to the Agent Library and choose an agent.") + '</small></div><button class="secondary-button" type="button" data-page-jump="agent-library">Back to Agent Library</button></section>';
+    var agent = state.activeAgent;
+    var persisted = Boolean(agent.id);
+    var executions = state.agentExecutions.length ? state.agentExecutions.map(function (item) { return '<article class="agent-run-row">' + workflowStatus(item.status) + '<span><strong>' + escapeHtml(item.prompt) + '</strong><small>' + escapeHtml(item.response || item.error || "No response recorded") + '</small></span><time>' + escapeHtml(formatWorkflowDate(item.createdAt)) + '</time></article>'; }).join("") : '<div class="clean-empty compact"><strong>No test executions yet</strong><p>Save the agent, then run a live provider test.</p></div>';
+    return '<section class="page page-enter agent-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="agent-library">← Agent Library</button><div><strong>' + escapeHtml(persisted ? agent.name : "New agent") + '</strong><p>' + (persisted ? escapeHtml(agent.id) + ' · version ' + Number(agent.version) : 'Unsaved registry agent') + '</p></div><div class="builder-actions">' + (persisted ? '<button class="danger-button" type="button" data-agent-action="archive">Archive</button><button class="secondary-button" type="button" data-agent-action="duplicate">Duplicate</button>' : '') + '<button class="primary-button" type="submit" form="agent-builder-form">' + (persisted ? "Save new version" : "Create agent") + '</button></div></header><div class="agent-builder-layout"><form class="panel agent-builder-form" id="agent-builder-form"><div class="content-view-head"><div><h2>Identity &amp; instructions</h2><p>Define what the agent may do and who is accountable for it.</p></div>' + workflowStatus(agent.status) + '</div><div class="form-split"><label class="form-field">Agent name<input name="name" maxlength="120" required value="' + escapeHtml(agent.name) + '"></label><label class="form-field">Department<input name="department" maxlength="120" required value="' + escapeHtml(agent.department) + '"></label></div><label class="form-field">Description<textarea name="description" maxlength="500" required>' + escapeHtml(agent.description) + '</textarea></label><label class="form-field">System instructions<textarea name="instructions" maxlength="5000" required>' + escapeHtml(agent.instructions) + '</textarea></label><div class="form-split"><label class="form-field">Owner<input name="owner" maxlength="120" required value="' + escapeHtml(agent.owner) + '"></label><label class="form-field">Status<select name="status"><option value="ACTIVE"' + (agent.status === "ACTIVE" ? " selected" : "") + '>Active</option><option value="DISABLED"' + (agent.status === "DISABLED" ? " selected" : "") + '>Disabled</option><option value="ARCHIVED"' + (agent.status === "ARCHIVED" ? " selected" : "") + '>Archived</option></select></label></div><h2>Model configuration</h2><div class="form-split"><label class="form-field">Provider<select name="provider"><option value="ollama"' + (agent.provider === "ollama" ? " selected" : "") + '>Local Ollama</option><option value="copilot"' + (agent.provider === "copilot" ? " selected" : "") + '>Microsoft Copilot Studio</option></select></label><label class="form-field">Model<input name="model" maxlength="120" required value="' + escapeHtml(agent.model) + '"></label></div><div class="form-split"><label class="form-field">Temperature<input type="number" name="temperature" min="0" max="2" step="0.1" value="' + Number(agent.generation.temperature) + '"></label><label class="form-field">Maximum output tokens<input type="number" name="maxTokens" min="64" max="32768" step="1" value="' + Number(agent.generation.maxTokens) + '"></label></div><h2>Access &amp; capabilities</h2><label class="form-field">Allowed roles <small>Comma-separated: employee, gcmc, hr, securities, finance</small><input name="roles" value="' + escapeHtml(agentListValue(agent.roles)) + '"></label><label class="form-field">Knowledge collections<input name="knowledgeCollections" value="' + escapeHtml(agentListValue(agent.knowledgeCollections)) + '" placeholder="market_operations, regulations"></label><label class="form-field">Connectors<input name="connectors" value="' + escapeHtml(agentListValue(agent.connectors)) + '" placeholder="sharepoint, email"></label><label class="form-field">Supported tools<input name="tools" value="' + escapeHtml(agentListValue(agent.tools)) + '"></label><label class="form-field">Mission capabilities<input name="capabilities" value="' + escapeHtml(agentListValue(agent.capabilities)) + '"></label><label class="form-field">Approval policy<select name="approvalPolicy"><option value="none"' + (agent.approvalPolicy === "none" ? " selected" : "") + '>No additional approval</option><option value="human-review"' + (agent.approvalPolicy === "human-review" ? " selected" : "") + '>Human review</option><option value="high-impact"' + (agent.approvalPolicy === "high-impact" ? " selected" : "") + '>High-impact approval</option></select></label><div class="form-split"><label class="form-field">Input schema (JSON)<textarea name="inputSchema" class="schema-field">' + escapeHtml(JSON.stringify(agent.inputSchema, null, 2)) + '</textarea></label><label class="form-field">Output schema (JSON)<textarea name="outputSchema" class="schema-field">' + escapeHtml(JSON.stringify(agent.outputSchema, null, 2)) + '</textarea></label></div><p class="form-error" id="agent-form-error" hidden></p></form><aside class="agent-test-column"><section class="panel agent-test-panel"><div class="panel-head"><h2>' + svg("i-spark") + 'Live test console</h2></div><form id="agent-test-form"><label class="form-field">Test request<textarea name="prompt" required placeholder="Ask this agent to perform a bounded test…"></textarea></label><button class="primary-button" type="submit"' + (persisted && agent.status === "ACTIVE" ? "" : " disabled") + '>Run live test</button><p class="form-hint">Tests call the configured provider and are retained in execution history.</p></form></section><section class="panel agent-history"><div class="panel-head"><h2>' + svg("i-clock") + 'Execution history</h2></div>' + executions + '</section></aside></div></section>';
   }
 
   function missionRow(mission) {
@@ -785,7 +839,8 @@
     var dependencies = selected ? workflow.connections.filter(function (connection) { return connection.target === selected.id; }).map(function (connection) { return connection.source; }) : [];
     var nodeTypes = [["trigger", "Trigger"], ["gather-data", "Gather Data"], ["ai-agent", "AI Agent"], ["condition", "Condition"], ["human-approval", "Human Approval"], ["generate-report", "Generate Report"], ["publish-send", "Publish / Send"]];
     var nodes = workflow.nodes.map(function (node, index) { var incoming = workflow.connections.filter(function (item) { return item.target === node.id; }).map(function (item) { var source = workflow.nodes.filter(function (candidate) { return candidate.id === item.source; })[0]; return source ? source.name : item.source; }); return '<article class="builder-node ' + (selected && selected.id === node.id ? "is-selected" : "") + '" draggable="true" data-workflow-node="' + escapeHtml(node.id) + '"><span class="builder-node-order">' + (index + 1) + '</span>' + miniIcon(workflowNodeIcon(node.type), workflowNodeTone(node.type)) + '<span><strong>' + escapeHtml(node.name) + '</strong><small>' + escapeHtml(nodeTypes.filter(function (item) { return item[0] === node.type; })[0][1]) + (incoming.length ? " · after " + escapeHtml(incoming.join(", ")) : "") + '</small></span><span class="builder-node-controls"><button type="button" aria-label="Move step up" data-node-move="up" data-node-id="' + escapeHtml(node.id) + '"' + (index === 0 ? " disabled" : "") + '>↑</button><button type="button" aria-label="Move step down" data-node-move="down" data-node-id="' + escapeHtml(node.id) + '"' + (index === workflow.nodes.length - 1 ? " disabled" : "") + '>↓</button></span></article>'; }).join('<span class="builder-connector">↓</span>');
-    var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<input name="agent" maxlength="100" value="' + escapeHtml(selectedConfig.agent || "") + '" placeholder="Required for AI Agent"></label><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="Use true or always for a local condition"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
+    var assignableAgents = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; });
+    var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<select name="agentId"><option value="">Select a registered agent</option>' + assignableAgents.map(function (agent) { return '<option value="' + escapeHtml(agent.id) + '"' + (agent.id === (selectedConfig.agentId || selectedConfig.agent) ? " selected" : "") + '>' + escapeHtml(agent.name + " · " + agent.provider + " · v" + agent.version) + '</option>'; }).join("") + '</select></label><button class="canvas-action-link" type="button" data-page-jump="agent-library">Manage Agent Library ' + svg("i-arrow") + '</button><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="Use true or always for a local condition"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
     var latestRun = state.workflowRuns[0];
     return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="automation">← Automation Studio</button><div><input id="workflow-name" maxlength="120" value="' + escapeHtml(workflow.name) + '" aria-label="Workflow name"><p>' + escapeHtml(workflow.id) + ' · Last saved ' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</p></div><div class="builder-actions"><button class="danger-button" type="button" data-workflow-action="delete">Delete</button><button class="secondary-button" type="button" data-workflow-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-workflow-action="test">Test Workflow</button><button class="secondary-button" type="button" data-workflow-action="save">Save Draft</button><button class="primary-button" type="button" data-workflow-action="run">Run Workflow</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Workflow canvas</strong><label>Add step<select id="workflow-node-type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '">' + item[1] + '</option>'; }).join("") + '</select></label><button class="secondary-button" type="button" data-node-add>Add step</button></div><div class="builder-flow">' + (nodes || '<div class="clean-empty"><strong>No steps yet</strong><p>Add a Trigger to begin.</p></div>') + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Node configuration</h2></div>' + config + '</aside></div><section class="panel builder-history"><div class="content-view-head"><div><h2>Validation &amp; execution history</h2><p>Every test and run is persisted by the Flask backend.</p></div>' + workflowStatus(workflow.status) + '</div>' + (latestRun ? '<div class="run-result">' + workflowStatus(latestRun.status) + '<span><strong>' + escapeHtml(latestRun.mode + " · " + latestRun.id) + '</strong><small>' + escapeHtml(latestRun.events.length ? latestRun.events[latestRun.events.length - 1].message : (latestRun.validation.errors || []).join(" ")) + '</small></span></div>' : '<div class="clean-empty compact"><strong>No tests or runs yet</strong></div>') + '</section></section>';
   }
@@ -1130,12 +1185,13 @@
   }
 
   function openAgent(name) {
-    var agent = agents.filter(function (item) { return item.name === name; })[0] || agents[0];
+    var agent = agents.filter(function (item) { return item.name === name || item.id === name; })[0] || agents[0];
+    if (!agent) { navigate("agent-library"); return; }
     openExperience({
       title: agent.name,
-      subtitle: agent.job,
-      body: '<div class="agent-profile">' + miniIcon("i-spark", agent.tone) + '<div><span class="status green"><i class="dot"></i> ' + agent.state + '</span><p>Specialist agent operating inside your existing Bursa permissions and approval controls.</p></div></div><div class="agent-capabilities"><article><strong>Find and synthesise</strong><small>Search approved internal knowledge with citations.</small></article><article><strong>Work with your team</strong><small>Join missions and rooms with visible responsibilities.</small></article><article><strong>Escalate responsibly</strong><small>Pause when human judgment or permission is required.</small></article></div><label class="form-field">Task for this agent<textarea id="agent-task" placeholder="Describe the result you need…"></textarea></label>',
-      footer: '<button class="secondary-button" type="button" data-experience-close>Close</button><button class="primary-button" type="button" data-dialog-action="assign-agent" data-context="' + escapeHtml(agent.name) + '">Assign task</button>'
+      subtitle: agent.department + " · " + agent.provider + " · v" + agent.version,
+      body: '<div class="agent-profile">' + miniIcon("i-spark", agent.provider === "ollama" ? "blue" : "violet") + '<div>' + workflowStatus(agent.status) + '<p>' + escapeHtml(agent.description) + '</p></div></div><div class="detail-grid"><article><small>Owner</small><strong>' + escapeHtml(agent.owner) + '</strong></article><article><small>Model</small><strong>' + escapeHtml(agent.model) + '</strong></article><article><small>Approval</small><strong>' + escapeHtml(agent.approvalPolicy) + '</strong></article><article><small>Role scope</small><strong>' + escapeHtml(agent.roles.join(", ")) + '</strong></article></div>',
+      footer: '<button class="secondary-button" type="button" data-experience-close>Close</button><button class="primary-button" type="button" data-page-target="agent-library">Open Agent Library</button>'
     });
   }
 
@@ -1322,6 +1378,8 @@
     else if (state.page === "assistant") html = assistantPage();
     else if (state.page === "ask-bursa") html = askBursaPage();
     else if (state.page === "workforce") html = workforcePage();
+    else if (state.page === "agent-library") html = agentLibraryPage();
+    else if (state.page === "agent-builder") html = agentBuilderPage();
     else if (state.page === "exchange") html = exchangePage();
     else if (state.page === "automation") html = automationPage();
     else if (state.page === "workflow-builder") html = workflowBuilderPage();
@@ -1335,7 +1393,7 @@
     else html = homePage();
     root.innerHTML = html;
     document.querySelectorAll(".nav-link[data-page]").forEach(function (button) {
-      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation";
+      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || ["agent-library", "agent-builder"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
       button.classList.toggle("is-active", active);
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
@@ -1353,6 +1411,7 @@
     if (page === "exchange") loadExchangeAssets();
     if (page === "verification") loadVerification();
     if (page === "automation") loadWorkflows();
+    if (page === "agent-library") loadAgents();
     if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(page) !== -1) loadPlatform();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
@@ -1480,6 +1539,50 @@
     });
     root.querySelectorAll("[data-agent-open]").forEach(function (button) {
       button.addEventListener("click", function () { openAgent(button.dataset.agentOpen); });
+    });
+    root.querySelectorAll("[data-agent-id]").forEach(function (button) {
+      button.addEventListener("click", function () { openAgentBuilder(button.dataset.agentId); });
+    });
+    root.querySelectorAll("[data-agent-new]").forEach(function (button) {
+      button.addEventListener("click", function () { openAgentBuilder(); });
+    });
+    var agentSearch = document.getElementById("agent-search");
+    if (agentSearch) agentSearch.addEventListener("input", function () { filterCurrentView(agentSearch.value, ".registry-agent-card", document.getElementById("agent-library-empty")); });
+    var agentBuilderForm = document.getElementById("agent-builder-form");
+    if (agentBuilderForm) agentBuilderForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var data = new FormData(agentBuilderForm);
+      var errorField = document.getElementById("agent-form-error");
+      try {
+        var list = function (name) { return String(data.get(name) || "").split(",").map(function (item) { return item.trim(); }).filter(Boolean); };
+        var payload = { name: String(data.get("name") || "").trim(), description: String(data.get("description") || "").trim(), instructions: String(data.get("instructions") || "").trim(), owner: String(data.get("owner") || "").trim(), department: String(data.get("department") || "").trim(), provider: String(data.get("provider")), model: String(data.get("model") || "").trim(), generation: { temperature: Number(data.get("temperature")), maxTokens: Number(data.get("maxTokens")) }, knowledgeCollections: list("knowledgeCollections"), connectors: list("connectors"), tools: list("tools"), capabilities: list("capabilities"), roles: list("roles"), approvalPolicy: String(data.get("approvalPolicy")), status: String(data.get("status")), inputSchema: JSON.parse(String(data.get("inputSchema") || "{}")), outputSchema: JSON.parse(String(data.get("outputSchema") || "{}")) };
+        var editing = Boolean(state.activeAgent.id);
+        apiJson(editing ? "/api/agents/" + encodeURIComponent(state.activeAgent.id) : "/api/agents", { method: editing ? "PATCH" : "POST", body: JSON.stringify(payload) }).then(function (saved) {
+          state.activeAgent = saved;
+          return loadAgents();
+        }).then(function () { openAgentBuilder(state.activeAgent.id); toast(editing ? "Agent version saved" : "Agent created", state.activeAgent.name + " is stored in the Agent Registry."); }).catch(function (error) { if (errorField) { errorField.hidden = false; errorField.textContent = error.message; } });
+      } catch (error) {
+        if (errorField) { errorField.hidden = false; errorField.textContent = "Input and output schemas must contain valid JSON objects."; }
+      }
+    });
+    root.querySelectorAll("[data-agent-action]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        if (!state.activeAgent || !state.activeAgent.id) return;
+        var action = button.dataset.agentAction;
+        apiJson("/api/agents/" + encodeURIComponent(state.activeAgent.id) + "/" + action, { method: "POST", body: JSON.stringify(action === "duplicate" ? { owner: "Lim Kim Hoong" } : {}) }).then(function (saved) { return loadAgents().then(function () { if (action === "duplicate") openAgentBuilder(saved.id); else { state.activeAgent = saved; state.agentExecutions = []; render(); } toast(action === "duplicate" ? "Agent duplicated" : "Agent archived", saved.name + " was updated in the registry."); }); }).catch(function (error) { toast("Agent action failed", error.message); });
+      });
+    });
+    var agentTestForm = document.getElementById("agent-test-form");
+    if (agentTestForm) agentTestForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var prompt = String(new FormData(agentTestForm).get("prompt") || "").trim();
+      var submit = agentTestForm.querySelector('[type="submit"]');
+      submit.disabled = true;
+      apiJson("/api/agents/" + encodeURIComponent(state.activeAgent.id) + "/test", { method: "POST", body: JSON.stringify({ prompt: prompt, role: "employee" }) }).then(function (payload) {
+        state.agentExecutions.unshift(payload.execution);
+        render();
+        toast("Agent test completed", "The live response and provider provenance were recorded.");
+      }).catch(function (error) { openAgentBuilder(state.activeAgent.id); toast("Agent test failed", error.message); });
     });
     root.querySelectorAll("[data-metric-context]").forEach(function (button) {
       button.addEventListener("click", function () { openInfoPanel("detail", button.dataset.metricContext); });
@@ -1691,7 +1794,7 @@
       if (!node) return;
       node.name = String(data.get("name") || "Step").trim();
       node.type = String(data.get("type"));
-      node.config = { agent: String(data.get("agent") || ""), inputs: String(data.get("inputs") || ""), outputs: String(data.get("outputs") || ""), expression: String(data.get("expression") || "") };
+      node.config = { agentId: String(data.get("agentId") || ""), inputs: String(data.get("inputs") || ""), outputs: String(data.get("outputs") || ""), expression: String(data.get("expression") || "") };
       state.activeWorkflow.connections = state.activeWorkflow.connections.filter(function (connection) { return connection.target !== node.id; });
       Array.prototype.slice.call(nodeForm.querySelectorAll('[name="dependency"]:checked')).forEach(function (input) { state.activeWorkflow.connections.push({ source: input.value, target: node.id }); });
       render();
@@ -1907,6 +2010,7 @@
   function createAction(type) {
     createMenu.hidden = true;
     createButton.setAttribute("aria-expanded", "false");
+    if (type === "agent") { openAgentBuilder(); return; }
     openCreation(type);
   }
 
@@ -2188,6 +2292,9 @@
   loadAskBursaStatus();
   loadAskBursaSuggestions();
   loadPlatform();
+  loadAgents().then(function () {
+    if (requestedPage === "agent-builder") openAgentBuilder(requestedAgentId);
+  });
   loadWorkflows().then(function () {
     if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);
   });

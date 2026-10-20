@@ -778,6 +778,26 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .mission-window b { color: var(--faint); }
 .mission-agent-feed li { grid-template-columns: 32px minmax(0, 1fr) auto; }
 .mission-agent-feed .worker-ready { color: var(--teal); font-size: 10px; font-weight: 750; }
+.mission-agent-feed button.worker-ready { padding: 5px; background: transparent; cursor: pointer; }
+.rail-panel-action { padding: 0 13px 13px; }
+.rail-panel-action .secondary-button { width: 100%; }
+.registry-agent-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 14px; }
+.registry-agent-card { min-height: 190px; }
+.registry-agent-card p { min-height: 54px; }
+.agent-card-meta { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 9px; color: var(--muted); font-size: 9px; }
+.agent-builder-layout { display: grid; grid-template-columns: minmax(520px, 1.35fr) minmax(300px, .65fr); gap: 14px; align-items: start; }
+.agent-builder-form { padding: 18px; }
+.agent-builder-form > h2 { margin: 20px 0 12px; font-size: 14px; }
+.agent-builder-form .schema-field { min-height: 150px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.agent-test-column { display: grid; gap: 14px; }
+.agent-test-panel form { padding: 14px; }
+.agent-test-panel .primary-button { width: 100%; }
+.agent-history { overflow: hidden; }
+.agent-run-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 9px; border-top: 1px solid var(--line); padding: 11px 13px; }
+.agent-run-row strong, .agent-run-row small { display: block; }
+.agent-run-row strong { font-size: 10px; }
+.agent-run-row small { max-height: 48px; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.agent-run-row time { color: var(--muted); font-size: 8px; }
 .mission-rulebook dl { margin: 0; padding: 5px 12px 12px; }
 .mission-rulebook dl div { padding: 9px 0; border-bottom: 1px solid var(--line); }
 .mission-rulebook dl div:last-child { border-bottom: 0; }
@@ -1104,6 +1124,7 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
   .builder-head { grid-template-columns: 1fr; }
   .builder-actions { justify-content: flex-start; }
   .builder-layout { grid-template-columns: 1fr; }
+  .agent-builder-layout { grid-template-columns: 1fr; }
   .builder-properties { position: static; max-height: none; }
   .node-config { border-top: 1px solid var(--line); border-left: 0; }
   .mission-table { min-width: 820px; }

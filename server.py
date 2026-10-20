@@ -37,6 +37,7 @@ from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
 from bursaiq.workflows import WorkflowStore
 from bursaiq.platform_store import PlatformStore
+from bursaiq.agents import AgentRegistry
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -53,6 +54,7 @@ reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 workflows = WorkflowStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 platform = PlatformStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
+agent_registry = AgentRegistry(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 ollama = OllamaService()
 knowledge = KnowledgeIndex(RUNTIME_DIR / "bursaiq_demo.sqlite3", BASE_DIR / "knowledge", ollama.embed, ollama.suggest_questions)
@@ -168,15 +170,41 @@ def execute_workflow_node(node: dict[str, Any]) -> dict[str, Any]:
             raise ValueError("Gather Data found no permitted governed sources.")
         return {"message": f"Gathered {len(results)} permitted governed sources."}
     if node.get("type") == "ai-agent":
-        assigned = str(config.get("agent", "")).strip().lower()
-        if "copilot" in assigned:
-            reply = copilot.ask(instruction)
-            return {"message": f"Microsoft Copilot Studio returned a live response ({reply.conversation_id})."}
-        if "ollama" in assigned or "local" in assigned:
-            reply = ollama.ask(instruction, json_format=False)
-            return {"message": f"Local Ollama returned a live response ({reply.request_id})."}
-        raise ValueError("Assign Local Ollama or Microsoft Copilot Studio before running this AI Agent node.")
+        assigned = str(config.get("agentId") or config.get("agent", "")).strip()
+        if not assigned:
+            raise ValueError("Assign an active registered agent before running this AI Agent node.")
+        try:
+            registered = agent_registry.get(assigned)
+        except KeyError:
+            # Preserve execution of saved workflows created before the Agent Registry migration.
+            lowered = assigned.lower()
+            if "ollama" in lowered or "local" in lowered:
+                reply = ollama.ask(instruction, json_format=False)
+                return {"message": f"Legacy Local Ollama assignment returned a live response ({reply.request_id})."}
+            if "copilot" in lowered:
+                reply = copilot.ask(instruction)
+                return {"message": f"Legacy Microsoft Copilot Studio assignment returned a live response ({reply.conversation_id})."}
+            raise ValueError("The assigned registered agent no longer exists.")
+        if not agent_registry.can_access(registered, "employee"):
+            raise ValueError("The assigned agent is outside the workflow owner's permitted scope.")
+        result = execute_registered_agent(registered, instruction)
+        return {"message": f"{result['agentName']} returned a live response ({result['requestId']})."}
     raise ValueError("No live integration is configured for this node type.")
+
+
+def execute_registered_agent(agent: dict[str, Any], prompt: str) -> dict[str, Any]:
+    """Execute an active registry agent through its configured live provider."""
+    if agent["status"] != "ACTIVE":
+        raise ValueError("The assigned agent is not active.")
+    governed_prompt = f"Agent instructions:\n{agent['instructions']}\n\nUser test request:\n{prompt}"
+    if agent["provider"] == "ollama":
+        generation = agent.get("generation") or {}
+        reply = ollama.ask(governed_prompt, json_format=False, model=agent["model"], temperature=generation.get("temperature"), max_tokens=generation.get("maxTokens"))
+        return {"agentName": agent["name"], "response": reply.text, "requestId": reply.request_id}
+    if agent["provider"] == "copilot":
+        reply = copilot.ask(governed_prompt)
+        return {"agentName": agent["name"], "response": reply.text, "requestId": reply.conversation_id}
+    raise ValueError("The assigned agent provider is unsupported.")
 
 
 def review_details(payload: dict[str, Any]) -> dict[str, Any]:
@@ -746,6 +774,93 @@ def reuse_exchange_asset(asset_id: str):
     missions.record_reuse(asset_id)
     mission_runner.start(mission["id"])
     return jsonify({"mission": missions.get(mission["id"]), "asset": missions.get_asset(asset_id)}), 201
+
+
+@app.get("/api/agents")
+def list_agents():
+    role = str(request.args.get("role", "employee")).lower()
+    include_archived = str(request.args.get("includeArchived", "false")).lower() == "true"
+    items = agent_registry.list(role, include_archived)
+    return jsonify({"agents": items, "role": role})
+
+
+@app.post("/api/agents")
+def create_agent():
+    try:
+        return jsonify(agent_registry.create(body_json())), 201
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.get("/api/agents/<agent_id>")
+def get_agent(agent_id: str):
+    role = str(request.args.get("role", "employee")).lower()
+    try:
+        agent = agent_registry.get(agent_id)
+        if not agent_registry.can_access(agent, role):
+            return jsonify({"error": "Agent is outside the active role's permitted scope."}), 403
+        return jsonify({"agent": agent, "executions": agent_registry.executions(agent_id)})
+    except KeyError:
+        return jsonify({"error": "Agent not found."}), 404
+
+
+@app.patch("/api/agents/<agent_id>")
+def update_agent(agent_id: str):
+    try:
+        current = agent_registry.get(agent_id)
+        role = str(request.args.get("role", "employee")).lower()
+        if not agent_registry.can_access(current, role):
+            return jsonify({"error": "Agent is outside the active role's permitted scope."}), 403
+        return jsonify(agent_registry.update(agent_id, body_json()))
+    except KeyError:
+        return jsonify({"error": "Agent not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.post("/api/agents/<agent_id>/duplicate")
+def duplicate_agent(agent_id: str):
+    payload = body_json()
+    try:
+        current = agent_registry.get(agent_id)
+        role = str(request.args.get("role", "employee")).lower()
+        if not agent_registry.can_access(current, role):
+            return jsonify({"error": "Agent is outside the active role's permitted scope."}), 403
+        return jsonify(agent_registry.duplicate(agent_id, bounded_text(payload, "owner", 120, required=False))), 201
+    except KeyError:
+        return jsonify({"error": "Agent not found."}), 404
+
+
+@app.post("/api/agents/<agent_id>/archive")
+def archive_agent(agent_id: str):
+    try:
+        current = agent_registry.get(agent_id)
+        role = str(request.args.get("role", "employee")).lower()
+        if not agent_registry.can_access(current, role):
+            return jsonify({"error": "Agent is outside the active role's permitted scope."}), 403
+        return jsonify(agent_registry.archive(agent_id))
+    except KeyError:
+        return jsonify({"error": "Agent not found."}), 404
+
+
+@app.post("/api/agents/<agent_id>/test")
+def test_agent(agent_id: str):
+    payload = body_json()
+    prompt = bounded_text(payload, "prompt", 4000)
+    role = bounded_text(payload, "role", 40, required=False).lower() or "employee"
+    try:
+        agent = agent_registry.get(agent_id)
+    except KeyError:
+        return jsonify({"error": "Agent not found."}), 404
+    if not agent_registry.can_access(agent, role):
+        return jsonify({"error": "Agent is outside the active role's permitted scope."}), 403
+    try:
+        result = execute_registered_agent(agent, prompt)
+        execution = agent_registry.record_execution(agent_id, prompt, role, result=result)
+        return jsonify({"result": result, "execution": execution})
+    except (ValueError, CopilotConfigurationError, CopilotRequestError, ModelConfigurationError, ModelRequestError) as error:
+        execution = agent_registry.record_execution(agent_id, prompt, role, error=str(error))
+        return jsonify({"error": str(error), "execution": execution}), 409
 
 
 @app.get("/api/workflows")

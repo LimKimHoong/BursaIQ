@@ -95,13 +95,15 @@ class OllamaService:
                 status.update({"available": False, "error": str(exc)})
         return status
 
-    def ask(self, prompt: str, *, json_format: bool = True) -> ModelReply:
+    def ask(self, prompt: str, *, json_format: bool = True, model: str | None = None, temperature: float | None = None, max_tokens: int | None = None) -> ModelReply:
         payload: dict[str, Any] = {
-            "model": self.model,
+            "model": str(model or self.model).strip(),
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
-            "options": {"temperature": 0 if json_format else 0.2},
+            "options": {"temperature": 0 if json_format else (0.2 if temperature is None else float(temperature))},
         }
+        if max_tokens is not None:
+            payload["options"]["num_predict"] = int(max_tokens)
         if json_format:
             payload["format"] = "json"
         response = self._request_json("/api/chat", payload=payload)
