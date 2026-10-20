@@ -150,3 +150,33 @@ test('Action workspace manages decision memory and email schedules', () => {
   assert.match(js, /Automate by Email/);
   assert.match(js, /data-email-toggle/);
 });
+
+test('Action sidebar badge reflects pending backend assignments and hides zero', () => {
+  assert.match(html, /id="action-nav-count"[^>]*hidden/);
+  assert.doesNotMatch(html, /id="action-nav-count"[^>]*>\s*[0-9]+\s*</);
+  assert.match(js, /\(payload\.assigned \|\| \[\]\)\.filter/);
+  assert.match(js, /item\.status === "Pending review"/);
+  assert.match(js, /badge\.hidden = !\(count > 0\)/);
+  assert.match(js, /badge\.textContent = count > 0 \? String\(count\) : ""/);
+  assert.doesNotMatch(js, /actionCount\.textContent = String\(state\.savedDecisions\.length/);
+  assert.match(css, /\.nav-link b\[hidden\] \{ display: none; \}/);
+});
+
+test('Automation Studio uses a persistent visual Workflow Builder', () => {
+  assert.match(js, /function workflowBuilderPage\(/);
+  assert.match(js, /apiJson\("\/api\/workflows"/);
+  assert.match(js, /data-workflow-open/);
+  assert.match(js, /data-node-add/);
+  assert.match(js, /data-node-move/);
+  assert.match(js, /name="dependency"/);
+  assert.match(js, /data-node-delete/);
+  assert.match(js, /data-workflow-action="save"/);
+  assert.match(js, /data-workflow-action="test"/);
+  assert.match(js, /data-workflow-action="run"/);
+  assert.match(js, /data-workflow-action="duplicate"/);
+  assert.match(js, /data-workflow-action="delete"/);
+  assert.match(js, /\?page=workflow-builder&workflow=/);
+  assert.match(css, /\.builder-canvas/);
+  assert.match(css, /\.builder-properties/);
+  assert.doesNotMatch(js, /function openRunPanel\(name\)[\s\S]{0,700}Trigger validated/);
+});

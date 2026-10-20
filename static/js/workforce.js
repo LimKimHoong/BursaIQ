@@ -24,7 +24,8 @@
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
-  if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  var requestedWorkflowId = new URLSearchParams(window.location.search).get("workflow");
   var state = {
     page: requestedPage,
     exchangeCategory: "featured",
@@ -56,6 +57,13 @@
     selectedVerificationMissionId: null,
     verificationCases: [],
     verificationError: "",
+    pendingActionCount: null,
+    workflows: [],
+    workflowRuns: [],
+    activeWorkflow: null,
+    selectedWorkflowNodeId: null,
+    workflowLoading: false,
+    workflowError: "",
     missionPoll: null
   };
 
@@ -66,6 +74,7 @@
     workforce: ["My Workforce", "Agents, tasks and missions", "i-agents", "blue"],
     exchange: ["Intelligence Exchange", "Discover approved capabilities", "i-exchange", "teal"],
     automation: ["Automation Studio", "Build intelligent workflows", "i-automation", "violet"],
+    "workflow-builder": ["Workflow Builder", "Configure nodes, dependencies and execution", "i-flow", "violet"],
     rooms: ["Collaborative Rooms", "Work with people and AI", "i-room", "blue"],
     workspace: ["Projects & Workspace", "Your files, context and decision memory", "i-folder", "amber"],
     brief: ["Today's Brief", "Priorities, approvals and relevant changes", "i-brief", "blue"],
@@ -173,15 +182,65 @@
   function loadVerification() {
     return apiJson("/api/verification?role=securities").then(function (payload) {
       state.verificationCases = payload.cases || [];
+      state.pendingActionCount = (payload.assigned || []).filter(function (item) { return item.status === "Pending review"; }).length;
       state.verificationError = "";
+      updateActionBadge();
       if (state.page === "verification") render();
       return state.verificationCases;
     }).catch(function (error) {
       state.verificationCases = [];
+      state.pendingActionCount = null;
       state.verificationError = error.message;
+      updateActionBadge();
       if (state.page === "verification") render();
       return [];
     });
+  }
+
+  function loadWorkflows() {
+    state.workflowLoading = true;
+    return apiJson("/api/workflows").then(function (payload) {
+      state.workflows = payload.workflows || [];
+      state.workflowRuns = payload.runs || [];
+      state.workflowError = "";
+      state.workflowLoading = false;
+      if (state.page === "automation") render();
+      return state.workflows;
+    }).catch(function (error) {
+      state.workflowError = error.message;
+      state.workflowLoading = false;
+      if (state.page === "automation") render();
+      return [];
+    });
+  }
+
+  function openWorkflowBuilder(workflowId) {
+    state.workflowLoading = true;
+    state.page = "workflow-builder";
+    state.activeWorkflow = null;
+    state.selectedWorkflowNodeId = null;
+    window.history.replaceState(null, "", "?page=workflow-builder&workflow=" + encodeURIComponent(workflowId));
+    render();
+    return apiJson("/api/workflows/" + encodeURIComponent(workflowId)).then(function (payload) {
+      state.activeWorkflow = payload.workflow;
+      state.workflowRuns = payload.runs || [];
+      state.selectedWorkflowNodeId = state.activeWorkflow.nodes.length ? state.activeWorkflow.nodes[0].id : null;
+      state.workflowLoading = false;
+      state.workflowError = "";
+      render();
+    }).catch(function (error) {
+      state.workflowLoading = false;
+      state.workflowError = error.message;
+      render();
+    });
+  }
+
+  function updateActionBadge() {
+    var badge = document.getElementById("action-nav-count");
+    if (!badge) return;
+    var count = state.pendingActionCount;
+    badge.hidden = !(count > 0);
+    badge.textContent = count > 0 ? String(count) : "";
   }
 
   function missionById(id) {
@@ -660,22 +719,17 @@
   }
 
   function automationPage() {
-    var node = {
-      trigger: ["Trigger", "Scheduled every Monday", "i-clock", "teal"],
-      gather: ["Gather data", "Collect approved sources", "i-folder", "blue"],
-      summarise: ["AI summarise", "Generate key findings", "i-spark", "violet"],
-      approve: ["Approval checkpoint", "Human review required", "i-shield", "amber"],
-      report: ["Generate report", "Compile board pack", "i-document", "blue"],
-      publish: ["Send / publish", "Distribute to stakeholders", "i-send", "violet"]
-    };
-    var keys = Object.keys(node);
+    var active = state.workflows.filter(function (item) { return item.status === "ACTIVE"; }).length;
+    var runs = state.workflowRuns.filter(function (item) { return item.mode === "RUN"; });
+    var successful = runs.filter(function (item) { return item.status === "COMPLETED"; }).length;
+    var pending = runs.filter(function (item) { return item.status === "WAITING_APPROVAL"; }).length;
     return [
       '<section class="page page-enter">',
       pageHead("Automation Studio", "Build, run and monitor intelligent workflows across Bursa.", "Create workflow", "workflow"),
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' + metric("i-automation", "blue", "0", "Active workflows", "No workflows yet") + metric("i-shield", "violet", "0", "Pending approvals", "Nothing awaiting review") + metric("i-flow", "blue", "0", "Runs this week", "No runs yet") + metric("i-check", "teal", "—", "Success rate", "Available after first run") + "</div>",
+      '<div class="metric-row">' + metric("i-automation", "blue", String(active), "Active workflows", state.workflows.length + " saved") + metric("i-shield", "violet", String(pending), "Pending approvals", pending ? "Human action required" : "Nothing awaiting review") + metric("i-flow", "blue", String(runs.length), "Recorded runs", "Persisted execution history") + metric("i-check", "teal", runs.length ? Math.round(successful / runs.length * 100) + "%" : "—", "Success rate", runs.length ? "From actual runs" : "Available after first run") + "</div>",
       '<section class="panel tabs-toolbar"><button class="tab-button ' + (state.automationTab === "workflows" ? "is-active" : "") + '" type="button" data-automation-tab="workflows">' + svg("i-automation") + 'My workflows</button><button class="tab-button ' + (state.automationTab === "templates" ? "is-active" : "") + '" type="button" data-automation-tab="templates">' + svg("i-book") + 'Templates</button><button class="tab-button ' + (state.automationTab === "runs" ? "is-active" : "") + '" type="button" data-automation-tab="runs">' + svg("i-clock") + 'Runs</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="automation-search" type="search" placeholder="Search ' + state.automationTab + '…"></label></section>',
-      automationTabContent(node, keys),
+      automationTabContent(),
       '</div><aside class="page-rail">',
       '<section class="panel rail-panel">' + panelHead("Upcoming Runs", "i-clock", "runs") + '<div class="clean-empty compact"><strong>No upcoming runs</strong></div></section>',
       '<section class="panel rail-panel">' + panelHead("Pending Approval Steps", "i-shield", "approvals") + '<div class="clean-empty compact"><strong>No pending approvals</strong></div></section>',
@@ -683,27 +737,57 @@
     ].join("");
   }
 
-  function automationTabContent(node, keys) {
-    var heading = state.automationTab === "templates" ? "No templates available" : state.automationTab === "runs" ? "No execution history" : "No workflows yet";
-    var detail = state.automationTab === "templates" ? "Approved templates will appear here when published." : state.automationTab === "runs" ? "Completed and active runs will appear after a workflow starts." : "Create your first workflow to begin automating repeatable work.";
+  function automationTabContent() {
+    if (state.workflowLoading) return '<section class="panel content-view"><div class="clean-empty"><strong>Loading workflows…</strong></div></section>';
+    if (state.workflowError) return '<section class="panel content-view"><div class="mission-failure"><strong>Workflow API unavailable</strong><small>' + escapeHtml(state.workflowError) + '</small></div></section>';
+    if (state.automationTab === "runs") {
+      if (!state.workflowRuns.length) return automationEmpty("No execution history", "Test and run records will appear here after a workflow action.");
+      return '<section class="panel content-view"><div class="table-wrap"><table class="mission-table"><thead><tr><th>Run</th><th>Workflow</th><th>Mode</th><th>Started</th><th>Status</th><th>Result</th></tr></thead><tbody>' + state.workflowRuns.map(function (run) { var workflow = state.workflows.filter(function (item) { return item.id === run.workflowId; })[0]; return '<tr><td><strong>' + escapeHtml(run.id) + '</strong></td><td><button class="workflow-name-button" type="button" data-workflow-open="' + escapeHtml(run.workflowId) + '">' + escapeHtml(workflow ? workflow.name : run.workflowId) + '</button></td><td>' + escapeHtml(run.mode) + '</td><td>' + escapeHtml(formatWorkflowDate(run.startedAt)) + '</td><td>' + workflowStatus(run.status) + '</td><td>' + escapeHtml(run.events.length ? run.events[run.events.length - 1].message : (run.validation.errors || []).join(" ")) + '</td></tr>'; }).join("") + '</tbody></table></div></section>';
+    }
+    if (state.automationTab === "templates") return automationEmpty("No templates available", "Approved templates will appear here when published.");
+    if (!state.workflows.length) return automationEmpty("No workflows yet", "Create your first workflow to begin automating repeatable work.");
+    return '<section class="panel content-view"><div class="table-wrap"><table class="mission-table workflow-table"><thead><tr><th>Workflow</th><th>Owner</th><th>Updated</th><th>Runs</th><th>Status</th><th>Actions</th></tr></thead><tbody>' + state.workflows.map(workflowRow).join("") + '</tbody></table></div></section>';
+  }
+
+  function automationEmpty(heading, detail) {
     return '<section class="panel content-view"><div class="clean-empty">' + miniIcon("i-automation", "violet") + '<strong>' + heading + '</strong><p>' + detail + '</p><button class="primary-button" type="button" data-create="workflow">Create workflow</button></div></section>';
   }
 
-  function nodeConfig(key) {
-    var labels = {
-      trigger: ["Trigger configuration", "Scheduled (recurring)", "Weekly · Monday", "08:00 AM"],
-      gather: ["Source configuration", "Approved repositories", "Board materials", "Current version only"],
-      summarise: ["Agent configuration", "Report Agent", "Executive summary", "Citations required"],
-      approve: ["Approval configuration", "Human checkpoint", "Corporate Secretariat", "Block until approved"],
-      report: ["Output configuration", "Board report", "PPTX + PDF", "Bursa template"],
-      publish: ["Delivery configuration", "Microsoft Teams", "Board workspace", "Authorised members only"]
-    };
-    var item = labels[key] || labels.trigger;
-    return '<h3>' + item[0] + '</h3><label class="form-field">Step type<select><option>' + item[1] + '</option></select></label><label class="form-field">Configuration<input value="' + item[2] + '"></label><label class="form-field">Control<input value="' + item[3] + '"></label><div class="switch-row"><span>Require fresh content</span><button class="switch is-on" type="button" aria-label="Toggle fresh-content requirement"></button></div><button class="primary-button" type="button" data-demo-action="save-step">Save step</button>';
+  function workflowRow(workflow) {
+    return '<tr data-filter-text="' + escapeHtml(workflow.name + " " + workflow.owner) + '"><td><button class="mission-title mission-title-button" type="button" data-workflow-open="' + escapeHtml(workflow.id) + '">' + miniIcon("i-automation", "violet") + '<span><strong>' + escapeHtml(workflow.name) + '</strong><small>' + workflow.nodes.length + ' steps · ' + escapeHtml(workflow.id) + '</small></span></button></td><td>' + escapeHtml(workflow.owner) + '</td><td>' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</td><td>' + workflow.runCount + '</td><td>' + workflowStatus(workflow.status) + '</td><td><div class="workflow-row-actions"><button class="table-action" type="button" data-workflow-open="' + escapeHtml(workflow.id) + '">Edit</button><button class="table-action" type="button" data-workflow-duplicate="' + escapeHtml(workflow.id) + '">Duplicate</button></div></td></tr>';
   }
 
-  function workflowRow(name, owner, last, next, runs, workflowStatus) {
-    return '<tr><td><span class="mission-title">' + miniIcon("i-automation", "violet") + '<span><strong>' + name + '</strong><small>Intelligent enterprise workflow</small></span></span></td><td>' + owner + '</td><td>' + last + '</td><td>' + next + '</td><td>' + runs + '</td><td>' + status(workflowStatus) + '</td><td><button class="table-action" type="button" data-demo-action="run-now">Run now</button></td></tr>';
+  function formatWorkflowDate(value) {
+    if (!value) return "Never";
+    return new Date(value).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+  }
+
+  function workflowStatus(value) {
+    var tone = value === "ACTIVE" || value === "COMPLETED" || value === "VALIDATED" ? "green" : value === "BLOCKED" || value === "INVALID" ? "red" : value === "WAITING_APPROVAL" ? "amber" : "blue";
+    return '<span class="status ' + tone + '">' + escapeHtml(String(value || "DRAFT").replace(/_/g, " ")) + '</span>';
+  }
+
+  function workflowBuilderPage() {
+    if (state.workflowLoading) return '<section class="page page-enter"><div class="clean-empty"><strong>Opening Workflow Builder…</strong></div></section>';
+    if (!state.activeWorkflow) return '<section class="page page-enter">' + pageHead("Workflow Builder", "The selected workflow could not be opened.") + '<div class="mission-failure"><strong>Workflow unavailable</strong><small>' + escapeHtml(state.workflowError || "Return to Automation Studio and choose a workflow.") + '</small></div><button class="secondary-button" type="button" data-page-jump="automation">Back to Automation Studio</button></section>';
+    var workflow = state.activeWorkflow;
+    var selected = workflow.nodes.filter(function (node) { return node.id === state.selectedWorkflowNodeId; })[0] || null;
+    var selectedConfig = selected && selected.config || {};
+    var connectionTargets = selected ? workflow.nodes.filter(function (node) { return node.id !== selected.id; }) : [];
+    var dependencies = selected ? workflow.connections.filter(function (connection) { return connection.target === selected.id; }).map(function (connection) { return connection.source; }) : [];
+    var nodeTypes = [["trigger", "Trigger"], ["gather-data", "Gather Data"], ["ai-agent", "AI Agent"], ["condition", "Condition"], ["human-approval", "Human Approval"], ["generate-report", "Generate Report"], ["publish-send", "Publish / Send"]];
+    var nodes = workflow.nodes.map(function (node, index) { var incoming = workflow.connections.filter(function (item) { return item.target === node.id; }).map(function (item) { var source = workflow.nodes.filter(function (candidate) { return candidate.id === item.source; })[0]; return source ? source.name : item.source; }); return '<article class="builder-node ' + (selected && selected.id === node.id ? "is-selected" : "") + '" draggable="true" data-workflow-node="' + escapeHtml(node.id) + '"><span class="builder-node-order">' + (index + 1) + '</span>' + miniIcon(workflowNodeIcon(node.type), workflowNodeTone(node.type)) + '<span><strong>' + escapeHtml(node.name) + '</strong><small>' + escapeHtml(nodeTypes.filter(function (item) { return item[0] === node.type; })[0][1]) + (incoming.length ? " · after " + escapeHtml(incoming.join(", ")) : "") + '</small></span><span class="builder-node-controls"><button type="button" aria-label="Move step up" data-node-move="up" data-node-id="' + escapeHtml(node.id) + '"' + (index === 0 ? " disabled" : "") + '>↑</button><button type="button" aria-label="Move step down" data-node-move="down" data-node-id="' + escapeHtml(node.id) + '"' + (index === workflow.nodes.length - 1 ? " disabled" : "") + '>↓</button></span></article>'; }).join('<span class="builder-connector">↓</span>');
+    var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<input name="agent" maxlength="100" value="' + escapeHtml(selectedConfig.agent || "") + '" placeholder="Required for AI Agent"></label><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="Use true or always for a local condition"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
+    var latestRun = state.workflowRuns[0];
+    return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="automation">← Automation Studio</button><div><input id="workflow-name" maxlength="120" value="' + escapeHtml(workflow.name) + '" aria-label="Workflow name"><p>' + escapeHtml(workflow.id) + ' · Last saved ' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</p></div><div class="builder-actions"><button class="danger-button" type="button" data-workflow-action="delete">Delete</button><button class="secondary-button" type="button" data-workflow-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-workflow-action="test">Test Workflow</button><button class="secondary-button" type="button" data-workflow-action="save">Save Draft</button><button class="primary-button" type="button" data-workflow-action="run">Run Workflow</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Workflow canvas</strong><label>Add step<select id="workflow-node-type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '">' + item[1] + '</option>'; }).join("") + '</select></label><button class="secondary-button" type="button" data-node-add>Add step</button></div><div class="builder-flow">' + (nodes || '<div class="clean-empty"><strong>No steps yet</strong><p>Add a Trigger to begin.</p></div>') + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Node configuration</h2></div>' + config + '</aside></div><section class="panel builder-history"><div class="content-view-head"><div><h2>Validation &amp; execution history</h2><p>Every test and run is persisted by the Flask backend.</p></div>' + workflowStatus(workflow.status) + '</div>' + (latestRun ? '<div class="run-result">' + workflowStatus(latestRun.status) + '<span><strong>' + escapeHtml(latestRun.mode + " · " + latestRun.id) + '</strong><small>' + escapeHtml(latestRun.events.length ? latestRun.events[latestRun.events.length - 1].message : (latestRun.validation.errors || []).join(" ")) + '</small></span></div>' : '<div class="clean-empty compact"><strong>No tests or runs yet</strong></div>') + '</section></section>';
+  }
+
+  function workflowNodeIcon(type) {
+    return { trigger: "i-clock", "gather-data": "i-folder", "ai-agent": "i-spark", condition: "i-flow", "human-approval": "i-shield", "generate-report": "i-document", "publish-send": "i-send" }[type] || "i-flow";
+  }
+
+  function workflowNodeTone(type) {
+    return { trigger: "teal", "gather-data": "blue", "ai-agent": "violet", condition: "amber", "human-approval": "amber", "generate-report": "blue", "publish-send": "violet" }[type] || "blue";
   }
 
   function roomsPage() {
@@ -861,6 +945,21 @@
         subtitle: "A real deterministic run over the two approved synthetic CSV files.",
         body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission title<input name="title" maxlength="140" required value="Malaysia Equity Market ADV Intelligence Report"></label><label class="form-field">Business objective<textarea name="description" maxlength="1000" required>Analyse Malaysia\'s equity market Average Daily Trading Value (ADV), explain key shifts, visualise important patterns and prepare an executive report for review.</textarea></label><div class="form-split"><label class="form-field">Start date<input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label class="form-field">End date<input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label></div><fieldset class="mission-board-scope"><legend>Market-board scope</legend><label><input type="checkbox" name="board" value="MAIN MARKET" checked>Main Market</label><label><input type="checkbox" name="board" value="ACE MARKET" checked>ACE Market</label><label><input type="checkbox" name="board" value="LEAP MARKET" checked>LEAP Market</label><label><input type="checkbox" name="board" value="SECOND BOARD" checked>Second Board</label><label><input type="checkbox" name="board" value="STRCWARR" checked>Structured Warrants</label><label><input type="checkbox" name="board" value="EXCHANGE TRADED" checked>Exchange Traded</label><label><input type="checkbox" name="board" value="LOANS" checked>Loans</label></fieldset><div class="mission-worker-plan"><strong>Execution plan</strong><ol><li>Mission Manager validates scope</li><li>Data Agent checks source quality</li><li>Analysis Agent recomputes figures</li><li>Insight Agent writes bounded findings</li><li>Report Agent exports and verifies PDF</li></ol></div><p class="form-hint">Synthetic demonstration data only. The run is persisted locally and never sends data to a language model.</p><p class="form-error" id="mission-form-error" hidden></p></form>',
         footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Create and run mission</button>'
+      });
+      return;
+    }
+    if (type === "workflow") {
+      var workflowSubmit = document.querySelector('[type="submit"][form="creation-form"]');
+      if (workflowSubmit) { workflowSubmit.disabled = true; workflowSubmit.textContent = "Creating workflow…"; }
+      var triggerId = "node-" + Date.now();
+      apiJson("/api/workflows", { method: "POST", body: JSON.stringify({ name: title, description: String(data.get("description") || ""), owner: String(data.get("owner") || "Lim Kim Hoong"), nodes: [{ id: triggerId, type: "trigger", name: "Trigger", config: { inputs: String(data.get("description") || ""), outputs: "", agent: "", expression: "" } }], connections: [] }) }).then(function (workflow) {
+        closeExperience();
+        state.workflows.unshift(workflow);
+        window.setTimeout(function () { openWorkflowBuilder(workflow.id); }, 190);
+        toast("Workflow draft created", "Configure the trigger and add steps in Workflow Builder.");
+      }).catch(function (error) {
+        if (workflowSubmit) { workflowSubmit.disabled = false; workflowSubmit.textContent = "Open workflow builder"; }
+        toast("Workflow creation failed", error.message);
       });
       return;
     }
@@ -1161,13 +1260,8 @@
     if (action === "canvas") { openExperience({ title: "Decision Canvas", subtitle: "A structured view of evidence, assumptions and next actions", body: '<div class="canvas-grid"><article><small>Decision</small><strong>Advance the product-readiness review</strong><p>Proceed once the remaining customer evidence and pricing assumption are verified.</p></article><article><small>Evidence</small><strong>12 governed sources</strong><p>Requirements, validation notes and accountable decision records.</p></article><article><small>Open assumptions</small><strong>2 items</strong><p>Customer evidence coverage and pricing baseline.</p></article><article><small>Recommended action</small><strong>Review the evidence</strong><p>Complete the two checks before the stakeholder review.</p></article></div>', footer: '<button class="secondary-button" type="button" data-dialog-action="canvas-copy">Copy summary</button><button class="primary-button" type="button" data-page-target="assistant">Return to Q&amp;A</button>' }); return; }
     if (action === "sources") { openExperience({ title: "Permitted source scope", subtitle: "What this assistant can use for the current request", body: '<div class="source-list"><article>' + miniIcon("i-folder", "blue") + '<span><strong>Product Development knowledge</strong><small>12 governed files · read access</small></span>' + status("Active") + '</article><article>' + miniIcon("i-book", "teal") + '<span><strong>Internal Knowledge Base</strong><small>Policies and approved guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-shield", "violet") + '<span><strong>Verified market evidence</strong><small>3 permitted source groups</small></span>' + status("Active") + '</article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); return; }
     if (action === "internal-sources") { openExperience({ title: "Ask Bursa source scope", subtitle: "Internal guidance available within your existing role", body: '<div class="source-list"><article>' + miniIcon("i-agents", "blue") + '<span><strong>Human Resources</strong><small>Employee services and workplace guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-settings", "violet") + '<span><strong>Group Technology (GT)</strong><small>Services, access, devices, and security</small></span>' + status("Active") + '</article><article>' + miniIcon("i-shield", "teal") + '<span><strong>Regulations</strong><small>Controlled internal notices and guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-exchange", "amber") + '<span><strong>Market Operations</strong><small>Operational processes and escalation paths</small></span>' + status("Active") + '</article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); return; }
-    if (action === "test-run" || action === "run-now") { openRunPanel(context || (action === "test-run" ? "Board Pack Distribution" : "Selected workflow")); return; }
     var title = context || action.replace(/-/g, " ").replace(/^./, function (letter) { return letter.toUpperCase(); });
     openExperience({ title: title, subtitle: "Interactive front-end demonstration", body: '<div class="detail-callout">' + svg("i-spark") + '<span><strong>This workspace is ready</strong><small>The control now opens a complete, synthetic demo state without changing external systems.</small></span></div><div class="detail-grid"><article><small>Scope</small><strong>Current employee workspace</strong></article><article><small>Governance</small><strong>Human approval retained</strong></article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Done</button>' });
-  }
-
-  function openRunPanel(name) {
-    openExperience({ title: name, subtitle: "Governed workflow execution", body: '<div class="run-animation"><div class="run-track"><i></i></div><div class="run-stages"><span class="is-done">Trigger</span><span class="is-active">Gather data</span><span>Summarise</span><span>Approve</span><span>Publish</span></div></div><div class="execution-log" aria-live="polite"><article><time>Now</time><span><strong>Trigger validated</strong><small>Schedule and owner confirmed.</small></span>' + status("Completed") + '</article><article><time>Now</time><span><strong>Retrieving governed inputs</strong><small>Checking permitted repositories and current versions.</small></span>' + status("Active") + '</article><article class="is-muted"><time>Next</time><span><strong>Human approval checkpoint</strong><small>The workflow will pause before distribution.</small></span>' + status("Pending") + '</article></div>', footer: '<button class="secondary-button" type="button" data-dialog-action="stop-run">Stop run</button><button class="primary-button" type="button" data-experience-close>Run in background</button>' });
   }
 
   function render() {
@@ -1178,6 +1272,7 @@
     else if (state.page === "workforce") html = workforcePage();
     else if (state.page === "exchange") html = exchangePage();
     else if (state.page === "automation") html = automationPage();
+    else if (state.page === "workflow-builder") html = workflowBuilderPage();
     else if (state.page === "rooms") html = roomsPage();
     else if (state.page === "workspace") html = workspacePage();
     else if (state.page === "brief") html = briefPage();
@@ -1188,14 +1283,13 @@
     else html = homePage();
     root.innerHTML = html;
     document.querySelectorAll(".nav-link[data-page]").forEach(function (button) {
-      var active = button.dataset.page === state.page;
+      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation";
       button.classList.toggle("is-active", active);
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     });
     document.title = (pages[state.page] ? pages[state.page][0] : "BursaIQ") + " — BursaIQ";
-    var actionCount = document.getElementById("action-nav-count");
-    if (actionCount) actionCount.textContent = String(state.savedDecisions.length + state.emailAutomations.length);
+    updateActionBadge();
     bindPageEvents();
   }
 
@@ -1206,10 +1300,60 @@
     render();
     if (page === "exchange") loadExchangeAssets();
     if (page === "verification") loadVerification();
+    if (page === "automation") loadWorkflows();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
     if (page === "workforce" || page === "verification") loadMissions(true);
+  }
+
+  function saveActiveWorkflow(notifyUser) {
+    var workflow = state.activeWorkflow;
+    if (!workflow) return Promise.reject(new Error("No workflow is open."));
+    var nameField = document.getElementById("workflow-name");
+    if (nameField) workflow.name = nameField.value.trim() || workflow.name;
+    return apiJson("/api/workflows/" + encodeURIComponent(workflow.id), { method: "PATCH", body: JSON.stringify({ name: workflow.name, description: workflow.description, owner: workflow.owner, status: workflow.status, nodes: workflow.nodes, connections: workflow.connections }) }).then(function (saved) {
+      state.activeWorkflow = saved;
+      var existing = state.workflows.findIndex(function (item) { return item.id === saved.id; });
+      if (existing === -1) state.workflows.unshift(saved); else state.workflows[existing] = saved;
+      if (notifyUser) toast("Workflow saved", saved.name + " is persisted as a draft.");
+      return saved;
+    });
+  }
+
+  function executeWorkflowAction(action) {
+    if (!state.activeWorkflow) return;
+    if (action === "delete") {
+      if (!window.confirm("Delete this workflow and its execution history?")) return;
+      apiJson("/api/workflows/" + encodeURIComponent(state.activeWorkflow.id), { method: "DELETE" }).then(function () {
+        state.activeWorkflow = null;
+        navigate("automation");
+        toast("Workflow deleted", "The draft and its run history were removed.");
+      }).catch(function (error) { toast("Delete failed", error.message); });
+      return;
+    }
+    if (action === "duplicate") {
+      apiJson("/api/workflows/" + encodeURIComponent(state.activeWorkflow.id) + "/duplicate", { method: "POST", body: "{}" }).then(function (copy) {
+        state.workflows.unshift(copy);
+        openWorkflowBuilder(copy.id);
+        toast("Workflow duplicated", "The copy is open as a separate draft.");
+      }).catch(function (error) { toast("Duplicate failed", error.message); });
+      return;
+    }
+    saveActiveWorkflow(action === "save").then(function () {
+      if (action === "save") { render(); return null; }
+      return apiJson("/api/workflows/" + encodeURIComponent(state.activeWorkflow.id) + "/" + action, { method: "POST", body: "{}" });
+    }).then(function (run) {
+      if (!run) return;
+      state.workflowRuns.unshift(run);
+      return apiJson("/api/workflows/" + encodeURIComponent(state.activeWorkflow.id)).then(function (payload) {
+        state.activeWorkflow = payload.workflow;
+        state.workflowRuns = payload.runs || [];
+        render();
+        var detail = run.events.length ? run.events[run.events.length - 1].message : (run.validation.errors || []).join(" ");
+        toast(action === "test" ? "Workflow test recorded" : "Workflow run recorded", run.status + (detail ? " · " + detail : ""));
+      });
+    }).catch(function (error) { toast("Workflow action failed", error.message); });
   }
 
   function bindPageEvents() {
@@ -1432,6 +1576,72 @@
     });
     root.querySelectorAll("[data-automation-tab]").forEach(function (button) {
       button.addEventListener("click", function () { state.automationTab = button.dataset.automationTab; render(); });
+    });
+    root.querySelectorAll("[data-workflow-open]").forEach(function (button) {
+      button.addEventListener("click", function () { openWorkflowBuilder(button.dataset.workflowOpen); });
+    });
+    root.querySelectorAll("[data-workflow-duplicate]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        apiJson("/api/workflows/" + encodeURIComponent(button.dataset.workflowDuplicate) + "/duplicate", { method: "POST", body: "{}" }).then(function (copy) {
+          state.workflows.unshift(copy);
+          openWorkflowBuilder(copy.id);
+          toast("Workflow duplicated", "The copy is ready to edit.");
+        }).catch(function (error) { toast("Duplicate failed", error.message); });
+      });
+    });
+    root.querySelectorAll("[data-workflow-node]").forEach(function (button) {
+      button.addEventListener("click", function (event) {
+        if (event.target.closest("[data-node-move]")) return;
+        state.selectedWorkflowNodeId = button.dataset.workflowNode;
+        render();
+      });
+    });
+    root.querySelectorAll("[data-node-move]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var nodes = state.activeWorkflow.nodes;
+        var index = nodes.findIndex(function (node) { return node.id === button.dataset.nodeId; });
+        var target = button.dataset.nodeMove === "up" ? index - 1 : index + 1;
+        if (index < 0 || target < 0 || target >= nodes.length) return;
+        var moved = nodes.splice(index, 1)[0];
+        nodes.splice(target, 0, moved);
+        render();
+      });
+    });
+    var nodeAdd = root.querySelector("[data-node-add]");
+    if (nodeAdd) nodeAdd.addEventListener("click", function () {
+      var type = document.getElementById("workflow-node-type").value;
+      var label = document.getElementById("workflow-node-type").selectedOptions[0].textContent;
+      var node = { id: "node-" + Date.now(), type: type, name: label, config: { agent: "", inputs: "", outputs: "", expression: "" } };
+      var previous = state.activeWorkflow.nodes[state.activeWorkflow.nodes.length - 1];
+      state.activeWorkflow.nodes.push(node);
+      if (previous) state.activeWorkflow.connections.push({ source: previous.id, target: node.id });
+      state.selectedWorkflowNodeId = node.id;
+      render();
+    });
+    var nodeForm = document.getElementById("node-config-form");
+    if (nodeForm) nodeForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var data = new FormData(nodeForm);
+      var node = state.activeWorkflow.nodes.filter(function (item) { return item.id === data.get("id"); })[0];
+      if (!node) return;
+      node.name = String(data.get("name") || "Step").trim();
+      node.type = String(data.get("type"));
+      node.config = { agent: String(data.get("agent") || ""), inputs: String(data.get("inputs") || ""), outputs: String(data.get("outputs") || ""), expression: String(data.get("expression") || "") };
+      state.activeWorkflow.connections = state.activeWorkflow.connections.filter(function (connection) { return connection.target !== node.id; });
+      Array.prototype.slice.call(nodeForm.querySelectorAll('[name="dependency"]:checked')).forEach(function (input) { state.activeWorkflow.connections.push({ source: input.value, target: node.id }); });
+      render();
+      toast("Node configuration applied", "Save the draft to persist these changes.");
+    });
+    var nodeDelete = root.querySelector("[data-node-delete]");
+    if (nodeDelete) nodeDelete.addEventListener("click", function () {
+      var id = nodeDelete.dataset.nodeDelete;
+      state.activeWorkflow.nodes = state.activeWorkflow.nodes.filter(function (node) { return node.id !== id; });
+      state.activeWorkflow.connections = state.activeWorkflow.connections.filter(function (connection) { return connection.source !== id && connection.target !== id; });
+      state.selectedWorkflowNodeId = state.activeWorkflow.nodes.length ? state.activeWorkflow.nodes[0].id : null;
+      render();
+    });
+    root.querySelectorAll("[data-workflow-action]").forEach(function (button) {
+      button.addEventListener("click", function () { executeWorkflowAction(button.dataset.workflowAction); });
     });
     root.querySelectorAll("[data-template-use]").forEach(function (button) {
       button.addEventListener("click", function () { openCreation("workflow"); var title = document.querySelector('#creation-form [name="title"]'); if (title) title.value = button.dataset.templateUse + " Workflow"; });
@@ -1876,4 +2086,7 @@
   loadVerification();
   loadExchangeAssets();
   loadModelProviders();
+  loadWorkflows().then(function () {
+    if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);
+  });
 })();

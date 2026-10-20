@@ -34,6 +34,7 @@ from bursaiq.model_providers import ModelConfigurationError, ModelRequestError, 
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
+from bursaiq.workflows import WorkflowStore
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -48,6 +49,7 @@ app.config.update(JSON_SORT_KEYS=False, MAX_CONTENT_LENGTH=32 * 1024 * 1024)
 repository = LocalDataRepository(INPUT_DIR)
 reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
+workflows = WorkflowStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 ollama = OllamaService()
 local_analysis = LocalAnalysisService()
@@ -113,6 +115,26 @@ def bounded_text(payload: dict[str, Any], key: str, maximum: int, required: bool
     if len(value) > maximum:
         raise ValueError(f"{key} must be {maximum} characters or fewer.")
     return value
+
+
+def workflow_payload(payload: dict[str, Any], *, partial: bool = False) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, maximum in (("name", 120), ("description", 1000), ("owner", 100)):
+        if key in payload or not partial:
+            result[key] = bounded_text(payload, key, maximum, required=key == "name")
+    for key in ("nodes", "connections"):
+        if key in payload:
+            if not isinstance(payload[key], list):
+                raise ValueError(f"{key} must be an array.")
+            if len(payload[key]) > 100:
+                raise ValueError(f"{key} cannot contain more than 100 items.")
+            result[key] = payload[key]
+    if "status" in payload:
+        status = bounded_text(payload, "status", 20).upper()
+        if status not in {"DRAFT", "ACTIVE", "PAUSED", "ARCHIVED"}:
+            raise ValueError("Unsupported workflow status.")
+        result["status"] = status
+    return result
 
 
 def review_details(payload: dict[str, Any]) -> dict[str, Any]:
@@ -682,6 +704,71 @@ def reuse_exchange_asset(asset_id: str):
     missions.record_reuse(asset_id)
     mission_runner.start(mission["id"])
     return jsonify({"mission": missions.get(mission["id"]), "asset": missions.get_asset(asset_id)}), 201
+
+
+@app.get("/api/workflows")
+def list_workflows():
+    return jsonify({"workflows": workflows.list(), "runs": workflows.list_runs()})
+
+
+@app.post("/api/workflows")
+def create_workflow():
+    payload = workflow_payload(body_json())
+    return jsonify(workflows.create(payload)), 201
+
+
+@app.get("/api/workflows/<workflow_id>")
+def get_workflow(workflow_id: str):
+    try:
+        workflow = workflows.get(workflow_id)
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return jsonify({"workflow": workflow, "runs": workflows.list_runs(workflow_id)})
+
+
+@app.patch("/api/workflows/<workflow_id>")
+def update_workflow(workflow_id: str):
+    try:
+        workflow = workflows.update(workflow_id, workflow_payload(body_json(), partial=True))
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return jsonify(workflow)
+
+
+@app.delete("/api/workflows/<workflow_id>")
+def delete_workflow(workflow_id: str):
+    try:
+        workflows.delete(workflow_id)
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return "", 204
+
+
+@app.post("/api/workflows/<workflow_id>/duplicate")
+def duplicate_workflow(workflow_id: str):
+    try:
+        workflow = workflows.duplicate(workflow_id)
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return jsonify(workflow), 201
+
+
+@app.post("/api/workflows/<workflow_id>/test")
+def test_workflow(workflow_id: str):
+    try:
+        run = workflows.test(workflow_id)
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return jsonify(run)
+
+
+@app.post("/api/workflows/<workflow_id>/run")
+def run_workflow(workflow_id: str):
+    try:
+        run = workflows.run(workflow_id)
+    except KeyError:
+        return jsonify({"error": "Workflow not found."}), 404
+    return jsonify(run)
 
 
 @app.post("/api/chat")
