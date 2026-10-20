@@ -37,6 +37,7 @@
     assistantCanvasTab: "plot",
     askBursaMessages: [],
     askBursaConversationId: null,
+    askBursaKnowledge: null,
     savedDecisions: [],
     emailAutomations: [],
     selectedNode: "trigger",
@@ -149,6 +150,17 @@
       if (state.page === "home" || state.page === "settings") render();
     }).catch(function () {
       state.modelProviders = [];
+    });
+  }
+
+  function loadAskBursaStatus() {
+    return apiJson("/api/ask-bursa/status").then(function (payload) {
+      state.askBursaKnowledge = payload;
+      if (state.page === "ask-bursa") render();
+      return payload;
+    }).catch(function () {
+      state.askBursaKnowledge = null;
+      return null;
     });
   }
 
@@ -469,14 +481,15 @@
 
   function askBursaPage() {
     var messages = state.askBursaMessages.map(bursaMessageHtml).join("");
+    var documentCount = state.askBursaKnowledge ? Number(state.askBursaKnowledge.documents || 0) : null;
     return [
       '<section class="ask-bursa-page">',
-      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><span class="context-state"><i class="dot"></i> Internal knowledge only</span></header>',
+      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><span class="context-state"><i class="dot"></i> ' + (documentCount === null ? "Checking knowledge index" : documentCount + " indexed document" + (documentCount === 1 ? "" : "s")) + '</span></header>',
       '<div class="ask-bursa-main">',
       '<div class="assistant-thread ask-bursa-thread" id="ask-bursa-thread">',
       state.askBursaMessages.length ? messages : askBursaWelcome(),
       '</div>',
-      '<div class="assistant-composer-wrap ask-bursa-composer-wrap"><form class="assistant-composer" id="ask-bursa-form"><label class="sr-only" for="ask-bursa-input">Ask an internal Bursa question</label><textarea id="ask-bursa-input" placeholder="Ask about HR, Group Technology, Regulations, or Market Operations…" required></textarea><div class="assistant-composer-tools"><div><button class="tool-button" type="button" data-demo-action="internal-sources">' + svg("i-book") + 'Internal sources</button><span class="bursa-answer-mode">Q&amp;A only</span></div><button class="send-button" type="submit" aria-label="Send internal question">' + svg("i-send") + '</button></div></form><p class="assistant-note">Synthetic internal guidance for demonstration · access boundaries remain in effect.</p></div>',
+      '<div class="assistant-composer-wrap ask-bursa-composer-wrap"><form class="assistant-composer" id="ask-bursa-form"><label class="sr-only" for="ask-bursa-input">Ask an internal Bursa question</label><textarea id="ask-bursa-input" placeholder="Ask about HR, Group Technology, Regulations, or Market Operations…" required></textarea><div class="assistant-composer-tools"><div><button class="tool-button" type="button" data-demo-action="internal-sources">' + svg("i-book") + 'Internal sources</button><span class="bursa-answer-mode">Document-grounded Q&amp;A</span></div><button class="send-button" type="submit" aria-label="Send internal question">' + svg("i-send") + '</button></div></form><p class="assistant-note">Answers use role-permitted indexed documents and retain page or section citations.</p></div>',
       '</div></section>'
     ].join("");
   }
@@ -499,24 +512,8 @@
     if (message.pending) return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble"><div class="typing" aria-label="Ask Bursa is preparing an answer"><i></i><i></i><i></i></div></div></article>';
     var answer = message.answer;
     if (!answer) return "";
-    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>' + (answer.isError ? "No static fallback used" : "Live language model response") + '</small></span></div><div class="answer-actions">' + (answer.followup ? '<button type="button" data-bursa-prompt="' + escapeHtml(answer.followup) + '">Ask suggested follow-up</button>' : '') + '<button type="button" data-demo-action="internal-sources">View source scope</button></div></div></article>';
-  }
-
-  function askBursaAnswer(question) {
-    var value = String(question || "").toLowerCase();
-    if (/\b(hr|leave|working|benefit|onboard|employee)\b/.test(value)) {
-      return { department: "Human Resources", title: "Start with the MyHR employee service", body: "For leave, flexible-working, benefits, or onboarding guidance, use the relevant MyHR request and follow the approval path shown for your role. Personal employee records are not exposed in Ask Bursa.", source: "HR Employee Services Handbook · 2026", followup: "What information should I prepare before submitting the HR request?" };
-    }
-    if (/\b(gt|technology|system|access|phishing|cyber|password|device)\b/.test(value)) {
-      return { department: "Group Technology (GT)", title: "Use the GT Service Portal and select the matching service", body: "System access requests require the application name, business purpose, requested role, and manager approval. Suspected phishing or security incidents should be reported immediately through the security incident option.", source: "GT Service Catalogue · Access & Security", followup: "What details are required for a system access request?" };
-    }
-    if (/\b(regulation|regulatory|policy|rule|compliance|notice)\b/.test(value)) {
-      return { department: "Regulations", title: "Use the current controlled guidance", body: "The latest internal regulatory notice is the authoritative reference for process changes. Confirm its effective date and owner before applying it, and route interpretation questions to the named policy owner.", source: "Regulatory Guidance Register · Current version", followup: "How can I confirm that a regulatory notice is still current?" };
-    }
-    if (/\b(market operations|trading|incident|settlement|clearing|session)\b/.test(value)) {
-      return { department: "Market Operations", title: "Follow the operational incident escalation path", body: "Record the affected market or service, time detected, observed impact, and any containment already taken. Contact the Market Operations duty lead first; material incidents then follow the governed escalation matrix.", source: "Market Operations Incident Playbook · v4", followup: "What information is required in the first incident update?" };
-    }
-    return { department: "Internal Knowledge", title: "Here is the approved internal route", body: "Ask Bursa answers questions from permitted internal guidance. Add the department, process, or policy name to your question and I will route it to the most relevant source without starting an agent task.", source: "Bursa Internal Knowledge Directory", followup: "Which internal departments can Ask Bursa answer from?" };
+    var citations = (answer.citations || []).map(function (item) { return '<a class="bursa-citation" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener"><b>[' + Number(item.number) + ']</b><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.location) + ' · ' + escapeHtml(item.department) + ' · v' + escapeHtml(item.version) + '</small></span></a>'; }).join("");
+    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>' + (answer.isError ? "No answer was generated" : citations ? answer.citations.length + " permitted source passage" + (answer.citations.length === 1 ? "" : "s") : "No indexed evidence retrieved") + '</small></span></div>' + (citations ? '<div class="bursa-citations">' + citations + '</div>' : '') + '<div class="answer-actions"><button type="button" data-demo-action="internal-sources">View source scope</button></div></div></article>';
   }
 
   function suggestion(title, description) {
@@ -1890,10 +1887,10 @@
     state.askBursaMessages.push({ role: "assistant", pending: true });
     render();
     scrollAskBursa();
-    apiJson("/api/chat", { method: "POST", body: JSON.stringify({ question: text, workspace: "learn", role: "gcmc", provider: state.routingProvider, conversationId: state.askBursaConversationId }) }).then(function (payload) {
+    apiJson("/api/ask-bursa", { method: "POST", body: JSON.stringify({ question: text, role: "gcmc", provider: state.routingProvider, conversationId: state.askBursaConversationId }) }).then(function (payload) {
       state.askBursaConversationId = payload.conversationId || state.askBursaConversationId;
       var provider = payload.provider === "copilot" ? "Microsoft Copilot Studio" : "Local Ollama model";
-      state.askBursaMessages[state.askBursaMessages.length - 1] = { role: "assistant", question: text, answer: { department: payload.workspace || "Internal Knowledge", title: "Ask Bursa live response", body: payload.answer, source: provider + " · " + (payload.narrativeMode || "live"), followup: (payload.suggestedActions || [])[0] || "What approved source should I check next?" } };
+      state.askBursaMessages[state.askBursaMessages.length - 1] = { role: "assistant", question: text, answer: { department: payload.department || "Internal Knowledge", title: "Ask Bursa document answer", body: payload.answer, source: provider + " · " + (payload.narrativeMode || "retrieval"), citations: payload.citations || [] } };
       render();
       scrollAskBursa();
     }).catch(function (error) {
@@ -2252,6 +2249,7 @@
   loadPendingActionCount();
   loadExchangeAssets();
   loadModelProviders();
+  loadAskBursaStatus();
   loadPlatform();
   loadWorkflows().then(function () {
     if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);

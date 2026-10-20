@@ -32,6 +32,7 @@ class OllamaService:
     def __init__(self) -> None:
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip().rstrip("/")
         self.model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b").strip()
+        self.embedding_model = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text").strip()
 
     def _validated_base_url(self) -> str:
         parsed = urlparse(self.base_url)
@@ -108,3 +109,18 @@ class OllamaService:
         if not content:
             raise ModelRequestError("Ollama returned an empty model response.")
         return ModelReply(text=content, request_id=f"ollama-{uuid.uuid4().hex[:12]}")
+
+    def embed(self, texts: list[str]) -> list[list[float]]:
+        """Create local embeddings without sending document content outside Ollama."""
+        if not texts:
+            return []
+        if not self.embedding_model:
+            raise ModelConfigurationError("OLLAMA_EMBED_MODEL must name an installed embedding model.")
+        response = self._request_json("/api/embed", payload={"model": self.embedding_model, "input": texts}, timeout=60)
+        embeddings = response.get("embeddings")
+        if not isinstance(embeddings, list) or len(embeddings) != len(texts):
+            raise ModelRequestError("Ollama returned an unexpected embedding response.")
+        try:
+            return [[float(value) for value in embedding] for embedding in embeddings]
+        except (TypeError, ValueError) as exc:
+            raise ModelRequestError("Ollama returned invalid embedding values.") from exc

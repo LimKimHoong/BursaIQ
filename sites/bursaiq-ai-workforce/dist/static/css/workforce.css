@@ -328,6 +328,12 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .bursa-source-note strong, .bursa-source-note small { display: block; }
 .bursa-source-note strong { font-size: 10.5px; }
 .bursa-source-note small { margin-top: 2px; color: var(--muted); font-size: 10px; }
+.bursa-citations { display: grid; gap: 7px; margin-top: 10px; }
+.bursa-citation { display: flex; align-items: flex-start; gap: 9px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; color: var(--ink); text-decoration: none; background: #fff; }
+.bursa-citation:hover { border-color: #9bbcf8; background: #f8fbff; }
+.bursa-citation b { color: var(--blue); }
+.bursa-citation span { display: grid; gap: 2px; }
+.bursa-citation small { color: var(--muted); }
 .bursa-answer-mode { display: inline-flex; min-height: 28px; align-items: center; border-radius: 999px; padding: 0 9px; color: var(--green); background: #ecf9f4; font-size: 10px; font-weight: 700; }
 .assistant-layout { display: grid; min-height: 0; flex: 1; grid-template-columns: minmax(0, 1.42fr) minmax(370px, .88fr); }
 .assistant-main { display: flex; min-width: 0; min-height: 0; flex-direction: column; background: linear-gradient(145deg, #fbfdff 0%, #f5f9ff 100%); }

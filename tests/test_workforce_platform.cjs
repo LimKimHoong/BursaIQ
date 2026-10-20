@@ -47,7 +47,7 @@ test('AI Assistant is a governed question-and-answer workspace', () => {
   assert.match(js, /function liveAssistantAnswer\(/);
   assert.match(js, /apiJson\("\/api\/chat"/);
   assert.match(js, /provider: state\.routingProvider/);
-  assert.match(js, /No static fallback used/);
+  assert.match(js, /no static answer was substituted/i);
   assert.doesNotMatch(js, /Delegate as mission<\/button>/);
 });
 
@@ -132,15 +132,19 @@ test('sidebar reflects the focused navigation model', () => {
 test('Ask Bursa is internal question-and-answer without a Decision Canvas', () => {
   assert.match(js, /function askBursaPage\(/);
   assert.match(js, /HR, Group Technology, Regulations, or Market Operations/);
-  assert.match(js, /Q&amp;A only/);
+  assert.match(js, /Document-grounded Q&amp;A/);
   assert.match(js, /function submitAskBursa\(/);
   const askSubmission = js.slice(js.indexOf('function submitAskBursa('), js.indexOf('function scrollAskBursa('));
-  assert.match(askSubmission, /apiJson\("\/api\/chat"/);
+  assert.match(askSubmission, /apiJson\("\/api\/ask-bursa"/);
   assert.doesNotMatch(askSubmission, /askBursaAnswer\(/);
   assert.doesNotMatch(js, /class="bursa-scope"/);
   assert.doesNotMatch(css, /\.bursa-scope/);
   assert.match(css, /\.ask-bursa-thread, \.ask-bursa-composer-wrap \{ width: 100%; max-width: none;/);
   assert.match(css, /\.ask-bursa-composer-wrap \.assistant-composer textarea \{ min-height: 82px;/);
+  assert.match(js, /apiJson\("\/api\/ask-bursa"/);
+  assert.match(js, /apiJson\("\/api\/ask-bursa\/status"/);
+  assert.match(js, /answer\.citations/);
+  assert.match(js, /class="bursa-citation"/);
   for (const source of [js, designDocs, designLibrary]) {
     assert.doesNotMatch(source, /Your role and permissions are applied/);
     assert.doesNotMatch(source, /Ask Bursa Permission Scope/);

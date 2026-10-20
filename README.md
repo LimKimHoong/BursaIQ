@@ -54,12 +54,53 @@ The Home composer defaults to a local Ollama model for semantic request routing.
 
 ```bash
 ollama pull qwen2.5:3b
+ollama pull nomic-embed-text
 ollama serve
 ```
 
 The backend connects to `http://127.0.0.1:11434` and uses `qwen2.5:3b` by default. Override these with `OLLAMA_BASE_URL` and `OLLAMA_MODEL`. The frontend provider selector also offers Microsoft Copilot Studio when its token endpoint is configured.
 
 The selected model only produces a validated routing decision and proposed mission title/objective. Python validates the response, restricts execution to the supported ADV mission, and performs all calculations, data-quality checks, persistence and report generation without sending the mission datasets to the language model.
+
+### Load documents into Ask Bursa
+
+Ask Bursa retrieves answers from the local `knowledge/` folders and sends only the permitted retrieved passages to the selected answer model. The committed folders start empty:
+
+```text
+knowledge/
+├── human_resources/
+├── market_operations/
+├── regulations/
+├── group_technology/
+└── corporate_policies/
+```
+
+1. Copy approved `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.txt`, `.md`, `.html`, or `.htm` files into the matching department folder.
+2. Optionally place a sidecar beside a document named `<original-filename>.metadata.json`. For example, `leave-policy.pdf.metadata.json`:
+
+```json
+{
+  "classification": "Internal",
+  "allowed_roles": ["employee", "hr"],
+  "document_owner": "Human Resources",
+  "effective_date": "2026-01-01",
+  "version": "1.0"
+}
+```
+
+`employee` grants access to all configured employee demo identities. Use `gcmc`, `hr`, `securities`, or `finance` when a document should be restricted to particular roles.
+
+3. Install dependencies and the local embedding model, then build or refresh the index:
+
+```bash
+pip install -r requirements.txt
+ollama pull nomic-embed-text
+python scripts/ingest_knowledge.py
+```
+
+4. Start BursaIQ and open **Ask Bursa**. The header shows the indexed document count. Answers include document and page, slide, sheet, or section citations with links to role-permitted source files.
+
+Run the ingestion command again whenever documents or metadata change. Unchanged files are skipped, replaced files are reindexed, removed files are deleted from the index, and extraction failures are returned in the command output. Scanned image-only PDFs require OCR before ingestion; the current pipeline does not perform OCR.
 
 ### Run the ADV mission
 
