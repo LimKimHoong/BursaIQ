@@ -1582,7 +1582,7 @@
     else html = homePage();
     root.innerHTML = html;
     document.querySelectorAll(".nav-link[data-page]").forEach(function (button) {
-      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || state.page === "knowledge-admin" && button.dataset.page === "ask-bursa" || ["agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
+      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || ["agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
       button.classList.toggle("is-active", active);
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
