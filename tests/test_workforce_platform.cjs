@@ -180,3 +180,20 @@ test('Automation Studio uses a persistent visual Workflow Builder', () => {
   assert.match(css, /\.builder-properties/);
   assert.doesNotMatch(js, /function openRunPanel\(name\)[\s\S]{0,700}Trigger validated/);
 });
+
+test('employee workspace modules load and mutate persistent backend state', () => {
+  assert.match(js, /apiJson\("\/api\/platform"/);
+  assert.match(js, /apiJson\("\/api\/platform\/" \+ encodeURIComponent\(type\)/);
+  assert.match(js, /apiJson\("\/api\/settings"/);
+  assert.match(js, /createPlatformItem\("decision"/);
+  assert.match(js, /createPlatformItem\("email-automation"/);
+  assert.match(js, /data-platform-open/);
+  assert.match(js, /data-room-add/);
+  assert.match(js, /function chooseAttachments\(/);
+  assert.match(js, /\/api\/local-analysis\/upload/);
+  assert.match(js, /function verifyAssistantAnswer\(/);
+  assert.match(js, /function createAssistantBriefing\(/);
+  assert.doesNotMatch(js, /Demo interaction/);
+  assert.doesNotMatch(js, /Interactive front-end demonstration/);
+  assert.doesNotMatch(js, /function openRunPanel\(/);
+});

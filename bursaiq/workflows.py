@@ -7,7 +7,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 
 NODE_TYPES = {
@@ -191,7 +191,7 @@ class WorkflowStore:
         events = [{"status": status, "message": "Workflow structure passed validation." if validation["valid"] else "Workflow structure has validation errors.", "occurredAt": utc_now()}]
         return self._record_run(workflow_id, "TEST", status, events, validation)
 
-    def run(self, workflow_id: str) -> dict[str, Any]:
+    def run(self, workflow_id: str, executor: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> dict[str, Any]:
         workflow = self.get(workflow_id)
         validation = self.validate(workflow)
         if not validation["valid"]:
@@ -204,6 +204,12 @@ class WorkflowStore:
                 node_status, message = "COMPLETED", "Internal workflow trigger accepted."
             elif node_type == "condition" and str(node.get("config", {}).get("expression", "")).strip().lower() in {"true", "always"}:
                 node_status, message = "COMPLETED", "Local condition evaluated true."
+            elif executor and node_type in {"gather-data", "ai-agent"}:
+                try:
+                    result = executor(node)
+                    node_status, message = "COMPLETED", str(result.get("message") or f"{NODE_TYPES[node_type]} completed through a configured backend service.")
+                except Exception as error:
+                    node_status, status, message = "BLOCKED", "BLOCKED", str(error)
             elif node_type == "human-approval":
                 node_status, message, status = "WAITING", "Waiting for the configured human approver.", "WAITING_APPROVAL"
             else:

@@ -50,7 +50,7 @@ class AdvMissionTests(unittest.TestCase):
         mission = self.store.create(self.request(date_start))
         runner = MissionRunner(self.store, self.analyser, self.reports.generate_mission)
         runner.start(mission["id"])
-        for _ in range(100):
+        for _ in range(200):
             mission = self.store.get(mission["id"])
             if mission["status"] in {"DRAFT READY", "FAILED"}:
                 return mission

@@ -55,15 +55,26 @@
     missionError: "",
     selectedMissionId: null,
     selectedVerificationMissionId: null,
+    selectedVerificationCaseId: null,
     verificationCases: [],
     verificationError: "",
     pendingActionCount: null,
+    pendingReviewCount: null,
     workflows: [],
     workflowRuns: [],
     activeWorkflow: null,
     selectedWorkflowNodeId: null,
     workflowLoading: false,
     workflowError: "",
+    projects: [],
+    connectors: [],
+    skills: [],
+    roomItems: [],
+    userSettings: {},
+    settingsSection: "general",
+    platformLoading: true,
+    platformError: "",
+    localAnalysisSessionId: null,
     missionPoll: null
   };
 
@@ -182,14 +193,16 @@
   function loadVerification() {
     return apiJson("/api/verification?role=securities").then(function (payload) {
       state.verificationCases = payload.cases || [];
-      state.pendingActionCount = (payload.assigned || []).filter(function (item) { return item.status === "Pending review"; }).length;
+      state.pendingReviewCount = (payload.assigned || []).filter(function (item) { return item.status === "Pending review"; }).length;
+      refreshPendingActionCount();
       state.verificationError = "";
       updateActionBadge();
       if (state.page === "verification") render();
       return state.verificationCases;
     }).catch(function (error) {
       state.verificationCases = [];
-      state.pendingActionCount = null;
+      state.pendingReviewCount = null;
+      refreshPendingActionCount();
       state.verificationError = error.message;
       updateActionBadge();
       if (state.page === "verification") render();
@@ -202,6 +215,7 @@
     return apiJson("/api/workflows").then(function (payload) {
       state.workflows = payload.workflows || [];
       state.workflowRuns = payload.runs || [];
+      refreshPendingActionCount();
       state.workflowError = "";
       state.workflowLoading = false;
       if (state.page === "automation") render();
@@ -212,6 +226,60 @@
       if (state.page === "automation") render();
       return [];
     });
+  }
+
+  function loadPlatform() {
+    state.platformLoading = true;
+    return apiJson("/api/platform").then(function (payload) {
+      var items = payload.items || {};
+      rooms = (items.room || []).map(function (item) { return Object.assign({ id: item.id, title: item.title, status: item.status, owner: item.owner }, item.data || {}); });
+      state.projects = items.project || [];
+      state.savedDecisions = (items.decision || []).map(platformActionItem);
+      state.emailAutomations = (items["email-automation"] || []).map(platformActionItem);
+      state.connectors = items.connector || [];
+      state.skills = items.skill || [];
+      state.roomItems = items["room-item"] || [];
+      state.userSettings = payload.settings || {};
+      state.reducedUpdates = state.userSettings.reducedUpdates === true;
+      state.platformLoading = false;
+      state.platformError = "";
+      updateActionBadge();
+      if (["rooms", "workspace", "brief", "connectors", "action", "settings", "exchange", "home"].indexOf(state.page) !== -1) render();
+      return payload;
+    }).catch(function (error) {
+      state.platformLoading = false;
+      state.platformError = error.message;
+      if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(state.page) !== -1) render();
+      return null;
+    });
+  }
+
+  function platformActionItem(item) {
+    return Object.assign({ id: item.id, title: item.title, status: missionDisplayStatus(item.status), owner: item.owner, created: formatWorkflowDate(item.createdAt) }, item.data || {});
+  }
+
+  function createPlatformItem(type, payload) {
+    return apiJson("/api/platform/" + encodeURIComponent(type), { method: "POST", body: JSON.stringify(payload) }).then(function (item) {
+      return loadPlatform().then(function () { return item; });
+    });
+  }
+
+  function chooseAttachments() {
+    var input = document.createElement("input");
+    input.type = "file";
+    input.multiple = true;
+    input.accept = ".txt,.md,.csv,.json,.pdf,.docx,.xlsx";
+    input.addEventListener("change", function () {
+      if (!input.files.length) return;
+      var form = new FormData();
+      Array.prototype.forEach.call(input.files, function (file) { form.append("files", file); });
+      if (state.localAnalysisSessionId) form.append("sessionId", state.localAnalysisSessionId);
+      fetch("/api/local-analysis/upload", { method: "POST", body: form }).then(function (response) { return response.json().then(function (payload) { if (!response.ok) throw new Error(payload.error || "Upload failed."); return payload; }); }).then(function (payload) {
+        state.localAnalysisSessionId = payload.sessionId;
+        openExperience({ title: "Files ready for local analysis", subtitle: payload.documents.length + " governed upload" + (payload.documents.length === 1 ? "" : "s"), body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>Extracted in local memory</strong><small>No file content was sent to a language model. Session ' + escapeHtml(payload.sessionId) + '</small></span></div><div class="focus-list">' + payload.documents.map(function (item) { return '<div><span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.format || "document") + ' · ' + Number(item.size || 0).toLocaleString() + ' bytes</small></span></div>'; }).join("") + '</div>', footer: '<button class="primary-button" type="button" data-experience-close>Done</button>' });
+      }).catch(function (error) { toast("Attachment failed", error.message); });
+    });
+    input.click();
   }
 
   function openWorkflowBuilder(workflowId) {
@@ -241,6 +309,12 @@
     var count = state.pendingActionCount;
     badge.hidden = !(count > 0);
     badge.textContent = count > 0 ? String(count) : "";
+  }
+
+  function refreshPendingActionCount() {
+    if (state.pendingReviewCount === null) { state.pendingActionCount = null; updateActionBadge(); return; }
+    state.pendingActionCount = state.pendingReviewCount + state.workflowRuns.filter(function (item) { return item.status === "WAITING_APPROVAL"; }).length;
+    updateActionBadge();
   }
 
   function missionById(id) {
@@ -695,6 +769,7 @@
       '<section class="panel exchange-search"><div class="exchange-search-box"><label class="large-search">' + svg("i-search") + '<input id="exchange-search-input" type="search" placeholder="Search reusable missions, owners or evidence…"></label></div></section>',
       '<section class="panel">' + panelHead("Approved reusable missions", "i-spark", "featured") + '<div class="featured-assets">' + assetGrid + '</div></section>',
       '<section class="panel">' + panelHead("Mission library", "i-exchange", "all-assets") + '<div class="asset-market-grid" id="asset-market-grid">' + marketGrid + '</div></section>',
+      (state.skills.length ? '<section class="panel">' + panelHead("Skill drafts", "i-cube") + '<div class="asset-market-grid">' + state.skills.map(function (item) { return '<article class="market-asset">' + miniIcon("i-cube", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.status) + ' · ' + escapeHtml(item.owner) + ' · approval required before publication</small></span><button type="button" data-platform-open="skill:' + escapeHtml(item.id) + '">Open</button></article>'; }).join("") + '</div></section>' : ''),
       '</div><aside class="page-rail">',
       '<section class="panel rail-panel">' + panelHead("How intelligence travels", "i-flow", "lifecycle") + '<div class="exchange-flow"><strong>Approved Mission</strong><span>→</span><strong>Intelligence Exchange</strong><span>→</span><strong>Reusable Mission</strong></div></section>',
       '<section class="panel rail-panel">' + panelHead("Publication contract", "i-shield", "governance") + '<div class="clean-empty compact"><strong>Nothing is published automatically</strong><p>An employee publishes only after human approval. The report, parameters, sources, owner and approval record travel together.</p></div></section>',
@@ -795,39 +870,36 @@
       return '<section class="page page-enter">' + pageHead("Collaborative Rooms", "Work with colleagues and AI agents in shared mission spaces.", "Create room", "room") + '<div class="metric-row">' + metric("i-room", "blue", "0", "Active rooms", "No rooms yet") + metric("i-spark", "violet", "0", "Rooms with AI agents", "No agents assigned") + metric("i-document", "blue", "0", "Pending decisions", "Nothing pending") + metric("i-exchange", "teal", "0", "Cross-department projects", "No shared projects") + '</div><section class="panel"><div class="clean-empty">' + miniIcon("i-room", "violet") + '<strong>No collaborative rooms yet</strong><p>Create a room when you are ready to bring colleagues, evidence, and AI agents together.</p><button class="primary-button" type="button" data-create="room">Create room</button></div></section></section>';
     }
     var current = rooms.filter(function (room) { return room.id === state.selectedRoom; })[0] || rooms[0];
-    var visibleRooms = state.roomScope === "shared" ? rooms.slice(1, 5) : state.roomScope === "discover" ? rooms.slice(2) : rooms;
+    var visibleRooms = rooms.filter(function (room) { return state.roomScope === "mine" ? room.scope !== "shared" : state.roomScope === "shared" ? room.scope === "shared" : true; });
+    var currentItems = state.roomItems.filter(function (item) { return item.data.roomId === current.id; });
+    var pendingRoomDecisions = currentItems.filter(function (item) { return item.data.kind === "decision" && item.status === "PENDING"; });
     return [
       '<section class="page page-enter">',
       pageHead("Collaborative Rooms", "Work with colleagues and AI agents in shared mission spaces.", "Create room", "room"),
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' + metric("i-room", "blue", "18", "Active rooms", "↑ 3 this month") + metric("i-spark", "violet", "12", "Rooms with AI agents", "↑ 4 this month") + metric("i-document", "blue", "6", "Pending decisions", "1 needs attention") + metric("i-exchange", "teal", "9", "Cross-department projects", "↑ 2 this month") + "</div>",
+      '<div class="metric-row">' + metric("i-room", "blue", String(rooms.length), "Active rooms", "Persisted in BursaIQ") + metric("i-spark", "violet", String(rooms.filter(function (room) { return Number(room.agents || 0) > 0; }).length), "Rooms with AI agents", "Assigned explicitly") + metric("i-document", "blue", String(pendingRoomDecisions.length), "Pending decisions", pendingRoomDecisions.length ? "Needs attention" : "Nothing pending") + metric("i-exchange", "teal", String(state.projects.length), "Linked projects", "Workspace records") + "</div>",
       '<section class="panel"><div class="tabs-toolbar"><button class="tab-button ' + (state.roomScope === "mine" ? "is-active" : "") + '" type="button" data-room-scope="mine">' + svg("i-room") + 'My rooms</button><button class="tab-button ' + (state.roomScope === "shared" ? "is-active" : "") + '" type="button" data-room-scope="shared">' + svg("i-agents") + 'Shared with me</button><button class="tab-button ' + (state.roomScope === "discover" ? "is-active" : "") + '" type="button" data-room-scope="discover">' + svg("i-search") + 'Discover</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="room-search" type="search" placeholder="Search rooms, people or topics…"></label></div><div class="room-cards">' + visibleRooms.map(roomCard).join("") + '<div class="empty-state" id="room-empty" hidden>' + miniIcon("i-search", "blue") + '<h3>No rooms match</h3><p>Try a different name or topic.</p></div></div></section>',
-      '<section class="panel room-detail"><div class="room-detail-head"><div class="room-detail-title">' + miniIcon("i-room", "violet") + '<div><h2>' + current.title + '</h2><p>' + current.description + '</p></div></div><div class="avatar-stack"><span>KH</span><span class="violet">SC</span><span class="teal">TY</span><span class="soft">+5</span></div></div>',
+      '<section class="panel room-detail"><div class="room-detail-head"><div class="room-detail-title">' + miniIcon("i-room", "violet") + '<div><h2>' + escapeHtml(current.title) + '</h2><p>' + escapeHtml(current.description || "No shared mission defined.") + '</p></div></div><span class="status blue">' + escapeHtml(current.status || "DRAFT") + '</span></div>',
       '<div class="room-tabs">' + ["overview", "activity", "tasks", "files", "agents", "members"].map(function (tab) { var label = tab === "agents" ? "AI agents" : tab.charAt(0).toUpperCase() + tab.slice(1); return '<button class="' + (state.roomTab === tab ? "is-active" : "") + '" type="button" data-room-tab="' + tab + '">' + label + '</button>'; }).join("") + '</div>',
       '<div id="room-tab-content">' + roomTabContent(current) + '</div>',
       '</section></div><aside class="page-rail">',
-      '<section class="panel rail-panel">' + panelHead("Active Participants", "i-agents", "participants") + '<ul class="rail-list">' + participant("LH", "Lim Kim Hoong", "Product Development", "Online") + participant("SC", "Soon Cheng", "Strategy & Planning", "Online") + participant("TY", "Tan Yee", "Market Strategy", "In a meeting") + participant("AM", "Aisyah Md Noor", "Legal & Compliance", "Online") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Pending Room Decisions", "i-shield", "decisions") + '<ul class="rail-list">' + railItem("i-document", "amber", "Approve product requirements", "Requested 2 days ago", "Review") + railItem("i-shield", "violet", "Sign off market validation plan", "Requested 3 days ago", "Review") + "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Room owner", "i-agents") + '<ul class="rail-list">' + participant("KH", current.owner || "Lim Kim Hoong", "Accountable owner", "Online") + "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Pending Room Decisions", "i-shield") + (pendingRoomDecisions.length ? '<ul class="rail-list">' + pendingRoomDecisions.map(function (item) { return railItem("i-document", "amber", escapeHtml(item.title), "Persisted room decision", "Review"); }).join("") + '</ul>' : '<div class="clean-empty compact"><strong>No pending decisions</strong></div>') + "</section>",
       "</aside></div></section>"
     ].join("");
   }
 
   function roomTabContent(current) {
     if (state.roomTab === "overview") {
-      return '<div class="room-summary"><article class="summary-block"><h3>Shared mission</h3><p>' + current.description + '</p><span class="progress-track"><i style="width:65%"></i></span></article><article class="summary-block"><h3>Current focus</h3><p>Finalise product requirements and conduct market validation.</p></article><article class="summary-block"><h3>Upcoming milestone</h3><p>Stakeholder review session · 30 Apr 2027</p></article></div><div class="room-bottom"><section class="panel">' + panelHead("Recent Activity", "i-clock", "activity") + '<ul class="compact-list"><li><span><strong>Soon Cheng added a comment</strong><small>Product Requirements v2 · 2 min ago</small></span><span class="avatar">SC</span></li><li><span><strong>Data Analyst generated insights</strong><small>4 market opportunities identified</small></span><span class="avatar violet">AI</span></li></ul></section><section class="panel">' + panelHead("Shared Files", "i-folder", "files") + '<ul class="compact-list"><li><span><strong>Product Requirements v2.0.pdf</strong><small>2.4 MB · Updated 2 hours ago</small></span>' + status("Verified") + '</li><li><span><strong>Market Analysis Summary.pptx</strong><small>12.8 MB · Updated yesterday</small></span>' + status("Active") + '</li></ul></section><section class="panel">' + panelHead("Current Tasks", "i-check", "tasks") + '<ul class="compact-list"><li><span><strong>Finalise requirements</strong><small>Due 25 Apr 2027</small></span>' + status("Completed") + '</li><li><span><strong>Conduct validation</strong><small>Due 30 Apr 2027</small></span>' + status("Active") + '</li></ul></section></div>';
+      return '<div class="room-summary"><article class="summary-block"><h3>Shared mission</h3><p>' + escapeHtml(current.description || "No mission description saved.") + '</p></article><article class="summary-block"><h3>Governance</h3><p>' + escapeHtml(current.governance || "Standard approval") + '</p></article><article class="summary-block"><h3>Persisted activity</h3><p>' + state.roomItems.filter(function (item) { return item.data.roomId === current.id; }).length + ' room items saved.</p></article></div>';
     }
-    var content = {
-      activity: ["Room activity", "A chronological record of member and agent work.", [["Soon Cheng commented on requirements", "2 min ago"], ["Data Analyst generated four insights", "1 hour ago"], ["Research Agent added six governed sources", "Yesterday"]]],
-      tasks: ["Room tasks", "Shared ownership and due dates for this mission.", [["Finalise product requirements", "Completed"], ["Conduct market validation", "In progress"], ["Prepare stakeholder deck", "Due 2 May"]]],
-      files: ["Files and knowledge", "Verified documents available to every room member.", [["Product Requirements v2.0.pdf", "Verified"], ["Market Analysis Summary.pptx", "Active"], ["Pricing Model_v3.xlsx", "Restricted"]]],
-      agents: ["AI teammates", "Specialists assigned with transparent responsibilities.", [["Research Agent", "Market and policy evidence"], ["Data Analyst Agent", "Validation and insight"], ["Verifier Agent", "Claims and citations"]]],
-      members: ["Room members", "People with access to this shared mission.", [["Lim Kim Hoong", "Product Development"], ["Soon Cheng", "Strategy & Planning"], ["Tan Yee", "Market Strategy"]]]
-    }[state.roomTab];
-    return '<section class="room-focus"><div class="content-view-head"><div><h2>' + content[0] + '</h2><p>' + content[1] + '</p></div><button class="secondary-button" type="button" data-demo-action="room-add">Add ' + (state.roomTab === "files" ? "file" : state.roomTab === "members" ? "member" : state.roomTab === "tasks" ? "task" : "item") + '</button></div><div class="focus-list">' + content[2].map(function (item) { return '<button type="button" data-demo-action="room-item" data-action-context="' + item[0] + '"><span><strong>' + item[0] + '</strong><small>' + item[1] + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") + '</div></section>';
+    var labels = { activity: ["Room activity", "activity"], tasks: ["Room tasks", "task"], files: ["Files and knowledge", "file"], agents: ["AI teammates", "agent"], members: ["Room members", "member"] }[state.roomTab];
+    var items = state.roomItems.filter(function (item) { return item.data.roomId === current.id && item.data.kind === labels[1]; });
+    return '<section class="room-focus"><div class="content-view-head"><div><h2>' + labels[0] + '</h2><p>Saved room records with accountable ownership.</p></div><button class="secondary-button" type="button" data-room-add="' + labels[1] + '">Add ' + labels[1] + '</button></div><div class="focus-list">' + (items.length ? items.map(function (item) { return '<button type="button" data-platform-open="room-item:' + escapeHtml(item.id) + '"><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.status) + ' · ' + escapeHtml(formatWorkflowDate(item.updatedAt)) + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") : '<div class="clean-empty compact"><strong>No ' + labels[1] + ' records yet</strong></div>') + '</div></section>';
   }
 
   function roomCard(room) {
-    return '<button class="room-card ' + (room.id === state.selectedRoom ? "is-selected" : "") + '" type="button" data-room="' + room.id + '"><div class="featured-top">' + miniIcon("i-room", room.id === "esg" ? "teal" : "violet") + '<span class="status blue">' + room.tag + '</span></div><h3>' + room.title + '</h3><p>' + room.description + '</p><div class="room-meta"><span>' + room.members + ' members</span><span>' + room.agents + " AI agents</span></div></button>";
+    return '<button class="room-card ' + (room.id === state.selectedRoom ? "is-selected" : "") + '" type="button" data-room="' + escapeHtml(room.id) + '"><div class="featured-top">' + miniIcon("i-room", "violet") + '<span class="status blue">' + escapeHtml(room.tag || "Owned") + '</span></div><h3>' + escapeHtml(room.title) + '</h3><p>' + escapeHtml(room.description || "No description") + '</p><div class="room-meta"><span>' + Number(room.members || 1) + ' members</span><span>' + Number(room.agents || 0) + " AI agents</span></div></button>";
   }
 
   function participant(initials, name, dept, presence) {
@@ -835,21 +907,31 @@
   }
 
   function workspacePage() {
-    var projectData = [];
+    var projectData = state.projects;
+    var governedFiles = state.roomItems.filter(function (item) { return item.data.kind === "file"; });
     return '<section class="page page-enter">' + pageHead("Projects & Workspace", "Files, governed context and decision memory for people and AI.", "New project", "project") +
-      '<div class="metric-row">' + metric("i-folder", "blue", "0", "Active projects", "No projects yet") + metric("i-document", "violet", "0", "Governed files", "No files yet") + metric("i-book", "teal", "0", "Saved decisions", "No decisions yet") + metric("i-agents", "amber", "0", "Contributors", "No collaborators yet") + '</div>' +
+      '<div class="metric-row">' + metric("i-folder", "blue", String(projectData.length), "Active projects", "Persisted workspaces") + metric("i-document", "violet", String(governedFiles.length), "Governed files", "Room file records") + metric("i-book", "teal", String(state.savedDecisions.length), "Saved decisions", "Evidence retained") + metric("i-agents", "amber", String(new Set(projectData.map(function (item) { return item.owner; })).size), "Contributors", "Accountable owners") + '</div>' +
       '<section class="panel tabs-toolbar"><button class="tab-button ' + (state.workspaceView === "projects" ? "is-active" : "") + '" type="button" data-workspace-view="projects">' + svg("i-folder") + 'Projects</button><button class="tab-button ' + (state.workspaceView === "files" ? "is-active" : "") + '" type="button" data-workspace-view="files">' + svg("i-document") + 'Recent files</button><button class="tab-button ' + (state.workspaceView === "decisions" ? "is-active" : "") + '" type="button" data-workspace-view="decisions">' + svg("i-shield") + 'Decision memory</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="workspace-search" type="search" placeholder="Search workspace…"></label></section>' +
-      '<div class="support-layout"><div class="support-main"><section class="panel content-view">' + workspaceContent(projectData) + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Workspace health", "i-shield", "workspace-health") + '<div class="clean-empty compact"><strong>No workspace data yet</strong><p>Governance health will appear after files are added.</p></div></section><section class="panel rail-panel">' + panelHead("Recent collaborators", "i-agents", "participants") + '<div class="clean-empty compact"><strong>No collaborators yet</strong></div></section></aside></div></section>';
+      '<div class="support-layout"><div class="support-main"><section class="panel content-view">' + workspaceContent(projectData) + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Workspace health", "i-shield") + '<div class="clean-empty compact"><strong>' + (projectData.length ? "Governance active" : "No workspace data yet") + '</strong><p>' + (projectData.length ? projectData.length + " persisted project records." : "Governance health will appear after work is added.") + '</p></div></section><section class="panel rail-panel">' + panelHead("Accountable owners", "i-agents") + (projectData.length ? '<ul class="compact-list">' + projectData.map(function (item) { return '<li><span><strong>' + escapeHtml(item.owner) + '</strong><small>' + escapeHtml(item.title) + '</small></span></li>'; }).join("") + '</ul>' : '<div class="clean-empty compact"><strong>No collaborators yet</strong></div>') + '</section></aside></div></section>';
   }
 
   function workspaceContent(projectData) {
-    if (state.workspaceView === "files") return '<div class="content-view-head"><div><h2>Recent files</h2><p>Documents retain owner, sensitivity and verification state.</p></div><button class="secondary-button" type="button" data-demo-action="upload">Upload files</button></div><div class="clean-empty"><strong>No files yet</strong><p>Upload a governed file to add it to this workspace.</p></div>';
-    if (state.workspaceView === "decisions") return '<div class="content-view-head"><div><h2>Decision memory</h2><p>The rationale, evidence and accountable owner behind important choices.</p></div><button class="secondary-button" type="button" data-demo-action="new-decision">Record decision</button></div><div class="clean-empty"><strong>No decisions recorded</strong><p>Approved decisions and their evidence will appear here.</p></div>';
-    return '<div class="content-view-head"><div><h2>Active projects</h2><p>Spaces that carry approved context into every mission.</p></div><button class="secondary-button" type="button" data-create="project">New project</button></div><div class="clean-empty"><strong>No projects yet</strong><p>Create a project to organise missions, files and decisions.</p></div>';
+    if (state.workspaceView === "files") { var files = state.roomItems.filter(function (item) { return item.data.kind === "file"; }); return '<div class="content-view-head"><div><h2>Recent files</h2><p>Documents retain owner, sensitivity and verification state.</p></div><button class="secondary-button" type="button" data-platform-create="file">Add file record</button></div>' + platformItemList(files, "No files yet"); }
+    if (state.workspaceView === "decisions") return '<div class="content-view-head"><div><h2>Decision memory</h2><p>The rationale, evidence and accountable owner behind important choices.</p></div><button class="secondary-button" type="button" data-platform-create="decision">Record decision</button></div>' + platformItemList(state.savedDecisions, "No decisions recorded");
+    return '<div class="content-view-head"><div><h2>Active projects</h2><p>Spaces that carry approved context into every mission.</p></div><button class="secondary-button" type="button" data-create="project">New project</button></div>' + platformItemList(projectData, "No projects yet");
+  }
+
+  function platformItemList(items, emptyLabel) {
+    if (!items.length) return '<div class="clean-empty"><strong>' + emptyLabel + '</strong><p>Create a record to add governed context to this workspace.</p></div>';
+    return '<div class="focus-list">' + items.map(function (item) { return '<button type="button" data-platform-open="' + escapeHtml((item.type || "decision") + ":" + item.id) + '" data-filter-text="' + escapeHtml(item.title) + '"><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.status || "Draft") + ' · ' + escapeHtml(item.owner || "Lim Kim Hoong") + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") + '</div>';
   }
 
   function briefPage() {
-    return '<section class="page page-enter">' + pageHead("Today\'s Brief", "Priorities, approvals and verified changes will appear here.", "Ask about today", "assistant") + '<section class="brief-hero"><div><h2>Good morning, Kim Hoong.</h2><p>You are all caught up. New priorities will appear as work begins.</p></div><div class="brief-orbit" aria-hidden="true"><i></i><i></i><i></i><span>' + svg("i-spark") + '</span></div></section><div class="support-layout"><div class="support-main"><section class="panel"><div class="filter-tabs"><button class="is-active" type="button" data-brief-filter="for-you">For you <b>0</b></button><button type="button" data-brief-filter="approvals">Approvals <b>0</b></button><button type="button" data-brief-filter="updates">Updates <b>0</b></button></div><div class="clean-empty"><strong>Nothing needs your attention</strong><p>Your tasks, approvals and updates will appear here.</p></div></section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Mission pulse", "i-flow", "workforce") + '<div class="clean-empty compact"><strong>0 missions moving</strong><p>Mission activity will appear here.</p></div></section><section class="panel rail-panel">' + panelHead("Next on your calendar", "i-clock", "calendar") + '<div class="clean-empty compact"><strong>No upcoming events</strong></div></section></aside></div></section>';
+    var approvals = state.liveMissions.filter(function (item) { return item.status === "AWAITING REVIEW"; });
+    var active = state.liveMissions.filter(function (item) { return ["PLANNED", "RUNNING", "DRAFT READY", "REVISION REQUESTED"].indexOf(item.status) !== -1; });
+    var updates = state.workflowRuns.slice(0, 5);
+    var briefItems = state.briefFilter === "approvals" ? approvals.map(function (item) { return { id: item.id, title: item.title, detail: "Mission awaiting human review", page: "verification" }; }) : state.briefFilter === "updates" ? updates.map(function (item) { return { id: item.id, title: item.mode + " · " + item.status, detail: formatWorkflowDate(item.startedAt), page: "automation" }; }) : approvals.concat(active).slice(0, 8).map(function (item) { return { id: item.id, title: item.title, detail: missionDisplayStatus(item.status), page: item.status === "AWAITING REVIEW" ? "verification" : "workforce" }; });
+    return '<section class="page page-enter">' + pageHead("Today\'s Brief", "Priorities, approvals and verified changes from live backend data.", "Ask about today", "assistant") + '<section class="brief-hero"><div><h2>Good morning, Kim Hoong.</h2><p>' + (briefItems.length ? briefItems.length + " current items need context or attention." : "You are all caught up. New priorities will appear as work begins.") + '</p></div><div class="brief-orbit" aria-hidden="true"><i></i><i></i><i></i><span>' + svg("i-spark") + '</span></div></section><div class="support-layout"><div class="support-main"><section class="panel"><div class="filter-tabs"><button class="' + (state.briefFilter === "for-you" ? "is-active" : "") + '" type="button" data-brief-filter="for-you">For you <b>' + (approvals.length + active.length) + '</b></button><button class="' + (state.briefFilter === "approvals" ? "is-active" : "") + '" type="button" data-brief-filter="approvals">Approvals <b>' + approvals.length + '</b></button><button class="' + (state.briefFilter === "updates" ? "is-active" : "") + '" type="button" data-brief-filter="updates">Updates <b>' + updates.length + '</b></button></div>' + (briefItems.length ? '<div class="focus-list">' + briefItems.map(function (item) { return '<button type="button" data-page-jump="' + item.page + '"><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") + '</div>' : '<div class="clean-empty"><strong>Nothing needs your attention</strong><p>Your tasks, approvals and updates will appear here.</p></div>') + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Mission pulse", "i-flow", "workforce") + '<div class="clean-empty compact"><strong>' + active.length + ' missions moving</strong><p>Loaded from My Workforce.</p></div></section><section class="panel rail-panel">' + panelHead("Workflow activity", "i-clock", "runs") + '<div class="clean-empty compact"><strong>' + updates.length + ' recent records</strong></div></section></aside></div></section>';
   }
 
   function verificationPage() {
@@ -857,14 +939,20 @@
     var pending = reviewable.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
     var selected = missionById(state.selectedVerificationMissionId) || pending[0] || reviewable[0];
     var selectedCase = selected ? state.verificationCases.filter(function (item) { return item.id === selected.verificationCaseId; })[0] : null;
+    var linkedCaseIds = state.liveMissions.map(function (item) { return item.verificationCaseId; }).filter(Boolean);
+    var standaloneCases = state.verificationCases.filter(function (item) { return linkedCaseIds.indexOf(item.id) === -1; });
+    var standaloneSelected = state.selectedVerificationCaseId ? standaloneCases.filter(function (item) { return item.id === state.selectedVerificationCaseId; })[0] : null;
+    if (standaloneSelected) { selected = null; selectedCase = standaloneSelected; }
     var retainedComment = selectedCase && selectedCase.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment retained</strong><small>' + escapeHtml(selectedCase.reviewerComment) + '</small></span></div>' : "";
-    var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : reviewable.length ? reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).join("") : '<div class="mission-empty"><strong>No mission packages awaiting review</strong><span>Complete an ADV mission and submit its draft from My Workforce.</span></div>';
+    var queueItems = reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).concat(standaloneCases.map(function (item) { return '<button class="verification-item ' + (standaloneSelected && standaloneSelected.id === item.id ? "is-selected" : "") + '" type="button" data-verification-case="' + escapeHtml(item.id) + '">' + miniIcon("i-document", item.status === "Pending review" ? "amber" : "teal") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.workspace) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>'; }));
+    var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : queueItems.length ? queueItems.join("") : '<div class="mission-empty"><strong>No packages awaiting review</strong><span>Submit a mission draft or verify an Assistant answer.</span></div>';
     var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + '<div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p>' + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
     return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Same dashboard and PDF payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
   }
 
   function connectorsPage() {
-    return '<section class="page page-enter">' + pageHead("Connectors", "Approved systems and data sources, governed by your existing access.", "Request connector", "connector") + '<section class="connector-boundary">' + svg("i-shield") + '<div><strong>Your permissions travel with every request.</strong><p>BursaIQ never grants new source access. Actions against external systems remain visible and require the configured approval.</p></div><button type="button" data-demo-action="access-boundary">View access boundary</button></section><section class="panel clean-empty"><strong>No connectors configured</strong><p>Request an approved system or data source to get started.</p><button class="primary-button" type="button" data-create="connector">Request connector</button></section></section>';
+    var rows = state.connectors.map(function (item) { return '<article class="market-asset"><span>' + miniIcon("i-plug", "violet") + '</span><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.data.description || "No business need supplied") + ' · ' + escapeHtml(item.owner) + '</small></span>' + workflowStatus(item.status) + '<button type="button" data-platform-open="connector:' + escapeHtml(item.id) + '">Manage</button></article>'; }).join("");
+    return '<section class="page page-enter">' + pageHead("Connectors", "Approved systems and data sources, governed by your existing access.", "Request connector", "connector") + '<section class="connector-boundary">' + svg("i-shield") + '<div><strong>Your permissions travel with every request.</strong><p>BursaIQ never grants new source access. Requests remain unavailable until an administrator configures and approves the external credentials.</p></div><button type="button" data-access-boundary>View access boundary</button></section><section class="panel">' + (rows || '<div class="clean-empty"><strong>No connectors configured</strong><p>Request an approved system or data source to get started.</p><button class="primary-button" type="button" data-create="connector">Request connector</button></div>') + '</section></section>';
   }
 
   function actionPage() {
@@ -872,18 +960,24 @@
       return '<article class="action-record"><span class="action-record-icon">' + svg("i-brief") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.owner) + ' · ' + escapeHtml(item.created) + '</small></div><button type="button" data-action-open="' + escapeHtml(item.id) + '" aria-label="Open ' + escapeHtml(item.title) + '">' + svg("i-chevron") + '</button></article>';
     }).join("");
     var emailRows = state.emailAutomations.map(function (item) {
-      return '<article class="email-action-row"><span class="action-record-icon email">' + svg("i-send") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.schedule) + ' · ' + escapeHtml(item.recipient) + '</small></div><button class="secondary-button" type="button" data-email-toggle="' + escapeHtml(item.id) + '">' + (item.status === "Active" ? "Pause" : "Resume") + '</button></article>';
+      return '<article class="email-action-row"><span class="action-record-icon email">' + svg("i-send") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.schedule) + ' · ' + escapeHtml(item.recipient) + (item.limitation ? ' · ' + escapeHtml(item.limitation) : '') + '</small></div><button class="secondary-button" type="button" data-email-toggle="' + escapeHtml(item.id) + '"' + (item.status === "Unavailable" ? " disabled" : "") + '>' + (item.status === "Unavailable" ? "Unavailable" : item.status === "Active" ? "Pause" : "Resume") + '</button></article>';
     }).join("");
     return '<section class="page page-enter action-page">' + pageHead("Action", "Decision records and scheduled follow-ups created from governed answers.") +
       '<section class="action-summary"><div>' + miniIcon("i-check", "teal") + '<span><strong>From answer to accountable follow-up</strong><p>Actions preserve the original question and evidence trail. Email schedules remain reviewable and reversible.</p></span></div><button class="primary-button" type="button" data-page-jump="assistant">Ask a new question</button></section>' +
       '<div class="metric-row action-metrics">' + metric("i-brief", "blue", String(state.savedDecisions.length), "Decision memories", "Recorded with evidence") + metric("i-send", "violet", String(state.emailAutomations.length), "Email automations", "Reviewable schedules") + metric("i-shield", "teal", state.savedDecisions.length || state.emailAutomations.length ? "100%" : "—", "Governed actions", state.savedDecisions.length || state.emailAutomations.length ? "Source context retained" : "Available after the first action") + metric("i-clock", "amber", "0", "External sends", "Synthetic demo only") + '</div>' +
       '<div class="action-workspace"><section class="panel action-panel"><div class="content-view-head"><div><h2>Decision Memory</h2><p>Answers saved with their question, owner, and evidence context.</p></div><button class="secondary-button" type="button" data-page-jump="assistant">Add from AI Assistant</button></div><div class="action-list">' + (decisionRows || '<div class="action-empty"><strong>No saved decisions yet</strong><p>Save a governed answer from the AI Assistant Decision Canvas.</p></div>') + '</div></section>' +
       '<section class="panel action-panel"><div class="content-view-head"><div><h2>Email automations</h2><p>Questions refreshed on a schedule with a current source snapshot.</p></div><span class="status blue">Local demo</span></div><div class="action-list">' + (emailRows || '<div class="action-empty"><strong>No email automations yet</strong><p>Choose Automate by Email from an AI Assistant answer.</p></div>') + '</div></section></div>' +
-      '<p class="action-disclosure">This front-end demo stores actions in the current browser session. It does not send external email or change Bursa systems.</p></section>';
+      '<p class="action-disclosure">Decision and automation records are persisted in the BursaIQ SQLite store. External email remains unavailable until a connector is approved and configured.</p></section>';
   }
 
   function settingsPage() {
-    return '<section class="page page-enter settings-page">' + pageHead("Settings", "Preferences, access and AI governance for your BursaIQ experience.") + '<div class="settings-layout"><nav class="panel settings-nav"><button class="is-active" type="button" data-settings-section="general">' + svg("i-settings") + 'General</button><button type="button" data-settings-section="notifications">' + svg("i-bell") + 'Notifications</button><button type="button" data-settings-section="agents">' + svg("i-agents") + 'Agent access</button><button type="button" data-settings-section="privacy">' + svg("i-shield") + 'Privacy & data</button></nav><div class="settings-content"><section class="panel settings-section" id="settings-general"><div class="content-view-head"><div><h2>General</h2><p>Choose how BursaIQ opens and presents your work.</p></div><span class="save-state" id="settings-save-state">Saved</span></div><label class="settings-field"><span><strong>Default workspace</strong><small>The context used when you start a new request.</small></span><select><option>Product Development</option><option>Personal workspace</option><option>Ask every time</option></select></label>' + settingToggle("Start with Today\'s Brief", "Open your role-aware brief after sign-in.", true) + settingToggle("Compact enterprise density", "Show more operational information on larger screens.", true) + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section><section class="panel settings-section"><div class="content-view-head"><div><h2>AI governance</h2><p>Controls inherited from Bursa policy are visible but cannot be weakened here.</p></div>' + status("Policy managed") + '</div>' + settingToggle("Require evidence for factual answers", "Answers must retain citations to permitted sources.", true, true) + settingToggle("Human approval for external actions", "Publishing, sending and permission changes always pause for review.", true, true) + settingToggle("Use synthetic demo activity", "Keep all people and operational counts in illustrative mode.", true, true) + '</section></div></div></section>';
+    var section = state.settingsSection;
+    var content;
+    if (section === "general") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>General</h2><p>Choose how BursaIQ opens and presents your work.</p></div><span class="save-state" id="settings-save-state">Saved</span></div><label class="settings-field"><span><strong>Default workspace</strong><small>The context used when you start a new request.</small></span><select id="default-workspace"><option' + (state.userSettings.defaultWorkspace === "Product Development" ? " selected" : "") + '>Product Development</option><option' + (state.userSettings.defaultWorkspace === "Personal workspace" ? " selected" : "") + '>Personal workspace</option><option' + (state.userSettings.defaultWorkspace === "Ask every time" ? " selected" : "") + '>Ask every time</option></select></label>' + settingToggle("Start with Today\'s Brief", "Open your role-aware brief after sign-in.", state.userSettings.startWithBrief === true) + settingToggle("Compact enterprise density", "Show more operational information on larger screens.", state.userSettings.compactDensity === true) + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section>';
+    else if (section === "notifications") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Notifications</h2><p>Notification counts come from pending backend reviews and workflow approvals.</p></div></div>' + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section>';
+    else if (section === "agents") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Agent access</h2><p>Live language-model providers and their current availability.</p></div></div>' + state.modelProviders.map(function (item) { return '<div class="settings-field"><span><strong>' + escapeHtml(item.label || item.id) + '</strong><small>' + escapeHtml(item.provider || item.id) + '</small></span>' + workflowStatus(item.available === true ? "ACTIVE" : "UNAVAILABLE") + '</div>'; }).join("") + '</section>';
+    else content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Privacy &amp; data</h2><p>Controls inherited from Bursa policy are visible and cannot be weakened here.</p></div>' + status("Policy managed") + '</div>' + settingToggle("Require evidence for factual answers", "Answers must retain citations to permitted sources.", true, true) + settingToggle("Human approval for external actions", "Publishing, sending and permission changes always pause for review.", true, true) + '</section>';
+    return '<section class="page page-enter settings-page">' + pageHead("Settings", "Preferences, access and AI governance for your BursaIQ experience.") + '<div class="settings-layout"><nav class="panel settings-nav">' + [["general", "i-settings", "General"], ["notifications", "i-bell", "Notifications"], ["agents", "i-agents", "Agent access"], ["privacy", "i-shield", "Privacy & data"]].map(function (item) { return '<button class="' + (section === item[0] ? "is-active" : "") + '" type="button" data-settings-section="' + item[0] + '">' + svg(item[1]) + item[2] + '</button>'; }).join("") + '</nav><div class="settings-content">' + content + '</div></div></section>';
   }
 
   function settingToggle(title, detail, on, locked) {
@@ -971,6 +1065,21 @@
     });
   }
 
+  function openPlatformCreate(kind, roomId) {
+    var label = kind === "file" ? "file record" : kind;
+    openExperience({ title: "Add " + label, subtitle: "Persisted governed workspace record", body: '<form class="creation-form" id="platform-item-form" data-platform-kind="' + escapeHtml(kind) + '" data-room-id="' + escapeHtml(roomId || "") + '"><label class="form-field">Title<input name="title" maxlength="160" required></label><label class="form-field">Details<textarea name="description" maxlength="1000" required></textarea></label><label class="form-field">Status<select name="status"><option value="DRAFT">Draft</option><option value="ACTIVE">Active</option><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></label></form>', footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="platform-item-form">Save record</button>' });
+  }
+
+  function openPlatformItem(reference) {
+    var parts = String(reference || "").split(":");
+    var type = parts[0], id = parts[1];
+    var collection = type === "project" ? state.projects : type === "connector" ? state.connectors : type === "skill" ? state.skills : type === "room-item" ? state.roomItems : state.savedDecisions;
+    var item = collection.filter(function (candidate) { return candidate.id === id; })[0];
+    if (!item) return;
+    var data = item.data || item;
+    openExperience({ title: item.title, subtitle: escapeHtml(item.status || "Saved") + " · " + escapeHtml(item.owner || "Lim Kim Hoong"), body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>Persisted BursaIQ record</strong><small>' + escapeHtml(data.description || data.question || data.limitation || "No additional details were supplied.") + '</small></span></div><div class="detail-grid"><article><small>Record ID</small><strong>' + escapeHtml(item.id) + '</strong></article><article><small>Updated</small><strong>' + escapeHtml(formatWorkflowDate(item.updatedAt || item.createdAt)) + '</strong></article></div>', footer: '<button class="danger-button" type="button" data-platform-delete="' + escapeHtml(type + ":" + id) + '">Delete</button><button class="primary-button" type="button" data-experience-close>Done</button>' });
+  }
+
   function routeHomeCommand(command) {
     var button = document.getElementById("home-send");
     if (button) {
@@ -1041,17 +1150,29 @@
       });
       return;
     }
-    if (type === "room") rooms.unshift({ id: "room-" + Date.now(), title: title, tag: "New", members: 1, agents: 2, description: String(data.get("description") || "New shared mission") });
-    if (type === "skill") assets.unshift({ title: title, type: "AI Skill", icon: "i-cube", tone: "violet", description: String(data.get("description") || "New reusable capability"), owner: "Product Development", uses: "Draft", verified: false });
+    if (["room", "project", "connector", "skill"].indexOf(type) !== -1) {
+      var itemStatus = type === "connector" ? "REQUESTED" : "DRAFT";
+      var itemData = { description: String(data.get("description") || ""), governance: String(data.get("governance") || "Standard approval") };
+      if (type === "room") Object.assign(itemData, { tag: "Owned", members: 1, agents: 0, scope: "mine" });
+      createPlatformItem(type, { title: title, owner: String(data.get("owner") || "Lim Kim Hoong"), status: itemStatus, data: itemData }).then(function (item) {
+        closeExperience();
+        if (type === "room") { state.selectedRoom = item.id; navigate("rooms"); }
+        else if (type === "project") navigate("workspace");
+        else if (type === "connector") navigate("connectors");
+        else navigate("exchange");
+        toast(configuredTitle(type), title + " was saved to BursaIQ.");
+      }).catch(function (error) { toast("Creation failed", error.message); });
+      return;
+    }
     closeExperience();
     if (type === "mission") navigate("workforce");
     else if (type === "workflow") { state.automationTab = "workflows"; navigate("automation"); }
-    else if (type === "room") { state.selectedRoom = rooms[0].id; navigate("rooms"); }
+    else if (type === "room") navigate("rooms");
     else if (type === "skill") navigate("exchange");
     else if (type === "project") navigate("workspace");
     else if (type === "connector") navigate("connectors");
     else if (type === "policy") navigate("verification");
-    window.setTimeout(function () { toast(configuredTitle(type), title + " is ready in this browser session."); }, 180);
+    window.setTimeout(function () { toast(configuredTitle(type), title + " was completed through the available BursaIQ workflow."); }, 180);
   }
 
   function configuredTitle(type) {
@@ -1232,36 +1353,30 @@
     });
   }
 
-  function openReview(context) {
-    openExperience({
-      title: context || "Review package",
-      subtitle: "Human approval checkpoint · synthetic demo",
-      body: '<div class="review-summary"><div class="evidence-score"><span><strong>92%</strong><small>Evidence coverage</small></span><div><b>Ready with one clarification</b><small>12 sources checked · 1 calculation flagged</small></div></div><div class="review-checks"><article>' + svg("i-check") + '<span><strong>Sources permitted</strong><small>All evidence is available to your role.</small></span></article><article>' + svg("i-check") + '<span><strong>Owner accountable</strong><small>Product Development retains final responsibility.</small></span></article><article class="needs-review">' + svg("i-help") + '<span><strong>One claim needs attention</strong><small>Confirm the latest percentage before approval.</small></span></article></div><label class="form-field">Reviewer note<textarea placeholder="Add context for the requester…"></textarea></label></div>',
-      footer: '<button class="secondary-button" type="button" data-dialog-action="request-change" data-context="' + escapeHtml(context || "package") + '">Request changes</button><button class="primary-button" type="button" data-dialog-action="approve-package" data-context="' + escapeHtml(context || "package") + '">Approve</button>'
-    });
-  }
-
   function openInfoPanel(action, context) {
     if (action === "notifications") {
-      openExperience({ title: "Notifications", subtitle: "You are all caught up", body: '<div class="clean-empty"><strong>No notifications</strong><p>Approvals, mentions and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
+      var pending = state.liveMissions.filter(function (item) { return item.status === "AWAITING REVIEW"; });
+      var waits = state.workflowRuns.filter(function (item) { return item.status === "WAITING_APPROVAL"; });
+      var notificationRows = pending.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.title) + '</strong><small>Mission awaiting review</small></span>' + svg("i-chevron") + '</button>'; }).concat(waits.map(function (item) { return '<button type="button" data-page-target="automation"><span><strong>' + escapeHtml(item.id) + '</strong><small>Workflow waiting for approval</small></span>' + svg("i-chevron") + '</button>'; }));
+      openExperience({ title: "Notifications", subtitle: notificationRows.length ? notificationRows.length + " pending actions" : "You are all caught up", body: notificationRows.length ? '<div class="focus-list">' + notificationRows.join("") + '</div>' : '<div class="clean-empty"><strong>No notifications</strong><p>Approvals and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
       return;
     }
     if (action === "apps") { navigate("connectors"); return; }
     if (action === "identity") {
-      openExperience({ title: "Lim Kim Hoong", subtitle: "Product Development · Demo identity", body: '<div class="identity-profile"><span>KH</span><div><strong>Employee workspace</strong><small>Role-aware access inherited from Product Development.</small></div></div><div class="detail-grid"><article><small>Primary workspace</small><strong>Product Development</strong></article><article><small>Approval role</small><strong>Mission owner</strong></article><article><small>Connected systems</small><strong>4 approved</strong></article><article><small>Demo mode</small><strong>Synthetic activity enabled</strong></article></div>', footer: '<button class="secondary-button" type="button" data-page-target="settings">Open settings</button><button class="primary-button" type="button" data-experience-close>Done</button>' });
+      openExperience({ title: "Lim Kim Hoong", subtitle: "Product Development · Demo identity", body: '<div class="identity-profile"><span>KH</span><div><strong>Employee workspace</strong><small>Role-aware access inherited from Product Development.</small></div></div><div class="detail-grid"><article><small>Primary workspace</small><strong>' + escapeHtml(state.userSettings.defaultWorkspace || "Product Development") + '</strong></article><article><small>Approval role</small><strong>Mission owner</strong></article><article><small>Connector requests</small><strong>' + state.connectors.length + '</strong></article><article><small>Data class</small><strong>Synthetic demonstration</strong></article></div>', footer: '<button class="secondary-button" type="button" data-page-target="settings">Open settings</button><button class="primary-button" type="button" data-experience-close>Done</button>' });
       return;
     }
     if (action === "help") {
       openExperience({ title: "IQ Guide", subtitle: "A fast orientation to the AI workforce", body: '<div class="guide-steps"><article><b>1</b><span><strong>Ask or define an outcome</strong><small>Begin on Home or with the AI Assistant.</small></span></article><article><b>2</b><span><strong>Let BursaIQ assemble the work</strong><small>Agents, knowledge and approvals become one mission.</small></span></article><article><b>3</b><span><strong>Verify before impact</strong><small>Evidence and human accountability remain visible.</small></span></article><article><b>4</b><span><strong>Reuse what works</strong><small>Publish approved intelligence back to the Exchange.</small></span></article></div>', footer: '<button class="secondary-button" type="button" data-experience-close>Close</button><button class="primary-button" type="button" data-page-target="assistant">Ask BursaIQ</button>' });
       return;
     }
-    if (action === "review" || action === "approve" || action === "request-changes") { openReview(context); return; }
+    if (action === "review" || action === "approve" || action === "request-changes") { navigate("verification"); return; }
     if (action === "agent") { openAgent(context || agents[0].name); return; }
     if (action === "canvas") { openExperience({ title: "Decision Canvas", subtitle: "A structured view of evidence, assumptions and next actions", body: '<div class="canvas-grid"><article><small>Decision</small><strong>Advance the product-readiness review</strong><p>Proceed once the remaining customer evidence and pricing assumption are verified.</p></article><article><small>Evidence</small><strong>12 governed sources</strong><p>Requirements, validation notes and accountable decision records.</p></article><article><small>Open assumptions</small><strong>2 items</strong><p>Customer evidence coverage and pricing baseline.</p></article><article><small>Recommended action</small><strong>Review the evidence</strong><p>Complete the two checks before the stakeholder review.</p></article></div>', footer: '<button class="secondary-button" type="button" data-dialog-action="canvas-copy">Copy summary</button><button class="primary-button" type="button" data-page-target="assistant">Return to Q&amp;A</button>' }); return; }
     if (action === "sources") { openExperience({ title: "Permitted source scope", subtitle: "What this assistant can use for the current request", body: '<div class="source-list"><article>' + miniIcon("i-folder", "blue") + '<span><strong>Product Development knowledge</strong><small>12 governed files · read access</small></span>' + status("Active") + '</article><article>' + miniIcon("i-book", "teal") + '<span><strong>Internal Knowledge Base</strong><small>Policies and approved guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-shield", "violet") + '<span><strong>Verified market evidence</strong><small>3 permitted source groups</small></span>' + status("Active") + '</article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); return; }
     if (action === "internal-sources") { openExperience({ title: "Ask Bursa source scope", subtitle: "Internal guidance available within your existing role", body: '<div class="source-list"><article>' + miniIcon("i-agents", "blue") + '<span><strong>Human Resources</strong><small>Employee services and workplace guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-settings", "violet") + '<span><strong>Group Technology (GT)</strong><small>Services, access, devices, and security</small></span>' + status("Active") + '</article><article>' + miniIcon("i-shield", "teal") + '<span><strong>Regulations</strong><small>Controlled internal notices and guidance</small></span>' + status("Active") + '</article><article>' + miniIcon("i-exchange", "amber") + '<span><strong>Market Operations</strong><small>Operational processes and escalation paths</small></span>' + status("Active") + '</article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); return; }
     var title = context || action.replace(/-/g, " ").replace(/^./, function (letter) { return letter.toUpperCase(); });
-    openExperience({ title: title, subtitle: "Interactive front-end demonstration", body: '<div class="detail-callout">' + svg("i-spark") + '<span><strong>This workspace is ready</strong><small>The control now opens a complete, synthetic demo state without changing external systems.</small></span></div><div class="detail-grid"><article><small>Scope</small><strong>Current employee workspace</strong></article><article><small>Governance</small><strong>Human approval retained</strong></article></div>', footer: '<button class="primary-button" type="button" data-experience-close>Done</button>' });
+    openExperience({ title: title, subtitle: "No detailed operation is available", body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>No backend action was performed</strong><small>This summary is derived from the current persisted page data. Use the page-specific controls to change or inspect individual records.</small></span></div>', footer: '<button class="primary-button" type="button" data-experience-close>Done</button>' });
   }
 
   function render() {
@@ -1301,6 +1416,7 @@
     if (page === "exchange") loadExchangeAssets();
     if (page === "verification") loadVerification();
     if (page === "automation") loadWorkflows();
+    if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(page) !== -1) loadPlatform();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1487,9 +1603,10 @@
       button.addEventListener("click", function () {
         var item = state.emailAutomations.find(function (automation) { return automation.id === button.dataset.emailToggle; });
         if (!item) return;
-        item.status = item.status === "Active" ? "Paused" : "Active";
-        render();
-        toast(item.status === "Active" ? "Email automation resumed" : "Email automation paused", "The synthetic schedule is now " + item.status.toLowerCase() + ".");
+        var nextStatus = item.status === "Active" ? "PAUSED" : "ACTIVE";
+        apiJson("/api/platform/email-automation/" + encodeURIComponent(item.id), { method: "PATCH", body: JSON.stringify({ status: nextStatus }) }).then(function () {
+          return loadPlatform();
+        }).then(function () { toast(nextStatus === "ACTIVE" ? "Email automation resumed" : "Email automation paused", "The persisted schedule is now " + nextStatus.toLowerCase() + "."); }).catch(function (error) { toast("Update failed", error.message); });
       });
     });
 
@@ -1498,8 +1615,16 @@
     if (missionRefresh) missionRefresh.addEventListener("click", function () { loadMissions(false); });
     root.querySelectorAll("[data-verification-mission]").forEach(function (button) {
       button.addEventListener("click", function () {
+        state.selectedVerificationCaseId = null;
         state.selectedVerificationMissionId = button.dataset.verificationMission;
         window.history.replaceState(null, "", "?page=verification&mission=" + encodeURIComponent(state.selectedVerificationMissionId));
+        render();
+      });
+    });
+    root.querySelectorAll("[data-verification-case]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        state.selectedVerificationMissionId = null;
+        state.selectedVerificationCaseId = button.dataset.verificationCase;
         render();
       });
     });
@@ -1646,9 +1771,6 @@
     root.querySelectorAll("[data-template-use]").forEach(function (button) {
       button.addEventListener("click", function () { openCreation("workflow"); var title = document.querySelector('#creation-form [name="title"]'); if (title) title.value = button.dataset.templateUse + " Workflow"; });
     });
-    root.querySelectorAll("[data-run-open]").forEach(function (button) {
-      button.addEventListener("click", function () { openRunPanel(button.dataset.runOpen); });
-    });
     var automationSearch = document.getElementById("automation-search");
     if (automationSearch) automationSearch.addEventListener("input", function () { filterCurrentView(automationSearch.value, "[data-filter-text], .mission-table tbody tr", null); });
     root.querySelectorAll("[data-room-scope]").forEach(function (button) {
@@ -1657,6 +1779,17 @@
     root.querySelectorAll("[data-room-tab]").forEach(function (button) {
       button.addEventListener("click", function () { state.roomTab = button.dataset.roomTab; render(); });
     });
+    root.querySelectorAll("[data-room-add]").forEach(function (button) {
+      button.addEventListener("click", function () { openPlatformCreate(button.dataset.roomAdd, state.selectedRoom || rooms[0] && rooms[0].id); });
+    });
+    root.querySelectorAll("[data-platform-create]").forEach(function (button) {
+      button.addEventListener("click", function () { openPlatformCreate(button.dataset.platformCreate, ""); });
+    });
+    root.querySelectorAll("[data-platform-open]").forEach(function (button) {
+      button.addEventListener("click", function () { openPlatformItem(button.dataset.platformOpen); });
+    });
+    var accessBoundary = root.querySelector("[data-access-boundary]");
+    if (accessBoundary) accessBoundary.addEventListener("click", function () { openExperience({ title: "Connector access boundary", subtitle: "Existing permissions and administrator approval", body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>No connector grants access by itself</strong><small>Each external system requires administrator configuration, role-scoped credentials, human approval for writes, and audit logging.</small></span></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); });
     var roomSearch = document.getElementById("room-search");
     if (roomSearch) roomSearch.addEventListener("input", function () { filterCurrentView(roomSearch.value, ".room-card", document.getElementById("room-empty")); });
     root.querySelectorAll("[data-workspace-view]").forEach(function (button) {
@@ -1667,7 +1800,7 @@
     root.querySelectorAll("[data-project-open], [data-file-open], [data-decision-open], [data-brief-item], [data-verification-open]").forEach(function (button) {
       button.addEventListener("click", function () {
         var context = button.dataset.projectOpen || button.dataset.fileOpen || button.dataset.decisionOpen || button.dataset.briefItem || button.dataset.verificationOpen;
-        if (button.dataset.verificationOpen || button.dataset.briefItem && button.dataset.briefItem.toLowerCase().indexOf("review") !== -1) openReview(context);
+        if (button.dataset.verificationOpen || button.dataset.briefItem && button.dataset.briefItem.toLowerCase().indexOf("review") !== -1) navigate("verification");
         else openInfoPanel("detail", context);
       });
     });
@@ -1684,18 +1817,20 @@
     root.querySelectorAll("[data-setting-toggle]").forEach(function (button) {
       button.addEventListener("click", function () {
         if (button.disabled) return;
-        var on = button.classList.toggle("is-on");
-        button.setAttribute("aria-pressed", String(on));
-        state.reducedUpdates = button.dataset.settingToggle === "Reduce non-essential updates" ? on : state.reducedUpdates;
+        var on = button.getAttribute("aria-pressed") !== "true";
+        var key = { "Start with Today's Brief": "startWithBrief", "Compact enterprise density": "compactDensity", "Reduce non-essential updates": "reducedUpdates" }[button.dataset.settingToggle];
         var saveState = document.getElementById("settings-save-state");
-        if (saveState) { saveState.textContent = "Saving…"; window.setTimeout(function () { saveState.textContent = "Saved"; }, 500); }
+        if (saveState) saveState.textContent = "Saving…";
+        var payload = {}; payload[key] = on;
+        apiJson("/api/settings", { method: "PATCH", body: JSON.stringify(payload) }).then(function (settings) { state.userSettings = settings; state.reducedUpdates = settings.reducedUpdates === true; render(); toast("Settings saved", button.dataset.settingToggle + " was updated."); }).catch(function (error) { if (saveState) saveState.textContent = "Save failed"; toast("Settings update failed", error.message); });
       });
     });
+    var defaultWorkspace = document.getElementById("default-workspace");
+    if (defaultWorkspace) defaultWorkspace.addEventListener("change", function () { apiJson("/api/settings", { method: "PATCH", body: JSON.stringify({ defaultWorkspace: defaultWorkspace.value }) }).then(function (settings) { state.userSettings = settings; toast("Settings saved", "Default workspace updated."); }).catch(function (error) { toast("Settings update failed", error.message); }); });
     root.querySelectorAll("[data-settings-section]").forEach(function (button) {
       button.addEventListener("click", function () {
-        root.querySelectorAll("[data-settings-section]").forEach(function (item) { item.classList.toggle("is-active", item === button); });
-        var label = button.textContent.trim();
-        if (button.dataset.settingsSection !== "general") toast(label, "This preference group is represented in the complete demo controls below.");
+        state.settingsSection = button.dataset.settingsSection;
+        render();
       });
     });
   }
@@ -1772,22 +1907,38 @@
     var answer = assistantCurrentAnswer();
     if (!answer) return;
     var answerKey = assistantAnswerKey(answer);
-    if (!state.savedDecisions.some(function (item) { return item.answerKey === answerKey; })) {
-      state.savedDecisions.unshift({ id: "DEC-" + String(Date.now()).slice(-4), answerKey: answerKey, title: answer.title, question: assistantCurrentQuestion(), owner: "Lim Kim Hoong", created: "18 Oct 2026", status: "Recorded" });
-    }
-    render();
-    toast("Saved to Decision Memory", "The question, rationale, owner, and evidence trail are now recorded in Action.");
+    if (state.savedDecisions.some(function (item) { return item.answerKey === answerKey; })) { toast("Decision already saved", "Open Action to review the existing record."); return; }
+    createPlatformItem("decision", { title: answer.title, owner: "Lim Kim Hoong", status: "RECORDED", data: { answerKey: answerKey, question: assistantCurrentQuestion(), evidence: answer.sources || [], takeaway: answer.takeaway || "" } }).then(function () {
+      render();
+      toast("Saved to Decision Memory", "The question, rationale, owner, and evidence trail are persisted in Action.");
+    }).catch(function (error) { toast("Decision save failed", error.message); });
   }
 
   function scheduleAssistantEmail() {
     var answer = assistantCurrentAnswer();
     if (!answer) return;
     var answerKey = assistantAnswerKey(answer);
-    if (!state.emailAutomations.some(function (item) { return item.answerKey === answerKey; })) {
-      state.emailAutomations.unshift({ id: "MAIL-" + String(Date.now()).slice(-3), answerKey: answerKey, title: answer.title, question: assistantCurrentQuestion(), schedule: "Every Monday · 8:00 AM", recipient: "My inbox", status: "Active" });
-    }
-    render();
-    toast("Email automation scheduled", "This synthetic weekly refresh is now visible in the Action workspace. No external email was sent.");
+    if (state.emailAutomations.some(function (item) { return item.answerKey === answerKey; })) { toast("Email automation already saved", "Open Action to review its availability."); return; }
+    createPlatformItem("email-automation", { title: answer.title, owner: "Lim Kim Hoong", status: "UNAVAILABLE", data: { answerKey: answerKey, question: assistantCurrentQuestion(), schedule: "Every Monday · 8:00 AM", recipient: "My inbox", limitation: "No approved email connector is configured." } }).then(function () {
+      render();
+      toast("Email automation saved", "The schedule is persisted but unavailable until an approved email connector is configured.");
+    }).catch(function (error) { toast("Automation save failed", error.message); });
+  }
+
+  function verifyAssistantAnswer() {
+    var answer = assistantCurrentAnswer();
+    if (!answer) return;
+    apiJson("/api/verification", { method: "POST", body: JSON.stringify({ title: answer.title, workspace: "AI Assistant", requestedBy: "Lim Kim Hoong", details: { question: assistantCurrentQuestion(), answerTitle: answer.title, answerText: answer.body, sources: answer.sources || [] } }) }).then(function (verificationCase) {
+      return Promise.all([loadVerification(), loadMissions(true)]).then(function () { toast("Verification requested", verificationCase.id + " is assigned to the Market Intelligence Lead."); navigate("verification"); });
+    }).catch(function (error) { toast("Verification request failed", error.message); });
+  }
+
+  function createAssistantBriefing() {
+    var answer = assistantCurrentAnswer();
+    if (!answer) return;
+    apiJson("/api/report", { method: "POST", body: JSON.stringify({ title: answer.title, question: assistantCurrentQuestion(), answer: { summary: answer.body || answer.takeaway || answer.title, context: answer.context || {}, method: answer.method || [], formula: answer.formula || "", sources: answer.sources || [] }, requestedBy: "Lim Kim Hoong", workspace: "AI Assistant", verification: "Draft" }) }).then(function (report) {
+      openExperience({ title: "Briefing created", subtitle: report.filename, body: '<div class="detail-callout">' + svg("i-document") + '<span><strong>Verified PDF generated</strong><small>Fingerprint ' + escapeHtml(report.fingerprint) + '</small></span></div>', footer: '<a class="primary-button" href="' + escapeHtml(report.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a><button class="secondary-button" type="button" data-experience-close>Close</button>' });
+    }).catch(function (error) { toast("Briefing failed", error.message); });
   }
 
   function scrollAssistant() {
@@ -1798,6 +1949,9 @@
   }
 
   function demoAction(action, context) {
+    if (action === "attach") { chooseAttachments(); return; }
+    if (action === "verify") { verifyAssistantAnswer(); return; }
+    if (action === "briefing") { createAssistantBriefing(); return; }
     if (pages[action]) {
       navigate(action);
       return;
@@ -1807,24 +1961,7 @@
       openInfoPanel(action, context);
       return;
     }
-    if (action === "briefing" || action === "verify") {
-      openReview(action === "verify" ? "Product readiness answer" : "Executive briefing draft");
-      return;
-    }
-    var messages = {
-      attach: ["Demo attachment ready", "Use the Local Analysis workspace in the current BursaIQ prototype for memory-only file analysis."],
-      "save-step": ["Step saved", "The workflow configuration is updated for this browser session."],
-      "explore-module": ["Module ready", "The complete interactive workspace is available from the navigation."],
-      "canvas-copy": ["Summary copied", "The decision summary is ready to paste in this synthetic demo."],
-      "stop-run": ["Run stopped", "The synthetic workflow stopped before any external action."],
-      "room-add": ["Draft added", "A new item is ready to configure in this room."],
-      "export-log": ["Audit export prepared", "A synthetic CSV log is ready for the demo."],
-      "request-change": ["Changes requested", "The package has returned to its accountable owner."],
-      "approve-package": ["Package approved", "The verified item can continue to Exchange."],
-      "mark-read": ["Notifications cleared", "All current synthetic updates are marked as read."]
-    };
-    var message = messages[action] || ["Demo interaction", "This control is active in the BursaIQ front-end concept."];
-    toast(message[0], message[1]);
+    openExperience({ title: context || action.replace(/-/g, " "), subtitle: "Integration unavailable", body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>This action has no configured backend integration</strong><small>BursaIQ did not perform or record the requested operation. Configure the required approved service before using it.</small></span></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
   }
 
   function createAction(type) {
@@ -1963,11 +2100,24 @@
     if (event.target === experienceOverlay || event.target.closest("[data-experience-close]")) closeExperience();
   });
   experienceOverlay.addEventListener("submit", function (event) {
-    if (event.target.id !== "creation-form") return;
     event.preventDefault();
-    completeCreation(event.target);
+    if (event.target.id === "creation-form") { completeCreation(event.target); return; }
+    if (event.target.id === "platform-item-form") {
+      var form = event.target;
+      var data = new FormData(form);
+      var kind = form.dataset.platformKind;
+      var roomId = form.dataset.roomId;
+      var apiType = kind === "decision" ? "decision" : "room-item";
+      createPlatformItem(apiType, { title: String(data.get("title")), owner: "Lim Kim Hoong", status: String(data.get("status")), data: { kind: kind, roomId: roomId, description: String(data.get("description")) } }).then(function () { closeExperience(); render(); toast("Record saved", "The " + kind + " is persisted in BursaIQ."); }).catch(function (error) { toast("Save failed", error.message); });
+    }
   });
   experienceOverlay.addEventListener("click", function (event) {
+    var deleteControl = event.target.closest("[data-platform-delete]");
+    if (deleteControl) {
+      var reference = deleteControl.dataset.platformDelete.split(":");
+      apiJson("/api/platform/" + encodeURIComponent(reference[0]) + "/" + encodeURIComponent(reference[1]), { method: "DELETE" }).then(function () { closeExperience(); return loadPlatform(); }).then(function () { toast("Record deleted", "The persisted record was removed."); }).catch(function (error) { toast("Delete failed", error.message); });
+      return;
+    }
     var target = event.target.closest("[data-dialog-action], [data-page-target], [data-mission-rerun], [data-mission-submit-review], [data-mission-revise], [data-mission-publish], [data-asset-reuse], [data-worker-evidence], [data-mission-back]");
     if (!target) return;
     if (target.dataset.missionRevise) { createMissionRevision(target.dataset.missionRevise, target); return; }
@@ -2059,7 +2209,16 @@
     var action = target.dataset.dialogAction;
     var context = target.dataset.context || "item";
     if (action === "use-asset") { closeExperience(); navigate("assistant"); window.setTimeout(function () { submitAssistant("Use " + context + " for my current work"); }, 240); return; }
-    if (action === "assign-agent") { closeExperience(); navigate("workforce"); window.setTimeout(function () { toast("Task assigned", context + " has started a governed synthetic task."); }, 220); return; }
+    if (action === "assign-agent") {
+      var taskField = document.getElementById("agent-task");
+      var task = taskField ? taskField.value.trim() : "";
+      if (!task) { toast("Task required", "Describe the work before assigning this agent."); if (taskField) taskField.focus(); return; }
+      closeExperience();
+      state.assistantMessages = [];
+      navigate("assistant");
+      window.setTimeout(function () { submitAssistant("Act as the " + context + " for this governed task: " + task); }, 220);
+      return;
+    }
     if (action === "continue-mission") { closeExperience(); window.setTimeout(function () { toast("Mission resumed", context + " is continuing from its verification stage."); }, 220); return; }
     if (action === "request-connector") { closeExperience(); window.setTimeout(function () { openCreation("connector"); }, 200); return; }
     if (action === "manage-connector") { closeExperience(); navigate("settings"); return; }
@@ -2086,6 +2245,7 @@
   loadVerification();
   loadExchangeAssets();
   loadModelProviders();
+  loadPlatform();
   loadWorkflows().then(function () {
     if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);
   });

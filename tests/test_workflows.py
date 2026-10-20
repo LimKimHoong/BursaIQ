@@ -72,6 +72,17 @@ class WorkflowBuilderTests(unittest.TestCase):
         self.assertEqual(run["status"], "BLOCKED")
         self.assertIn("no configured live integration", run["events"][-1]["message"])
 
+    def test_configured_agent_executor_records_verified_backend_result(self) -> None:
+        definition = self.definition()
+        definition["nodes"][1] = {"id": "agent", "type": "ai-agent", "name": "Local analyst", "config": {"agent": "ollama", "inputs": "Summarise evidence"}}
+        definition["connections"][0]["target"] = "agent"
+        definition["connections"][1]["source"] = "agent"
+        workflow = self.store.create(definition)
+        run = self.store.run(workflow["id"], lambda node: {"message": f"{node['name']} returned a live result."})
+        self.assertEqual(run["status"], "WAITING_APPROVAL")
+        self.assertEqual(run["events"][1]["status"], "COMPLETED")
+        self.assertIn("live result", run["events"][1]["message"])
+
     def test_duplicate_and_delete_manage_independent_drafts(self) -> None:
         workflow = self.store.create(self.definition())
         copy = self.store.duplicate(workflow["id"])

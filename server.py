@@ -35,6 +35,7 @@ from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
 from bursaiq.workflows import WorkflowStore
+from bursaiq.platform_store import PlatformStore
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -50,6 +51,7 @@ repository = LocalDataRepository(INPUT_DIR)
 reports = BriefingGenerator(OUTPUT_DIR)
 verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 workflows = WorkflowStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
+platform = PlatformStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 ollama = OllamaService()
 local_analysis = LocalAnalysisService()
@@ -135,6 +137,44 @@ def workflow_payload(payload: dict[str, Any], *, partial: bool = False) -> dict[
             raise ValueError("Unsupported workflow status.")
         result["status"] = status
     return result
+
+
+def platform_item_payload(payload: dict[str, Any], *, partial: bool = False) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    if "title" in payload or not partial:
+        result["title"] = bounded_text(payload, "title", 160)
+    if "owner" in payload:
+        result["owner"] = bounded_text(payload, "owner", 100)
+    if "status" in payload:
+        result["status"] = bounded_text(payload, "status", 40).upper()
+    if "data" in payload:
+        if not isinstance(payload["data"], dict):
+            raise ValueError("data must be an object.")
+        result["data"] = payload["data"]
+    return result
+
+
+def execute_workflow_node(node: dict[str, Any]) -> dict[str, Any]:
+    """Run only node types backed by configured BursaIQ services."""
+    config = node.get("config") if isinstance(node.get("config"), dict) else {}
+    instruction = str(config.get("inputs", "")).strip()
+    if not instruction:
+        raise ValueError(f"{node.get('name', 'Workflow node')} requires configured inputs.")
+    if node.get("type") == "gather-data":
+        results = repository.search(instruction, "market", "gcmc", 5)
+        if not results:
+            raise ValueError("Gather Data found no permitted governed sources.")
+        return {"message": f"Gathered {len(results)} permitted governed sources."}
+    if node.get("type") == "ai-agent":
+        assigned = str(config.get("agent", "")).strip().lower()
+        if "copilot" in assigned:
+            reply = copilot.ask(instruction)
+            return {"message": f"Microsoft Copilot Studio returned a live response ({reply.conversation_id})."}
+        if "ollama" in assigned or "local" in assigned:
+            reply = ollama.ask(instruction, json_format=False)
+            return {"message": f"Local Ollama returned a live response ({reply.request_id})."}
+        raise ValueError("Assign Local Ollama or Microsoft Copilot Studio before running this AI Agent node.")
+    raise ValueError("No live integration is configured for this node type.")
 
 
 def review_details(payload: dict[str, Any]) -> dict[str, Any]:
@@ -765,10 +805,60 @@ def test_workflow(workflow_id: str):
 @app.post("/api/workflows/<workflow_id>/run")
 def run_workflow(workflow_id: str):
     try:
-        run = workflows.run(workflow_id)
+        run = workflows.run(workflow_id, execute_workflow_node)
     except KeyError:
         return jsonify({"error": "Workflow not found."}), 404
     return jsonify(run)
+
+
+@app.get("/api/platform")
+def platform_state():
+    items = platform.list()
+    grouped = {item_type: [] for item_type in ("room", "project", "decision", "email-automation", "connector", "skill", "room-item")}
+    for item in items:
+        grouped[item["type"]].append(item)
+    return jsonify({"items": grouped, "settings": platform.settings("lim-kim-hoong")})
+
+
+@app.post("/api/platform/<item_type>")
+def create_platform_item(item_type: str):
+    try:
+        item = platform.create(item_type, platform_item_payload(body_json()))
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(item), 201
+
+
+@app.patch("/api/platform/<item_type>/<item_id>")
+def update_platform_item(item_type: str, item_id: str):
+    try:
+        item = platform.update(item_type, item_id, platform_item_payload(body_json(), partial=True))
+    except KeyError:
+        return jsonify({"error": "Platform item not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return jsonify(item)
+
+
+@app.delete("/api/platform/<item_type>/<item_id>")
+def delete_platform_item(item_type: str, item_id: str):
+    try:
+        platform.delete(item_type, item_id)
+    except KeyError:
+        return jsonify({"error": "Platform item not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+    return "", 204
+
+
+@app.patch("/api/settings")
+def save_user_settings():
+    payload = body_json()
+    allowed = {"defaultWorkspace", "startWithBrief", "compactDensity", "reducedUpdates"}
+    values = {key: value for key, value in payload.items() if key in allowed and isinstance(value, (str, bool))}
+    if not values:
+        return jsonify({"error": "No supported settings were provided."}), 400
+    return jsonify(platform.save_settings("lim-kim-hoong", values))
 
 
 @app.post("/api/chat")
