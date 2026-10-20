@@ -67,6 +67,29 @@ class KnowledgeRagTests(unittest.TestCase):
         self.assertEqual(result["removed"], 1)
         self.assertEqual(self.index.status()["documents"], 0)
 
+    def test_document_suggestions_are_persisted_filtered_deduplicated_and_removed(self) -> None:
+        suggested = lambda _text, _metadata: [
+            {"question": "How should a phishing incident be reported?", "description": "Security incident reporting"},
+            {"question": "How should a phishing incident be reported?", "description": "Duplicate"},
+            {"question": "This is not a question", "description": "Invalid"},
+        ]
+        index = KnowledgeIndex(self.index.database_path, self.knowledge_root, fake_embed, suggested)
+        source = self.knowledge_root / "group_technology" / "security.md"
+        source.write_text("A phishing incident must be reported through the security portal.", encoding="utf-8")
+        source.with_name(source.name + ".metadata.json").write_text(json.dumps({"allowed_roles": ["gcmc"], "version": "3.0"}), encoding="utf-8")
+
+        index.ingest()
+        suggestions = index.list_suggestions("gcmc")
+        self.assertEqual(len(suggestions), 1)
+        self.assertEqual(suggestions[0]["question"], "How should a phishing incident be reported?")
+        self.assertEqual(suggestions[0]["sourceVersion"], "3.0")
+        self.assertEqual(index.list_suggestions("hr"), [])
+
+        source.unlink()
+        source.with_name(source.name + ".metadata.json").unlink()
+        index.ingest()
+        self.assertEqual(index.list_suggestions("gcmc"), [])
+
     def test_chunking_retains_source_location(self) -> None:
         source = self.knowledge_root / "corporate_policies" / "policy.html"
         source.write_text("<h1>Approval</h1><p>Manager approval is required.</p>", encoding="utf-8")
@@ -104,6 +127,30 @@ class KnowledgeRagTests(unittest.TestCase):
         self.assertEqual(embeddings, [[0.1, 0.2]])
         self.assertEqual(request_json.call_args.args[0], "/api/embed")
         self.assertEqual(request_json.call_args.kwargs["payload"]["model"], service.embedding_model)
+
+    def test_ollama_generates_structured_grounded_questions(self) -> None:
+        service = OllamaService()
+        reply = ModelReply(json.dumps({"suggestions": [{"question": "What approval is required?", "description": "Approval process"}]}), "suggest-1")
+        with patch.object(service, "ask", return_value=reply) as ask:
+            suggestions = service.suggest_questions("Manager approval is required.", {"department": "human_resources", "classification": "Internal"})
+        self.assertEqual(suggestions[0]["question"], "What approval is required?")
+        self.assertTrue(ask.call_args.kwargs["json_format"])
+        self.assertIn("Based only on the internal document excerpt", ask.call_args.args[0])
+
+    def test_suggestions_api_returns_only_role_permitted_items(self) -> None:
+        from server import app
+
+        index = KnowledgeIndex(self.index.database_path, self.knowledge_root, fake_embed, lambda *_: [{"question": "How is leave approved?", "description": "Leave approval"}])
+        source = self.knowledge_root / "human_resources" / "leave.txt"
+        source.write_text("Leave requires manager approval.", encoding="utf-8")
+        source.with_name(source.name + ".metadata.json").write_text(json.dumps({"allowed_roles": ["hr"]}), encoding="utf-8")
+        index.ingest()
+        with patch("server.knowledge", index):
+            with app.test_client() as client:
+                permitted = client.get("/api/ask-bursa/suggestions?role=hr").get_json()
+                restricted = client.get("/api/ask-bursa/suggestions?role=gcmc").get_json()
+        self.assertEqual(len(permitted["suggestions"]), 1)
+        self.assertEqual(restricted["suggestions"], [])
 
 
 if __name__ == "__main__":

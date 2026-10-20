@@ -55,7 +55,7 @@ workflows = WorkflowStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 platform = PlatformStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 ollama = OllamaService()
-knowledge = KnowledgeIndex(RUNTIME_DIR / "bursaiq_demo.sqlite3", BASE_DIR / "knowledge", ollama.embed)
+knowledge = KnowledgeIndex(RUNTIME_DIR / "bursaiq_demo.sqlite3", BASE_DIR / "knowledge", ollama.embed, ollama.suggest_questions)
 local_analysis = LocalAnalysisService()
 missions = MissionStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 mission_runner = MissionRunner(
@@ -903,6 +903,14 @@ def save_user_settings():
 @app.get("/api/ask-bursa/status")
 def ask_bursa_status():
     return jsonify(knowledge.status())
+
+
+@app.get("/api/ask-bursa/suggestions")
+def ask_bursa_suggestions():
+    role = str(request.args.get("role", "")).lower()
+    if role not in ROLE_WORKSPACES:
+        raise ValueError("role is not a recognised demo identity.")
+    return jsonify({"suggestions": knowledge.list_suggestions(role)})
 
 
 @app.post("/api/ask-bursa")

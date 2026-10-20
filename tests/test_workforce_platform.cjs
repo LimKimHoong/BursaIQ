@@ -143,6 +143,11 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   assert.match(css, /\.ask-bursa-composer-wrap \.assistant-composer textarea \{ min-height: 82px;/);
   assert.match(js, /apiJson\("\/api\/ask-bursa"/);
   assert.match(js, /apiJson\("\/api\/ask-bursa\/status"/);
+  assert.match(js, /apiJson\("\/api\/ask-bursa\/suggestions\?role=gcmc"/);
+  assert.match(js, /state\.askBursaSuggestions\.map/);
+  assert.match(js, /No suggested topics yet/);
+  assert.doesNotMatch(js, /How do I submit a leave request\?/);
+  assert.doesNotMatch(js, /How do I report a suspected phishing email\?/);
   assert.match(js, /answer\.citations/);
   assert.match(js, /class="bursa-citation"/);
   assert.match(js, /data-bursa-sources/);

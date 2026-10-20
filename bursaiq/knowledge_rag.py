@@ -28,10 +28,11 @@ def utc_now() -> str:
 
 
 class KnowledgeIndex:
-    def __init__(self, database_path: Path, knowledge_root: Path, embed: Callable[[list[str]], list[list[float]]]) -> None:
+    def __init__(self, database_path: Path, knowledge_root: Path, embed: Callable[[list[str]], list[list[float]]], suggest: Callable[[str, dict[str, Any]], list[dict[str, str]]] | None = None) -> None:
         self.database_path = database_path
         self.knowledge_root = knowledge_root.resolve()
         self.embed = embed
+        self.suggest = suggest
         self.database_path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             connection.executescript(
@@ -48,6 +49,13 @@ class KnowledgeIndex:
                     FOREIGN KEY(document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
                 );
                 CREATE INDEX IF NOT EXISTS knowledge_chunks_document ON knowledge_chunks(document_id, ordinal);
+                CREATE TABLE IF NOT EXISTS knowledge_suggestions (
+                    id TEXT PRIMARY KEY, document_id TEXT NOT NULL, question TEXT NOT NULL,
+                    question_key TEXT NOT NULL, description TEXT NOT NULL, department TEXT NOT NULL,
+                    allowed_roles_json TEXT NOT NULL, source_version TEXT NOT NULL, generated_at TEXT NOT NULL,
+                    FOREIGN KEY(document_id) REFERENCES knowledge_documents(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS knowledge_suggestions_role ON knowledge_suggestions(department, generated_at DESC);
                 CREATE TABLE IF NOT EXISTS knowledge_audit (
                     id TEXT PRIMARY KEY, occurred_at TEXT NOT NULL, role TEXT NOT NULL, question TEXT NOT NULL,
                     document_ids_json TEXT NOT NULL, outcome TEXT NOT NULL
@@ -79,7 +87,7 @@ class KnowledgeIndex:
                 digest_input = path.read_bytes() + (metadata_path.read_bytes() if metadata_path.exists() else b"")
                 digest = hashlib.sha256(digest_input).hexdigest()
                 existing = self._document_by_path(relative)
-                if existing and existing["sha256"] == digest:
+                if existing and existing["sha256"] == digest and (not self.suggest or self._suggestion_count(existing["id"]) > 0):
                     unchanged += 1
                     continue
                 sections = extract_sections(path)
@@ -90,7 +98,13 @@ class KnowledgeIndex:
                 if len(embeddings) != len(chunks):
                     raise ValueError("Embedding count did not match the extracted chunks.")
                 metadata = self._metadata(path)
-                self._replace_document(relative, path.name, digest, metadata, chunks, embeddings)
+                suggestions: list[dict[str, str]] = []
+                if self.suggest:
+                    try:
+                        suggestions = validate_suggestions(self.suggest("\n\n".join(chunk["text"] for chunk in chunks)[:12_000], metadata))
+                    except Exception as exc:
+                        errors.append({"path": relative, "error": f"Question suggestion generation failed: {exc}"})
+                self._replace_document(relative, path.name, digest, metadata, chunks, embeddings, suggestions)
                 indexed += 1
             except Exception as exc:
                 errors.append({"path": relative, "error": str(exc)})
@@ -139,8 +153,46 @@ class KnowledgeIndex:
         with self._connect() as connection:
             documents = connection.execute("SELECT COUNT(*) FROM knowledge_documents").fetchone()[0]
             chunks = connection.execute("SELECT COUNT(*) FROM knowledge_chunks").fetchone()[0]
+            suggestions = connection.execute("SELECT COUNT(*) FROM knowledge_suggestions").fetchone()[0]
             run = connection.execute("SELECT * FROM knowledge_ingestion_runs ORDER BY completed_at DESC LIMIT 1").fetchone()
-        return {"documents": documents, "chunks": chunks, "supportedExtensions": sorted(SUPPORTED_EXTENSIONS), "departments": sorted(DEPARTMENTS), "lastIngestion": dict(run) if run else None}
+        return {"documents": documents, "chunks": chunks, "suggestions": suggestions, "supportedExtensions": sorted(SUPPORTED_EXTENSIONS), "departments": sorted(DEPARTMENTS), "lastIngestion": dict(run) if run else None}
+
+    def list_suggestions(self, role: str, limit: int = 8) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """SELECT s.*, d.filename FROM knowledge_suggestions s
+                   JOIN knowledge_documents d ON d.id = s.document_id
+                   ORDER BY s.generated_at DESC, s.rowid DESC"""
+            ).fetchall()
+        grouped: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            if role not in json.loads(row["allowed_roles_json"]):
+                continue
+            item = grouped.get(row["question_key"])
+            if item:
+                if row["document_id"] not in item["supportingDocumentIds"]:
+                    item["supportingDocumentIds"].append(row["document_id"])
+                continue
+            grouped[row["question_key"]] = {
+                "id": row["id"], "question": row["question"], "description": row["description"],
+                "department": display_department(row["department"]), "sourceVersion": row["source_version"],
+                "supportingDocumentIds": [row["document_id"]], "sourceDocument": row["filename"],
+                "generatedAt": row["generated_at"],
+            }
+        by_department: dict[str, list[dict[str, Any]]] = {}
+        for item in grouped.values():
+            by_department.setdefault(item["department"], []).append(item)
+        balanced: list[dict[str, Any]] = []
+        while by_department and len(balanced) < limit:
+            for department in list(by_department):
+                items = by_department[department]
+                if items:
+                    balanced.append(items.pop(0))
+                if not items:
+                    del by_department[department]
+                if len(balanced) >= limit:
+                    break
+        return balanced
 
     def document_path(self, document_id: str, role: str) -> Path:
         with self._connect() as connection:
@@ -179,11 +231,16 @@ class KnowledgeIndex:
         with self._connect() as connection:
             return connection.execute("SELECT * FROM knowledge_documents WHERE relative_path = ?", (relative,)).fetchone()
 
-    def _replace_document(self, relative: str, filename: str, digest: str, metadata: dict[str, Any], chunks: list[dict[str, str]], embeddings: list[list[float]]) -> None:
+    def _suggestion_count(self, document_id: str) -> int:
+        with self._connect() as connection:
+            return int(connection.execute("SELECT COUNT(*) FROM knowledge_suggestions WHERE document_id = ?", (document_id,)).fetchone()[0])
+
+    def _replace_document(self, relative: str, filename: str, digest: str, metadata: dict[str, Any], chunks: list[dict[str, str]], embeddings: list[list[float]], suggestions: list[dict[str, str]]) -> None:
         existing = self._document_by_path(relative)
         document_id = existing["id"] if existing else f"DOC-{uuid.uuid4().hex[:12].upper()}"
         with self._connect() as connection:
             connection.execute("DELETE FROM knowledge_chunks WHERE document_id = ?", (document_id,))
+            connection.execute("DELETE FROM knowledge_suggestions WHERE document_id = ?", (document_id,))
             connection.execute(
                 """INSERT INTO knowledge_documents VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                    ON CONFLICT(id) DO UPDATE SET filename=excluded.filename, department=excluded.department,
@@ -194,6 +251,9 @@ class KnowledgeIndex:
             )
             for ordinal, (chunk, embedding) in enumerate(zip(chunks, embeddings)):
                 connection.execute("INSERT INTO knowledge_chunks VALUES (?, ?, ?, ?, ?, ?)", (f"CHK-{uuid.uuid4().hex[:12].upper()}", document_id, ordinal, chunk["location"], chunk["text"], json.dumps(embedding)))
+            for suggestion in suggestions:
+                question_key = normalize_question(suggestion["question"])
+                connection.execute("INSERT INTO knowledge_suggestions VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)", (f"SUG-{uuid.uuid4().hex[:12].upper()}", document_id, suggestion["question"], question_key, suggestion["description"], metadata["department"], json.dumps(metadata["allowed_roles"]), metadata["version"], utc_now()))
 
 
 def extract_sections(path: Path) -> list[tuple[str, str]]:
@@ -255,3 +315,25 @@ def cosine(left: list[float], right: list[float]) -> float:
 
 def display_department(value: str) -> str:
     return value.replace("_", " ").title().replace("Human Resources", "Human Resources").replace("Group Technology", "Group Technology")
+
+
+def normalize_question(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", value.lower()).strip()
+
+
+def validate_suggestions(values: Any) -> list[dict[str, str]]:
+    if not isinstance(values, list):
+        raise ValueError("Suggestion generator must return an array.")
+    result = []
+    seen = set()
+    for value in values[:8]:
+        if not isinstance(value, dict):
+            continue
+        question = str(value.get("question") or "").strip()
+        description = str(value.get("description") or "").strip()
+        key = normalize_question(question)
+        if len(question) < 8 or len(question) > 180 or not question.endswith("?") or not key or key in seen:
+            continue
+        seen.add(key)
+        result.append({"question": question, "description": description[:220] or "Suggested from an indexed internal document."})
+    return result

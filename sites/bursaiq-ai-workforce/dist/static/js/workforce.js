@@ -38,6 +38,7 @@
     askBursaMessages: [],
     askBursaConversationId: null,
     askBursaKnowledge: null,
+    askBursaSuggestions: [],
     savedDecisions: [],
     emailAutomations: [],
     selectedNode: "trigger",
@@ -161,6 +162,17 @@
     }).catch(function () {
       state.askBursaKnowledge = null;
       return null;
+    });
+  }
+
+  function loadAskBursaSuggestions() {
+    return apiJson("/api/ask-bursa/suggestions?role=gcmc").then(function (payload) {
+      state.askBursaSuggestions = payload.suggestions || [];
+      if (state.page === "ask-bursa" && !state.askBursaMessages.length) render();
+      return state.askBursaSuggestions;
+    }).catch(function () {
+      state.askBursaSuggestions = [];
+      return [];
     });
   }
 
@@ -495,12 +507,8 @@
   }
 
   function askBursaWelcome() {
-    return '<div class="assistant-welcome ask-bursa-welcome"><h2>Ask anything <span>inside Bursa.</span></h2><p>Get a direct answer from approved internal guidance—without launching a task or opening a Decision Canvas.</p><div class="suggestion-grid">' +
-      bursaSuggestion("How do I submit a leave request?", "HR · Leave and employee services") +
-      bursaSuggestion("How do I report a suspected phishing email?", "Group Technology · Cybersecurity") +
-      bursaSuggestion("What changed in the latest internal regulatory notice?", "Regulations · Current guidance") +
-      bursaSuggestion("Who should be contacted during a trading incident?", "Market Operations · Escalation") +
-      '</div></div>';
+    var suggestions = state.askBursaSuggestions.map(function (item) { return bursaSuggestion(item.question, item.department + " · " + item.description); }).join("");
+    return '<div class="assistant-welcome ask-bursa-welcome"><h2>Ask anything <span>inside Bursa.</span></h2><p>Get a direct answer from approved internal guidance—without launching a task or opening a Decision Canvas.</p>' + (suggestions ? '<div class="suggestion-grid">' + suggestions + '</div>' : '<div class="clean-empty"><strong>No suggested topics yet</strong><p>Add approved documents and run the knowledge ingestion command. Ask Bursa will generate grounded questions from the indexed content.</p></div>') + '</div>';
   }
 
   function bursaSuggestion(title, description) {
@@ -2265,6 +2273,7 @@
   loadExchangeAssets();
   loadModelProviders();
   loadAskBursaStatus();
+  loadAskBursaSuggestions();
   loadPlatform();
   loadWorkflows().then(function () {
     if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);

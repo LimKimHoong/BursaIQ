@@ -98,9 +98,9 @@ ollama pull nomic-embed-text
 python scripts/ingest_knowledge.py
 ```
 
-4. Start BursaIQ and open **Ask Bursa**. The header shows the indexed document count. Answers include document and page, slide, sheet, or section citations with links to role-permitted source files.
+4. Start BursaIQ and open **Ask Bursa**. The header shows the indexed document count. Ollama-generated topic suggestions come from the role-permitted indexed documents; clicking one runs the normal cited RAG answer flow. Answers include document and page, slide, sheet, or section citations with links to role-permitted source files.
 
-Run the ingestion command again whenever documents or metadata change. Unchanged files are skipped, replaced files are reindexed, removed files are deleted from the index, and extraction failures are returned in the command output. Scanned image-only PDFs require OCR before ingestion; the current pipeline does not perform OCR.
+Run the ingestion command again whenever documents or metadata change. Suggestion generation happens during ingestion rather than page load. Unchanged files with stored suggestions are skipped, replaced files regenerate their questions, removed files and their questions are deleted, and extraction or generation failures are returned in the command output. Scanned image-only PDFs require OCR before ingestion; the current pipeline does not perform OCR.
 
 ### Run the ADV mission
 

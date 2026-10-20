@@ -16,7 +16,7 @@ from bursaiq.model_providers import OllamaService  # noqa: E402
 
 def main() -> int:
     service = OllamaService()
-    index = KnowledgeIndex(ROOT / "runtime" / "bursaiq_demo.sqlite3", ROOT / "knowledge", service.embed)
+    index = KnowledgeIndex(ROOT / "runtime" / "bursaiq_demo.sqlite3", ROOT / "knowledge", service.embed, service.suggest_questions)
     result = index.ingest()
     print(json.dumps(result, indent=2))
     return 1 if result["errors"] else 0
