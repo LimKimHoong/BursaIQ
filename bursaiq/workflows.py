@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import inspect
+import re
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -66,6 +68,13 @@ class WorkflowStore:
                     ON workflow_runs(workflow_id, started_at DESC);
                 """
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(workflow_runs)").fetchall()}
+            if "state_json" not in columns:
+                connection.execute("ALTER TABLE workflow_runs ADD COLUMN state_json TEXT NOT NULL DEFAULT '{}'")
+            if "workflow_snapshot_json" not in columns:
+                connection.execute("ALTER TABLE workflow_runs ADD COLUMN workflow_snapshot_json TEXT NOT NULL DEFAULT '{}'")
+            if "verification_case_id" not in columns:
+                connection.execute("ALTER TABLE workflow_runs ADD COLUMN verification_case_id TEXT")
 
     def create(self, payload: dict[str, Any]) -> dict[str, Any]:
         workflow_id = f"WF-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
@@ -184,43 +193,166 @@ class WorkflowStore:
             errors.append("Workflow connections must not contain a cycle.")
         return {"valid": not errors, "errors": errors, "nodeCount": len(nodes), "connectionCount": len(connections)}
 
-    def test(self, workflow_id: str) -> dict[str, Any]:
+    def test(self, workflow_id: str, resource_validator: Callable[[dict[str, Any]], list[str]] | None = None) -> dict[str, Any]:
         workflow = self.get(workflow_id)
         validation = self.validate(workflow)
+        if validation["valid"] and resource_validator:
+            resource_errors = resource_validator(workflow)
+            validation["errors"].extend(resource_errors)
+            validation["valid"] = not validation["errors"]
         status = "VALIDATED" if validation["valid"] else "INVALID"
         events = [{"status": status, "message": "Workflow structure passed validation." if validation["valid"] else "Workflow structure has validation errors.", "occurredAt": utc_now()}]
         return self._record_run(workflow_id, "TEST", status, events, validation)
 
-    def run(self, workflow_id: str, executor: Callable[[dict[str, Any]], dict[str, Any]] | None = None) -> dict[str, Any]:
+    @staticmethod
+    def _event(node: dict[str, Any], status: str, message: str, *, inputs: dict[str, Any] | None = None, outputs: dict[str, Any] | None = None, error: str = "", retries: int = 0, transition: dict[str, Any] | None = None) -> dict[str, Any]:
+        return {"nodeId": node["id"], "nodeName": node.get("name") or NODE_TYPES[node["type"]], "nodeType": node["type"], "status": status, "message": message, "inputs": inputs or {}, "outputs": outputs or {}, "error": error, "retries": retries, "approvalTransition": transition, "occurredAt": utc_now()}
+
+    @staticmethod
+    def _resolve(value: str, outputs: dict[str, Any]) -> Any:
+        current: Any = outputs
+        for part in value.strip().removeprefix("outputs.").split("."):
+            if not part:
+                continue
+            if not isinstance(current, dict) or part not in current:
+                return None
+            current = current[part]
+        return current
+
+    def _condition(self, config: dict[str, Any], outputs: dict[str, Any]) -> tuple[bool, dict[str, Any]]:
+        expression = str(config.get("expression", "")).strip()
+        if expression.lower() in {"true", "always"}:
+            return True, {"expression": expression, "resolved": True}
+        if expression.lower() == "false":
+            return False, {"expression": expression, "resolved": False}
+        match = re.fullmatch(r"\s*([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*)\s*(==|!=|>=|<=|>|<|contains)\s*(.+?)\s*", expression)
+        if not match:
+            raise ValueError("Condition must use a persisted output path and one of ==, !=, >, >=, <, <=, or contains.")
+        left = self._resolve(match.group(1), outputs)
+        raw_right = match.group(3)
+        try:
+            right = json.loads(raw_right)
+        except json.JSONDecodeError:
+            right = raw_right.strip("'\"")
+        operator = match.group(2)
+        try:
+            if operator == "==": passed = left == right
+            elif operator == "!=": passed = left != right
+            elif operator == ">": passed = left > right
+            elif operator == ">=": passed = left >= right
+            elif operator == "<": passed = left < right
+            elif operator == "<=": passed = left <= right
+            else: passed = right in left
+        except (TypeError, KeyError) as exc:
+            raise ValueError("Condition operands are incompatible or unavailable.") from exc
+        return bool(passed), {"expression": expression, "left": left, "operator": operator, "right": right, "resolved": bool(passed)}
+
+    def run(self, workflow_id: str, executor: Callable[..., dict[str, Any]] | None = None) -> dict[str, Any]:
         workflow = self.get(workflow_id)
         validation = self.validate(workflow)
         if not validation["valid"]:
-            return self._record_run(workflow_id, "RUN", "INVALID", [], validation)
-        events: list[dict[str, Any]] = []
-        status = "COMPLETED"
-        for node in self._ordered_nodes(workflow):
-            node_type = node["type"]
-            if node_type == "trigger":
-                node_status, message = "COMPLETED", "Internal workflow trigger accepted."
-            elif node_type == "condition" and str(node.get("config", {}).get("expression", "")).strip().lower() in {"true", "always"}:
-                node_status, message = "COMPLETED", "Local condition evaluated true."
-            elif executor and node_type in {"gather-data", "ai-agent"}:
-                try:
-                    result = executor(node)
-                    node_status, message = "COMPLETED", str(result.get("message") or f"{NODE_TYPES[node_type]} completed through a configured backend service.")
-                except Exception as error:
-                    node_status, status, message = "BLOCKED", "BLOCKED", str(error)
-            elif node_type == "human-approval":
-                node_status, message, status = "WAITING", "Waiting for the configured human approver.", "WAITING_APPROVAL"
-            else:
-                node_status, status = "BLOCKED", "BLOCKED"
-                message = f"{NODE_TYPES[node_type]} has no configured live integration; no external action was performed."
-            events.append({"nodeId": node["id"], "nodeName": node.get("name") or NODE_TYPES[node_type], "status": node_status, "message": message, "occurredAt": utc_now()})
-            if status in {"WAITING_APPROVAL", "BLOCKED"}:
-                break
-        run = self._record_run(workflow_id, "RUN", status, events, validation)
+            return self._record_run(workflow_id, "RUN", "INVALID", [], validation, {}, workflow)
+        status, events, state = self._execute(workflow, executor, [], {"outputs": {}, "nextIndex": 0})
+        run = self._record_run(workflow_id, "RUN", status, events, validation, state, workflow)
         self.update(workflow_id, {"status": "ACTIVE" if status in {"COMPLETED", "WAITING_APPROVAL"} else "DRAFT"})
         return run
+
+    def _execute(self, workflow: dict[str, Any], executor: Callable[..., dict[str, Any]] | None, events: list[dict[str, Any]], state: dict[str, Any]) -> tuple[str, list[dict[str, Any]], dict[str, Any]]:
+        ordered = self._ordered_nodes(workflow)
+        outputs = state.setdefault("outputs", {})
+        status = "COMPLETED"
+        for index in range(int(state.get("nextIndex", 0)), len(ordered)):
+            node = ordered[index]
+            node_type = node["type"]
+            config = node.get("config") if isinstance(node.get("config"), dict) else {}
+            upstream = {connection["source"]: outputs.get(connection["source"], {}) for connection in workflow["connections"] if connection["target"] == node["id"]}
+            node_inputs = {"configured": config.get("inputs", ""), "upstream": upstream}
+            if node_type == "trigger":
+                result = {"accepted": True, "payload": config.get("inputs", "")}
+                outputs[node["id"]] = result
+                events.append(self._event(node, "COMPLETED", "Internal workflow trigger accepted.", inputs=node_inputs, outputs=result))
+            elif node_type == "condition":
+                try:
+                    passed, result = self._condition(config, outputs)
+                    outputs[node["id"]] = result
+                    events.append(self._event(node, "COMPLETED" if passed else "NOT_MET", "Condition evaluated true." if passed else "Condition evaluated false; downstream execution stopped.", inputs=node_inputs, outputs=result))
+                    if not passed:
+                        state["nextIndex"] = len(ordered)
+                        break
+                except ValueError as error:
+                    events.append(self._event(node, "FAILED", str(error), inputs=node_inputs, error=str(error)))
+                    status = "BLOCKED"
+                    state["nextIndex"] = index
+                    break
+            elif node_type == "human-approval":
+                events.append(self._event(node, "WAITING", "Waiting for the configured human approver.", inputs=node_inputs, outputs={"approver": config.get("approver") or workflow.get("owner")}, transition={"from": "RUNNING", "to": "WAITING_APPROVAL"}))
+                status = "WAITING_APPROVAL"
+                state.update({"nextIndex": index + 1, "approvalNodeId": node["id"]})
+                break
+            else:
+                if not executor:
+                    message = f"{NODE_TYPES[node_type]} has no configured live integration; no external action was performed."
+                    events.append(self._event(node, "BLOCKED", message, inputs=node_inputs, error=message))
+                    status, state["nextIndex"] = "BLOCKED", index
+                    break
+                attempts = max(0, min(int(config.get("maxRetries", 0) or 0), 3)) + 1
+                last_error = ""
+                retry_errors: list[str] = []
+                for attempt in range(attempts):
+                    try:
+                        accepts_context = len(inspect.signature(executor).parameters) >= 2
+                        result = executor(node, {"workflow": workflow, "outputs": outputs, "inputs": node_inputs}) if accepts_context else executor(node)
+                        if not isinstance(result, dict):
+                            raise ValueError("The node executor returned an invalid result.")
+                        node_output = result.get("outputs") if isinstance(result.get("outputs"), dict) else result
+                        outputs[node["id"]] = node_output
+                        events.append(self._event(node, "COMPLETED", str(result.get("message") or f"{NODE_TYPES[node_type]} completed through a configured backend service."), inputs=node_inputs, outputs=node_output, error=" | ".join(retry_errors), retries=attempt))
+                        break
+                    except Exception as error:
+                        last_error = str(error)
+                        retry_errors.append(last_error)
+                        if attempt == attempts - 1:
+                            events.append(self._event(node, "FAILED", last_error, inputs=node_inputs, error=last_error, retries=attempt))
+                            status, state["nextIndex"] = "BLOCKED", index
+                if status == "BLOCKED":
+                    break
+            state["nextIndex"] = index + 1
+        state["outputs"] = outputs
+        return status, events, state
+
+    def decide_approval(self, run_id: str, decision: str, actor: str, comment: str, executor: Callable[..., dict[str, Any]] | None = None) -> dict[str, Any]:
+        run = self.get_run(run_id)
+        if run["status"] != "WAITING_APPROVAL":
+            raise ValueError("Only a run waiting for approval can be decided.")
+        normalized = decision.upper()
+        if normalized not in {"APPROVE", "REJECT", "CHANGES"}:
+            raise ValueError("decision must be APPROVE, REJECT, or CHANGES.")
+        workflow = run["workflowSnapshot"] or self.get(run["workflowId"])
+        approval_node = next((node for node in workflow["nodes"] if node["id"] == run["state"].get("approvalNodeId")), {"id": "approval", "name": "Human Approval", "type": "human-approval"})
+        events = list(run["events"])
+        final_status = "APPROVED" if normalized == "APPROVE" else "REJECTED" if normalized == "REJECT" else "CHANGES_REQUESTED"
+        transition = {"from": "WAITING_APPROVAL", "to": final_status, "actor": actor, "comment": comment}
+        message = f"Approval {'approved' if normalized == 'APPROVE' else 'rejected' if normalized == 'REJECT' else 'returned for changes'} by {actor}."
+        events.append(self._event(approval_node, final_status, message, outputs={"decision": normalized, "actor": actor, "comment": comment}, transition=transition))
+        if normalized in {"REJECT", "CHANGES"}:
+            self.update(run["workflowId"], {"status": "DRAFT"})
+            return self._update_run(run_id, final_status, events, run["state"], completed=True)
+        status, events, state = self._execute(workflow, executor, events, run["state"])
+        self.update(run["workflowId"], {"status": "ACTIVE" if status in {"COMPLETED", "WAITING_APPROVAL"} else "DRAFT"})
+        return self._update_run(run_id, status, events, state, completed=status != "WAITING_APPROVAL")
+
+    def attach_verification(self, run_id: str, case_id: str) -> dict[str, Any]:
+        run = self.get_run(run_id)
+        if run["status"] != "WAITING_APPROVAL":
+            raise ValueError("Only a run waiting for approval can be linked to verification.")
+        with self._connect() as connection:
+            connection.execute("UPDATE workflow_runs SET verification_case_id=? WHERE id=?", (case_id, run_id))
+        return self.get_run(run_id)
+
+    def by_verification_case(self, case_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM workflow_runs WHERE verification_case_id=?", (case_id,)).fetchone()
+        return self._run(row) if row else None
 
     def list_runs(self, workflow_id: str | None = None) -> list[dict[str, Any]]:
         with self._connect() as connection:
@@ -230,13 +362,27 @@ class WorkflowStore:
                 rows = connection.execute("SELECT * FROM workflow_runs ORDER BY started_at DESC, rowid DESC LIMIT 100").fetchall()
         return [self._run(row) for row in rows]
 
-    def _record_run(self, workflow_id: str, mode: str, status: str, events: list[dict[str, Any]], validation: dict[str, Any]) -> dict[str, Any]:
+    def _record_run(self, workflow_id: str, mode: str, status: str, events: list[dict[str, Any]], validation: dict[str, Any], state: dict[str, Any] | None = None, workflow_snapshot: dict[str, Any] | None = None) -> dict[str, Any]:
         run_id = f"RUN-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
         now = utc_now()
         with self._connect() as connection:
-            connection.execute("INSERT INTO workflow_runs VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (run_id, workflow_id, mode, status, now, now, json.dumps(events), json.dumps(validation)))
+            connection.execute("""INSERT INTO workflow_runs
+                (id, workflow_id, mode, status, started_at, completed_at, events_json, validation_json, state_json, workflow_snapshot_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", (run_id, workflow_id, mode, status, now, None if status == "WAITING_APPROVAL" else now, json.dumps(events), json.dumps(validation), json.dumps(state or {}), json.dumps(workflow_snapshot or {})))
             row = connection.execute("SELECT * FROM workflow_runs WHERE id = ?", (run_id,)).fetchone()
         return self._run(row)
+
+    def get_run(self, run_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM workflow_runs WHERE id=?", (run_id,)).fetchone()
+        if row is None:
+            raise KeyError(run_id)
+        return self._run(row)
+
+    def _update_run(self, run_id: str, status: str, events: list[dict[str, Any]], state: dict[str, Any], *, completed: bool) -> dict[str, Any]:
+        with self._connect() as connection:
+            connection.execute("UPDATE workflow_runs SET status=?, completed_at=?, events_json=?, state_json=? WHERE id=?", (status, utc_now() if completed else None, json.dumps(events), json.dumps(state), run_id))
+        return self.get_run(run_id)
 
     @staticmethod
     def _ordered_nodes(workflow: dict[str, Any]) -> list[dict[str, Any]]:
@@ -264,4 +410,5 @@ class WorkflowStore:
 
     @staticmethod
     def _run(row: sqlite3.Row) -> dict[str, Any]:
-        return {"id": row["id"], "workflowId": row["workflow_id"], "mode": row["mode"], "status": row["status"], "startedAt": row["started_at"], "completedAt": row["completed_at"], "events": json.loads(row["events_json"]), "validation": json.loads(row["validation_json"])}
+        keys = set(row.keys())
+        return {"id": row["id"], "workflowId": row["workflow_id"], "mode": row["mode"], "status": row["status"], "startedAt": row["started_at"], "completedAt": row["completed_at"], "events": json.loads(row["events_json"]), "validation": json.loads(row["validation_json"]), "state": json.loads(row["state_json"]) if "state_json" in keys else {}, "workflowSnapshot": json.loads(row["workflow_snapshot_json"]) if "workflow_snapshot_json" in keys else {}, "verificationCaseId": row["verification_case_id"] if "verification_case_id" in keys else None}

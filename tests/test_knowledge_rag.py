@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import io
 import tempfile
 import unittest
 from pathlib import Path
@@ -151,6 +152,46 @@ class KnowledgeRagTests(unittest.TestCase):
                 restricted = client.get("/api/ask-bursa/suggestions?role=gcmc").get_json()
         self.assertEqual(len(permitted["suggestions"]), 1)
         self.assertEqual(restricted["suggestions"], [])
+
+    def test_administration_updates_permissions_lifecycle_and_suggestion_visibility(self) -> None:
+        index = KnowledgeIndex(self.index.database_path, self.knowledge_root, fake_embed, lambda *_: [{"question": "How is phishing reported?", "description": "Incident reporting"}])
+        saved = index.save_upload("security.txt", b"Report phishing through the incident portal.", {
+            "department": "group_technology", "owner": "Cybersecurity", "allowedRoles": ["gcmc"], "version": "1.0",
+        })
+        self.assertEqual(saved["relativePath"], "group_technology/security.txt")
+        index.ingest()
+        administration = index.administration()
+        document = administration["documentsList"][0]
+        self.assertEqual(document["lifecycle"], "ACTIVE")
+        self.assertEqual(document["allowedRoles"], ["gcmc"])
+
+        updated = index.update_document(document["id"], {"allowedRoles": ["hr"], "expiryDate": "2020-01-01", "version": "2.0"})["document"]
+        self.assertEqual(updated["lifecycle"], "EXPIRED")
+        self.assertEqual(updated["allowedRoles"], ["hr"])
+        self.assertEqual(index.search("phishing", "hr"), [])
+
+        suggestion = index.administration()["suggestionsList"][0]
+        index.update_suggestion(suggestion["id"], "HIDDEN", "How should phishing be reported?", "Security reporting")
+        self.assertEqual(index.list_suggestions("hr"), [])
+        removed = index.remove_document(document["id"])
+        self.assertEqual(removed["removed"], 1)
+        self.assertEqual(index.status()["documents"], 0)
+
+    def test_knowledge_admin_api_uploads_indexes_and_reports_ingestion(self) -> None:
+        from server import app
+
+        index = KnowledgeIndex(self.index.database_path, self.knowledge_root, fake_embed, lambda *_: [])
+        with patch("server.knowledge", index):
+            with app.test_client() as client:
+                uploaded = client.post("/api/knowledge-admin/documents", data={
+                    "file": (io.BytesIO(b"Manager approval is required for leave."), "leave.txt"),
+                    "metadata": json.dumps({"department": "human_resources", "owner": "HR", "allowedRoles": ["hr"], "version": "1.0"}),
+                }, content_type="multipart/form-data")
+                catalogue = client.get("/api/knowledge-admin").get_json()
+        self.assertEqual(uploaded.status_code, 201)
+        self.assertEqual(catalogue["documents"], 1)
+        self.assertEqual(catalogue["documentsList"][0]["owner"], "HR")
+        self.assertEqual(catalogue["ingestionRuns"][0]["errors"], [])
 
 
 if __name__ == "__main__":

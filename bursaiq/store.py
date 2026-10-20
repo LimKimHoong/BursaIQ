@@ -127,8 +127,8 @@ class VerificationStore:
         return self._case_dict(row)
 
     def update_status(self, case_id: str, status: str, actor: str, comment: str = "") -> dict[str, Any]:
-        if status not in {"Approved", "Changes requested"}:
-            raise ValueError("Status must be Approved or Changes requested")
+        if status not in {"Approved", "Rejected", "Changes requested"}:
+            raise ValueError("Status must be Approved, Rejected, or Changes requested")
         reviewed = utc_now()
         with self._connect() as connection:
             existing = connection.execute("SELECT status FROM verification_cases WHERE id = ?", (case_id,)).fetchone()

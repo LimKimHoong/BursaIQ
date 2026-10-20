@@ -24,9 +24,10 @@
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
-  if (["assistant", "ask-bursa", "workforce", "agent-library", "agent-builder", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  if (["assistant", "ask-bursa", "knowledge-admin", "workforce", "agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var requestedWorkflowId = new URLSearchParams(window.location.search).get("workflow");
   var requestedAgentId = new URLSearchParams(window.location.search).get("agent");
+  var requestedTeamId = new URLSearchParams(window.location.search).get("team");
   var state = {
     page: requestedPage,
     exchangeCategory: "featured",
@@ -38,6 +39,13 @@
     agentExecutions: [],
     agentLoading: false,
     agentError: "",
+    missionTeams: [],
+    activeMissionTeam: null,
+    selectedTeamStageId: null,
+    teamLoading: false,
+    teamError: "",
+    missionCapabilities: [],
+    capabilityError: "",
     assistantMessages: [],
     assistantConversationId: null,
     assistantCanvasTab: "plot",
@@ -45,6 +53,8 @@
     askBursaConversationId: null,
     askBursaKnowledge: null,
     askBursaSuggestions: [],
+    knowledgeAdmin: null,
+    knowledgeAdminError: "",
     savedDecisions: [],
     emailAutomations: [],
     selectedNode: "trigger",
@@ -90,9 +100,13 @@
     home: ["Home", "Your command centre", "i-home", "blue"],
     assistant: ["AI Assistant", "Ask, understand, decide", "i-spark", "violet"],
     "ask-bursa": ["Ask Bursa", "Internal knowledge Q&A", "i-book", "blue"],
+    "knowledge-admin": ["Knowledge Administration", "Govern Ask Bursa documents and topics", "i-folder", "teal"],
     workforce: ["My Workforce", "Agents, tasks and missions", "i-agents", "blue"],
     "agent-library": ["Agent Library", "Create and govern reusable AI agents", "i-agents", "violet"],
     "agent-builder": ["Agent Builder", "Configure models, tools and permissions", "i-spark", "violet"],
+    "mission-teams": ["Mission Teams", "Reusable governed agent teams", "i-agents", "teal"],
+    "mission-team-builder": ["Mission Team Builder", "Assign stages, agents and dependencies", "i-flow", "teal"],
+    "capability-library": ["Mission Capabilities", "Executable mission contracts", "i-cube", "blue"],
     exchange: ["Intelligence Exchange", "Discover approved capabilities", "i-exchange", "teal"],
     automation: ["Automation Studio", "Build intelligent workflows", "i-automation", "violet"],
     "workflow-builder": ["Workflow Builder", "Configure nodes, dependencies and execution", "i-flow", "violet"],
@@ -138,6 +152,15 @@
     });
   }
 
+  function apiForm(url, formData) {
+    return fetch(url, { method: "POST", body: formData }).then(function (response) {
+      return response.json().catch(function () { return {}; }).then(function (payload) {
+        if (!response.ok) throw new Error(payload.error || "The knowledge service could not complete this request.");
+        return payload;
+      });
+    });
+  }
+
   function loadModelProviders() {
     return apiJson("/api/model-providers").then(function (payload) {
       state.modelProviders = payload.providers || [];
@@ -166,6 +189,19 @@
     }).catch(function () {
       state.askBursaSuggestions = [];
       return [];
+    });
+  }
+
+  function loadKnowledgeAdmin() {
+    return apiJson("/api/knowledge-admin").then(function (payload) {
+      state.knowledgeAdmin = payload;
+      state.knowledgeAdminError = "";
+      if (state.page === "knowledge-admin") render();
+      return payload;
+    }).catch(function (error) {
+      state.knowledgeAdminError = error.message;
+      if (state.page === "knowledge-admin") render();
+      return null;
     });
   }
 
@@ -253,6 +289,62 @@
       if (["workforce", "agent-library", "agent-builder", "workflow-builder"].indexOf(state.page) !== -1) render();
       return [];
     });
+  }
+
+  function loadMissionTeams() {
+    state.teamLoading = true;
+    return apiJson("/api/mission-teams?includeArchived=true").then(function (payload) {
+      state.missionTeams = payload.teams || [];
+      state.teamLoading = false;
+      state.teamError = "";
+      if (["workforce", "mission-teams", "mission-team-builder"].indexOf(state.page) !== -1) render();
+      return state.missionTeams;
+    }).catch(function (error) {
+      state.teamLoading = false;
+      state.teamError = error.message;
+      if (["workforce", "mission-teams", "mission-team-builder"].indexOf(state.page) !== -1) render();
+      return [];
+    });
+  }
+
+  function loadMissionCapabilities() {
+    return apiJson("/api/mission-capabilities?includeArchived=true").then(function (payload) {
+      state.missionCapabilities = payload.capabilities || [];
+      state.capabilityError = "";
+      if (["workforce", "capability-library", "mission-team-builder"].indexOf(state.page) !== -1) render();
+      return state.missionCapabilities;
+    }).catch(function (error) {
+      state.capabilityError = error.message;
+      if (["workforce", "capability-library", "mission-team-builder"].indexOf(state.page) !== -1) render();
+      return [];
+    });
+  }
+
+  function defaultTeamStages() {
+    var defaults = [["mission-manager", "mission-manager", "Scope and plan"], ["data", "data-agent", "Gather and validate data"], ["analysis", "analysis-agent", "Execute analysis"], ["insight", "insight-agent", "Develop findings"], ["report", "report-agent", "Generate deliverable"]];
+    var base = "stage-" + Date.now() + "-";
+    return defaults.map(function (item, index) { return { id: base + index, stageType: item[0], agentId: item[1], name: item[2], responsibility: "", dependencies: index ? [base + (index - 1)] : [] }; });
+  }
+
+  function openMissionTeamBuilder(id) {
+    state.page = "mission-team-builder";
+    state.teamError = "";
+    if (!id) {
+      var stages = defaultTeamStages();
+      state.activeMissionTeam = { name: "", description: "", owner: "Lim Kim Hoong", capability: "adv-analysis", status: "ACTIVE", version: 1, stages: stages };
+      state.selectedTeamStageId = stages[0].id;
+      window.history.replaceState(null, "", "?page=mission-team-builder");
+      render();
+      return;
+    }
+    state.teamLoading = true;
+    window.history.replaceState(null, "", "?page=mission-team-builder&team=" + encodeURIComponent(id));
+    apiJson("/api/mission-teams/" + encodeURIComponent(id)).then(function (team) {
+      state.activeMissionTeam = team;
+      state.selectedTeamStageId = team.stages.length ? team.stages[0].id : null;
+      state.teamLoading = false;
+      render();
+    }).catch(function (error) { state.teamError = error.message; state.teamLoading = false; state.activeMissionTeam = null; render(); });
   }
 
   function openAgentBuilder(id) {
@@ -531,7 +623,7 @@
     var documentCount = state.askBursaKnowledge ? Number(state.askBursaKnowledge.documents || 0) : null;
     return [
       '<section class="ask-bursa-page">',
-      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><span class="context-state"><i class="dot"></i> ' + (documentCount === null ? "Checking knowledge index" : documentCount + " indexed document" + (documentCount === 1 ? "" : "s")) + '</span></header>',
+      '<header class="assistant-head"><div><h1>Ask Bursa</h1><p>Your internal question-and-answer channel across Bursa departments.</p></div><div class="page-head-actions"><span class="context-state"><i class="dot"></i> ' + (documentCount === null ? "Checking knowledge index" : documentCount + " indexed document" + (documentCount === 1 ? "" : "s")) + '</span><button class="secondary-button" type="button" data-page-jump="knowledge-admin">Manage knowledge</button></div></header>',
       '<div class="ask-bursa-main">',
       '<div class="assistant-thread ask-bursa-thread" id="ask-bursa-thread">',
       state.askBursaMessages.length ? messages : askBursaWelcome(),
@@ -548,6 +640,22 @@
 
   function bursaSuggestion(title, description) {
     return '<button class="suggestion" type="button" data-bursa-prompt="' + escapeHtml(title) + '"><strong>' + escapeHtml(title) + '</strong><small>' + escapeHtml(description) + '</small></button>';
+  }
+
+  function knowledgeAdministrationPage() {
+    var data = state.knowledgeAdmin;
+    if (!data) return '<section class="page page-enter">' + pageHead("Knowledge Administration", "Upload, govern, index, and retire Ask Bursa sources.") + '<div class="clean-empty"><strong>' + escapeHtml(state.knowledgeAdminError || "Loading knowledge catalogue…") + '</strong></div></section>';
+    var departments = (data.departments || []).map(function (item) { return '<option value="' + escapeHtml(item) + '">' + escapeHtml(item.replace(/_/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); })) + '</option>'; }).join("");
+    var roles = (data.roles || []).map(function (role) { return '<label><input type="checkbox" name="allowedRoles" value="' + escapeHtml(role) + '" checked>' + escapeHtml(role.toUpperCase()) + '</label>'; }).join("");
+    var replacementOptions = '<option value="">Does not replace another source</option>' + (data.documentsList || []).map(function (item) { return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.filename + " · v" + item.version) + '</option>'; }).join("");
+    var documents = (data.documentsList || []).map(function (item) {
+      var roleChecks = (data.roles || []).map(function (role) { return '<label><input type="checkbox" name="allowedRoles" value="' + escapeHtml(role) + '"' + (item.allowedRoles.indexOf(role) !== -1 ? " checked" : "") + '>' + escapeHtml(role.toUpperCase()) + '</label>'; }).join("");
+      var lifecycleTone = item.lifecycle === "ACTIVE" ? "teal" : "amber";
+      return '<article class="knowledge-document-card"><div class="knowledge-document-summary">' + miniIcon("i-document", lifecycleTone) + '<span><strong>' + escapeHtml(item.filename) + '</strong><small>' + escapeHtml(item.departmentLabel + " · " + item.classification + " · v" + item.version) + '</small><small>' + Number(item.chunks) + ' chunks · ' + Number(item.suggestions) + ' suggested questions · indexed ' + escapeHtml(formatWorkflowDate(item.indexedAt)) + '</small></span>' + status(item.lifecycle) + '</div><details><summary>Edit governance and permissions</summary><form class="knowledge-metadata-form" data-document-id="' + escapeHtml(item.id) + '"><div class="form-split"><label class="form-field">Owner<input name="owner" required maxlength="120" value="' + escapeHtml(item.owner) + '"></label><label class="form-field">Classification<select name="classification"><option' + (item.classification === "Internal" ? " selected" : "") + '>Internal</option><option' + (item.classification === "Confidential" ? " selected" : "") + '>Confidential</option><option' + (item.classification === "Public" ? " selected" : "") + '>Public</option></select></label></div><div class="form-split"><label class="form-field">Version<input name="version" required maxlength="40" value="' + escapeHtml(item.version) + '"></label><label class="form-field">Effective date<input name="effectiveDate" type="date" value="' + escapeHtml(item.effectiveDate || "") + '"></label></div><div class="form-split"><label class="form-field">Expiry date<input name="expiryDate" type="date" value="' + escapeHtml(item.expiryDate || "") + '"></label><label class="form-field">Replaces source<select name="replacesDocumentId">' + replacementOptions.replace('value="' + item.id + '"', 'value="' + item.id + '" disabled') .replace('value="' + (item.replacesDocumentId || "__none__") + '"', 'value="' + (item.replacesDocumentId || "__none__") + '" selected') + '</select></label></div><fieldset class="knowledge-role-list"><legend>Permitted roles</legend>' + roleChecks + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-knowledge-remove="' + escapeHtml(item.id) + '">Remove source</button><button class="secondary-button" type="button" data-knowledge-reindex="' + escapeHtml(item.id) + '">Re-index</button><button class="primary-button" type="submit">Save metadata</button></div></form></details></article>';
+    }).join("");
+    var suggestions = (data.suggestionsList || []).map(function (item) { return '<form class="knowledge-suggestion-row" data-suggestion-id="' + escapeHtml(item.id) + '"><div><strong>' + escapeHtml(item.sourceDocument) + '</strong><small>' + escapeHtml(item.department + " · source v" + item.sourceVersion) + '</small></div><label class="form-field">Question<input name="question" maxlength="180" value="' + escapeHtml(item.question) + '" required></label><label class="form-field">Description<input name="description" maxlength="220" value="' + escapeHtml(item.description) + '"></label><select name="status" aria-label="Suggestion visibility"><option value="ACTIVE"' + (item.status === "ACTIVE" ? " selected" : "") + '>Visible</option><option value="HIDDEN"' + (item.status === "HIDDEN" ? " selected" : "") + '>Hidden</option></select><button class="secondary-button" type="submit">Save</button></form>'; }).join("");
+    var runs = (data.ingestionRuns || []).map(function (run) { var errors = (run.errors || []).map(function (error) { return '<li><strong>' + escapeHtml(error.path) + '</strong> — ' + escapeHtml(error.error) + '</li>'; }).join(""); return '<article class="ingestion-run"><div><strong>' + escapeHtml(run.id) + '</strong><small>' + escapeHtml(formatWorkflowDate(run.completedAt)) + '</small></div><span>Indexed ' + Number(run.indexed) + ' · unchanged ' + Number(run.unchanged) + ' · removed ' + Number(run.removed) + '</span>' + (errors ? '<details><summary>' + run.errors.length + ' failure' + (run.errors.length === 1 ? "" : "s") + '</summary><ul>' + errors + '</ul></details>' : status("Completed")) + '</article>'; }).join("");
+    return '<section class="page page-enter knowledge-admin-page"><header class="page-head"><div><h1>Knowledge Administration</h1><p>Maintain the governed document collection used by Ask Bursa.</p></div><div class="page-head-actions"><button class="secondary-button" type="button" data-page-jump="ask-bursa">Open Ask Bursa</button><button class="primary-button" type="button" data-knowledge-ingest>Run ingestion</button></div></header>' + (state.knowledgeAdminError ? '<div class="mission-failure"><strong>Knowledge service unavailable</strong><small>' + escapeHtml(state.knowledgeAdminError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-document", "blue", String(data.documents || 0), "Indexed documents", "Permission filtered") + metric("i-cube", "teal", String(data.chunks || 0), "Searchable passages", "Embedded locally") + metric("i-spark", "violet", String(data.suggestions || 0), "Generated topics", "Reviewable below") + metric("i-clock", "amber", String((data.documentsList || []).filter(function (item) { return item.lifecycle !== "ACTIVE"; }).length), "Expired or replaced", "Excluded from retrieval") + '</div><section class="panel knowledge-upload-panel"><div class="panel-head"><div><h2>Upload an approved source</h2><p>The file is stored in its department folder and indexed using its governance metadata.</p></div></div><form id="knowledge-upload-form" class="knowledge-upload-form"><label class="form-field">Document<input name="file" type="file" required accept="' + escapeHtml((data.supportedExtensions || []).join(",")) + '"></label><div class="form-split"><label class="form-field">Department<select name="department" required>' + departments + '</select></label><label class="form-field">Owner<input name="owner" maxlength="120" required></label></div><div class="form-split"><label class="form-field">Classification<select name="classification"><option>Internal</option><option>Confidential</option><option>Public</option></select></label><label class="form-field">Version<input name="version" value="1.0" maxlength="40" required></label></div><div class="form-split"><label class="form-field">Effective date<input name="effectiveDate" type="date"></label><label class="form-field">Expiry date<input name="expiryDate" type="date"></label></div><label class="form-field">Replaces source<select name="replacesDocumentId">' + replacementOptions + '</select></label><fieldset class="knowledge-role-list"><legend>Permitted roles</legend>' + roles + '</fieldset><button class="primary-button" type="submit">Upload and index</button></form></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Document catalogue</h2><p>Edit access, re-index changed sources, or remove retired content.</p></div></div><div class="knowledge-document-list">' + (documents || '<div class="clean-empty"><strong>No indexed documents</strong><p>Upload the first approved source above.</p></div>') + '</div></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Suggested question review</h2><p>Only visible questions can appear on the Ask Bursa welcome screen.</p></div></div><div class="knowledge-suggestion-list">' + (suggestions || '<div class="clean-empty"><strong>No generated questions</strong><p>Questions are generated when supported documents are ingested.</p></div>') + '</div></section><section class="panel knowledge-admin-section"><div class="panel-head"><div><h2>Ingestion history and failures</h2><p>Extraction, embedding, and suggestion errors remain visible for remediation.</p></div></div><div class="ingestion-run-list">' + (runs || '<div class="clean-empty"><strong>No ingestion runs yet</strong></div>') + '</div></section></section>';
   }
 
   function bursaMessageHtml(message, messageIndex) {
@@ -701,7 +809,7 @@
     return [
       '<section class="page page-enter">',
       pageHead("My Workforce", "Create, run, and monitor governed AI missions.", "New AI mission", "mission"),
-      '<section class="mission-launch panel"><div class="mission-launch-copy"><span class="assistant-eyebrow">AI-planned missions</span><h2>What outcome should your AI workforce deliver?</h2><p>Describe the objective, reporting period, and expected output. BursaIQ uses the selected live model to route the request to an available capability and retains the execution history for review.</p></div><div class="mission-launch-action"><strong>Start with an objective</strong><small>The mission plan and required inputs are determined from your request.</small><button class="primary-button" type="button" data-create="mission">Create mission</button></div></section>',
+      '<section class="mission-launch panel"><div class="mission-launch-copy"><span class="assistant-eyebrow">AI-planned missions</span><h2>What outcome should your AI workforce deliver?</h2><p>Describe the objective, reporting period, and expected output. BursaIQ validates the routed capability and selected reusable team before execution, then retains both versioned contracts.</p></div><div class="mission-launch-action"><strong>Start with an objective</strong><small>The live model may select only a registered, executable capability.</small><button class="primary-button" type="button" data-create="mission">Create mission</button><button class="secondary-button" type="button" data-page-jump="mission-teams">Build mission team</button><button class="secondary-button" type="button" data-page-jump="capability-library">View capabilities</button></div></section>',
       '<div class="page-with-rail"><div class="page-primary">',
       '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>' + state.liveMissions.length + '</b> total missions</span><span><b>' + completed.length + '</b> completed</span><em>Mission state and review history are persisted by the backend</em></div>',
       '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div></section>",
@@ -736,6 +844,31 @@
     var persisted = Boolean(agent.id);
     var executions = state.agentExecutions.length ? state.agentExecutions.map(function (item) { return '<article class="agent-run-row">' + workflowStatus(item.status) + '<span><strong>' + escapeHtml(item.prompt) + '</strong><small>' + escapeHtml(item.response || item.error || "No response recorded") + '</small></span><time>' + escapeHtml(formatWorkflowDate(item.createdAt)) + '</time></article>'; }).join("") : '<div class="clean-empty compact"><strong>No test executions yet</strong><p>Save the agent, then run a live provider test.</p></div>';
     return '<section class="page page-enter agent-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="agent-library">← Agent Library</button><div><strong>' + escapeHtml(persisted ? agent.name : "New agent") + '</strong><p>' + (persisted ? escapeHtml(agent.id) + ' · version ' + Number(agent.version) : 'Unsaved registry agent') + '</p></div><div class="builder-actions">' + (persisted ? '<button class="danger-button" type="button" data-agent-action="archive">Archive</button><button class="secondary-button" type="button" data-agent-action="duplicate">Duplicate</button>' : '') + '<button class="primary-button" type="submit" form="agent-builder-form">' + (persisted ? "Save new version" : "Create agent") + '</button></div></header><div class="agent-builder-layout"><form class="panel agent-builder-form" id="agent-builder-form"><div class="content-view-head"><div><h2>Identity &amp; instructions</h2><p>Define what the agent may do and who is accountable for it.</p></div>' + workflowStatus(agent.status) + '</div><div class="form-split"><label class="form-field">Agent name<input name="name" maxlength="120" required value="' + escapeHtml(agent.name) + '"></label><label class="form-field">Department<input name="department" maxlength="120" required value="' + escapeHtml(agent.department) + '"></label></div><label class="form-field">Description<textarea name="description" maxlength="500" required>' + escapeHtml(agent.description) + '</textarea></label><label class="form-field">System instructions<textarea name="instructions" maxlength="5000" required>' + escapeHtml(agent.instructions) + '</textarea></label><div class="form-split"><label class="form-field">Owner<input name="owner" maxlength="120" required value="' + escapeHtml(agent.owner) + '"></label><label class="form-field">Status<select name="status"><option value="ACTIVE"' + (agent.status === "ACTIVE" ? " selected" : "") + '>Active</option><option value="DISABLED"' + (agent.status === "DISABLED" ? " selected" : "") + '>Disabled</option><option value="ARCHIVED"' + (agent.status === "ARCHIVED" ? " selected" : "") + '>Archived</option></select></label></div><h2>Model configuration</h2><div class="form-split"><label class="form-field">Provider<select name="provider"><option value="ollama"' + (agent.provider === "ollama" ? " selected" : "") + '>Local Ollama</option><option value="copilot"' + (agent.provider === "copilot" ? " selected" : "") + '>Microsoft Copilot Studio</option></select></label><label class="form-field">Model<input name="model" maxlength="120" required value="' + escapeHtml(agent.model) + '"></label></div><div class="form-split"><label class="form-field">Temperature<input type="number" name="temperature" min="0" max="2" step="0.1" value="' + Number(agent.generation.temperature) + '"></label><label class="form-field">Maximum output tokens<input type="number" name="maxTokens" min="64" max="32768" step="1" value="' + Number(agent.generation.maxTokens) + '"></label></div><h2>Access &amp; capabilities</h2><label class="form-field">Allowed roles <small>Comma-separated: employee, gcmc, hr, securities, finance</small><input name="roles" value="' + escapeHtml(agentListValue(agent.roles)) + '"></label><label class="form-field">Knowledge collections<input name="knowledgeCollections" value="' + escapeHtml(agentListValue(agent.knowledgeCollections)) + '" placeholder="market_operations, regulations"></label><label class="form-field">Connectors<input name="connectors" value="' + escapeHtml(agentListValue(agent.connectors)) + '" placeholder="sharepoint, email"></label><label class="form-field">Supported tools<input name="tools" value="' + escapeHtml(agentListValue(agent.tools)) + '"></label><label class="form-field">Mission capabilities<input name="capabilities" value="' + escapeHtml(agentListValue(agent.capabilities)) + '"></label><label class="form-field">Approval policy<select name="approvalPolicy"><option value="none"' + (agent.approvalPolicy === "none" ? " selected" : "") + '>No additional approval</option><option value="human-review"' + (agent.approvalPolicy === "human-review" ? " selected" : "") + '>Human review</option><option value="high-impact"' + (agent.approvalPolicy === "high-impact" ? " selected" : "") + '>High-impact approval</option></select></label><div class="form-split"><label class="form-field">Input schema (JSON)<textarea name="inputSchema" class="schema-field">' + escapeHtml(JSON.stringify(agent.inputSchema, null, 2)) + '</textarea></label><label class="form-field">Output schema (JSON)<textarea name="outputSchema" class="schema-field">' + escapeHtml(JSON.stringify(agent.outputSchema, null, 2)) + '</textarea></label></div><p class="form-error" id="agent-form-error" hidden></p></form><aside class="agent-test-column"><section class="panel agent-test-panel"><div class="panel-head"><h2>' + svg("i-spark") + 'Live test console</h2></div><form id="agent-test-form"><label class="form-field">Test request<textarea name="prompt" required placeholder="Ask this agent to perform a bounded test…"></textarea></label><button class="primary-button" type="submit"' + (persisted && agent.status === "ACTIVE" ? "" : " disabled") + '>Run live test</button><p class="form-hint">Tests call the configured provider and are retained in execution history.</p></form></section><section class="panel agent-history"><div class="panel-head"><h2>' + svg("i-clock") + 'Execution history</h2></div>' + executions + '</section></aside></div></section>';
+  }
+
+  function missionTeamsPage() {
+    var cards = state.missionTeams.map(function (team) { return '<article class="agent-card team-card" data-filter-text="' + escapeHtml(team.name + " " + team.owner + " " + team.capability) + '"><div class="agent-card-head">' + miniIcon("i-agents", "teal") + '<span><strong>' + escapeHtml(team.name) + '</strong><small>' + escapeHtml(team.status) + ' · v' + Number(team.version) + '</small></span></div><p>' + escapeHtml(team.description) + '</p><div class="agent-card-meta"><span>' + team.stages.length + ' stages</span><span>' + escapeHtml(team.capability) + '</span></div><button type="button" data-team-id="' + escapeHtml(team.id) + '">Configure ' + svg("i-arrow") + '</button></article>'; }).join("");
+    return '<section class="page page-enter">' + pageHead("Mission Teams", "Build reusable teams from registered agents, responsibilities, and dependency rules.") + '<section class="panel"><div class="tabs-toolbar"><button class="secondary-button" type="button" data-page-jump="workforce">← My Workforce</button><label class="inline-search">' + svg("i-search") + '<input id="team-search" type="search" placeholder="Search mission teams…"></label><span class="toolbar-spacer"></span><button class="primary-button" type="button" data-team-new>Build mission team</button></div>' + (state.teamLoading ? '<div class="clean-empty"><strong>Loading mission teams…</strong></div>' : state.teamError ? '<div class="mission-failure"><strong>Mission Team service unavailable</strong><small>' + escapeHtml(state.teamError) + '</small></div>' : cards ? '<div class="agent-cards registry-agent-grid">' + cards + '</div><div class="empty-state" id="team-empty" hidden><h3>No teams match</h3></div>' : '<div class="clean-empty"><strong>No mission teams yet</strong><p>Build a reusable team from registered agents.</p></div>') + '</section></section>';
+  }
+
+  function capabilityLibraryPage() {
+    var cards = state.missionCapabilities.map(function (item) {
+      return '<article class="agent-card team-card"><div class="agent-card-head">' + miniIcon("i-cube", item.executable ? "teal" : "amber") + '<span><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.status) + ' · v' + Number(item.version) + '</small></span></div><p>' + escapeHtml(item.description) + '</p><div class="agent-card-meta"><span>' + escapeHtml(item.outputSchema) + '</span><span>' + escapeHtml(item.executor) + '</span></div><div class="detail-callout">' + svg(item.executable ? "i-check" : "i-clock") + '<span><strong>' + (item.executable ? "Executable" : "Unavailable") + '</strong><small>' + escapeHtml(item.availabilityReason) + '</small></span></div><small>Required inputs: ' + escapeHtml((item.requiredInputs || []).join(", ") || "None") + '</small></article>';
+    }).join("");
+    return '<section class="page page-enter">' + pageHead("Mission Capabilities", "The registry controls what the live router may select and what Python may execute.") + '<section class="panel"><div class="tabs-toolbar"><button class="secondary-button" type="button" data-page-jump="workforce">← My Workforce</button><span class="toolbar-spacer"></span><small>Metadata alone cannot install an executor.</small></div>' + (state.capabilityError ? '<div class="mission-failure"><strong>Capability Registry unavailable</strong><small>' + escapeHtml(state.capabilityError) + '</small></div>' : cards ? '<div class="agent-cards registry-agent-grid">' + cards + '</div>' : '<div class="clean-empty"><strong>No mission capabilities registered</strong></div>') + '</section></section>';
+  }
+
+  function missionTeamBuilderPage() {
+    if (state.teamLoading) return '<section class="page page-enter"><div class="clean-empty"><strong>Opening Mission Team Builder…</strong></div></section>';
+    var team = state.activeMissionTeam;
+    if (!team) return '<section class="page page-enter">' + pageHead("Mission Team Builder", "The selected team could not be opened.") + '<div class="mission-failure"><strong>Mission team unavailable</strong><small>' + escapeHtml(state.teamError) + '</small></div></section>';
+    var selected = team.stages.filter(function (stage) { return stage.id === state.selectedTeamStageId; })[0] || team.stages[0];
+    var typeLabels = { "mission-manager": "Mission Manager", data: "Gather Data", analysis: "Analysis", insight: "Insight", report: "Report" };
+    var stages = team.stages.map(function (stage, index) { var agent = state.registeredAgents.filter(function (item) { return item.id === stage.agentId; })[0]; return '<article class="builder-node ' + (selected && selected.id === stage.id ? "is-selected" : "") + '" data-team-stage="' + escapeHtml(stage.id) + '"><span class="builder-node-order">' + (index + 1) + '</span>' + miniIcon("i-spark", "teal") + '<span><strong>' + escapeHtml(stage.name) + '</strong><small>' + escapeHtml(typeLabels[stage.stageType] || stage.stageType) + ' · ' + escapeHtml(agent ? agent.name : stage.agentId) + '</small></span><span class="builder-node-controls"><button type="button" data-team-stage-move="up" data-stage-id="' + escapeHtml(stage.id) + '"' + (index === 0 ? " disabled" : "") + '>↑</button><button type="button" data-team-stage-move="down" data-stage-id="' + escapeHtml(stage.id) + '"' + (index === team.stages.length - 1 ? " disabled" : "") + '>↓</button></span></article>'; }).join('<span class="builder-connector">↓</span>');
+    var activeAgents = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; });
+    var configuration = selected ? '<form id="team-stage-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Stage name<input name="name" required maxlength="120" value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Stage responsibility<textarea name="responsibility" maxlength="1000">' + escapeHtml(selected.responsibility || "") + '</textarea></label><label class="form-field">Stage type<select name="stageType">' + Object.keys(typeLabels).map(function (type) { return '<option value="' + type + '"' + (selected.stageType === type ? " selected" : "") + '>' + typeLabels[type] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned registered agent<select name="agentId">' + activeAgents.map(function (agent) { return '<option value="' + escapeHtml(agent.id) + '"' + (agent.id === selected.agentId ? " selected" : "") + '>' + escapeHtml(agent.name + " · " + agent.model + " · v" + agent.version) + '</option>'; }).join("") + '</select></label><div class="agent-assignment-scope">' + (function () { var agent = activeAgents.filter(function (item) { return item.id === selected.agentId; })[0]; return agent ? '<small>Tools</small><strong>' + escapeHtml(agentListValue(agent.tools) || "None declared") + '</strong><small>Knowledge</small><strong>' + escapeHtml(agentListValue(agent.knowledgeCollections) || "None declared") + '</strong><small>Connectors</small><strong>' + escapeHtml(agentListValue(agent.connectors) || "None declared") + '</strong>' : '<small>Select an active agent.</small>'; }()) + '</div><fieldset class="node-dependencies"><legend>Dependencies</legend>' + team.stages.filter(function (item) { return item.id !== selected.id; }).map(function (item) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(item.id) + '"' + ((selected.dependencies || []).indexOf(item.id) !== -1 ? " checked" : "") + '>' + escapeHtml(item.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-team-stage-delete="' + escapeHtml(selected.id) + '">Remove stage</button><button class="primary-button" type="submit">Apply stage</button></div></form>' : '<div class="clean-empty compact"><strong>Add or select a stage</strong></div>';
+    var capabilityOptions = state.missionCapabilities.map(function (item) { return '<option value="' + escapeHtml(item.id) + '"' + (item.id === team.capability ? " selected" : "") + '>' + escapeHtml(item.name + (item.executable ? " · executable" : " · unavailable")) + '</option>'; }).join("");
+    return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="mission-teams">← Mission Teams</button><div><input id="team-name" maxlength="120" value="' + escapeHtml(team.name) + '" placeholder="Mission team name"><p>' + (team.id ? escapeHtml(team.id) + ' · version ' + Number(team.version) : 'Unsaved reusable team') + '</p></div><div class="builder-actions">' + (team.id ? '<button class="secondary-button" type="button" data-team-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-team-action="validate">Validate team</button>' : '') + '<button class="primary-button" type="button" data-team-action="save">Save team</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Team stages</strong><button class="secondary-button" type="button" data-team-stage-add>Add stage</button></div><div class="builder-flow">' + stages + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Stage configuration</h2></div>' + configuration + '</aside></div><section class="panel team-details"><div class="form-split"><label class="form-field">Description<textarea id="team-description" maxlength="600">' + escapeHtml(team.description) + '</textarea></label><label class="form-field">Owner<input id="team-owner" maxlength="120" value="' + escapeHtml(team.owner) + '"><span>Capability</span><select id="team-capability"' + (team.builtIn ? " disabled" : "") + '>' + capabilityOptions + '</select></label></div><p class="form-error" id="team-form-error" hidden></p></section></section>';
   }
 
   function missionRow(mission) {
@@ -840,9 +973,12 @@
     var nodeTypes = [["trigger", "Trigger"], ["gather-data", "Gather Data"], ["ai-agent", "AI Agent"], ["condition", "Condition"], ["human-approval", "Human Approval"], ["generate-report", "Generate Report"], ["publish-send", "Publish / Send"]];
     var nodes = workflow.nodes.map(function (node, index) { var incoming = workflow.connections.filter(function (item) { return item.target === node.id; }).map(function (item) { var source = workflow.nodes.filter(function (candidate) { return candidate.id === item.source; })[0]; return source ? source.name : item.source; }); return '<article class="builder-node ' + (selected && selected.id === node.id ? "is-selected" : "") + '" draggable="true" data-workflow-node="' + escapeHtml(node.id) + '"><span class="builder-node-order">' + (index + 1) + '</span>' + miniIcon(workflowNodeIcon(node.type), workflowNodeTone(node.type)) + '<span><strong>' + escapeHtml(node.name) + '</strong><small>' + escapeHtml(nodeTypes.filter(function (item) { return item[0] === node.type; })[0][1]) + (incoming.length ? " · after " + escapeHtml(incoming.join(", ")) : "") + '</small></span><span class="builder-node-controls"><button type="button" aria-label="Move step up" data-node-move="up" data-node-id="' + escapeHtml(node.id) + '"' + (index === 0 ? " disabled" : "") + '>↑</button><button type="button" aria-label="Move step down" data-node-move="down" data-node-id="' + escapeHtml(node.id) + '"' + (index === workflow.nodes.length - 1 ? " disabled" : "") + '>↓</button></span></article>'; }).join('<span class="builder-connector">↓</span>');
     var assignableAgents = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; });
-    var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<select name="agentId"><option value="">Select a registered agent</option>' + assignableAgents.map(function (agent) { return '<option value="' + escapeHtml(agent.id) + '"' + (agent.id === (selectedConfig.agentId || selectedConfig.agent) ? " selected" : "") + '>' + escapeHtml(agent.name + " · " + agent.provider + " · v" + agent.version) + '</option>'; }).join("") + '</select></label><button class="canvas-action-link" type="button" data-page-jump="agent-library">Manage Agent Library ' + svg("i-arrow") + '</button><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="Use true or always for a local condition"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
+    var capabilityOptions = state.missionCapabilities.filter(function (item) { return item.status === "ACTIVE"; }).map(function (item) { return '<option value="' + escapeHtml(item.id) + '"' + (item.id === selectedConfig.capabilityId ? " selected" : "") + '>' + escapeHtml(item.name + " · v" + item.version) + '</option>'; }).join("");
+    var config = selected ? '<form id="node-config-form" class="node-config-form"><input type="hidden" name="id" value="' + escapeHtml(selected.id) + '"><label class="form-field">Step name<input name="name" maxlength="100" required value="' + escapeHtml(selected.name) + '"></label><label class="form-field">Step type<select name="type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '"' + (item[0] === selected.type ? " selected" : "") + '>' + item[1] + '</option>'; }).join("") + '</select></label><label class="form-field">Assigned AI agent<select name="agentId"><option value="">Select a registered agent</option>' + assignableAgents.map(function (agent) { return '<option value="' + escapeHtml(agent.id) + '"' + (agent.id === (selectedConfig.agentId || selectedConfig.agent) ? " selected" : "") + '>' + escapeHtml(agent.name + " · " + agent.provider + " · v" + agent.version) + '</option>'; }).join("") + '</select></label><button class="canvas-action-link" type="button" data-page-jump="agent-library">Manage Agent Library ' + svg("i-arrow") + '</button><label class="form-field">Registered capability<select name="capabilityId"><option value="">No capability constraint</option>' + capabilityOptions + '</select></label><button class="canvas-action-link" type="button" data-page-jump="capability-library">View Capability Registry ' + svg("i-arrow") + '</button><label class="form-field">Inputs<textarea name="inputs" maxlength="1000" placeholder="Describe required inputs">' + escapeHtml(selectedConfig.inputs || "") + '</textarea></label><label class="form-field">Outputs<textarea name="outputs" maxlength="1000" placeholder="Describe expected outputs">' + escapeHtml(selectedConfig.outputs || "") + '</textarea></label><label class="form-field">Condition<input name="expression" maxlength="300" value="' + escapeHtml(selectedConfig.expression || "") + '" placeholder="e.g. agent.response contains approved"></label><div class="form-split"><label class="form-field">Maximum retries<input type="number" name="maxRetries" min="0" max="3" value="' + Number(selectedConfig.maxRetries || 0) + '"></label><label class="form-field">Approver<input name="approver" maxlength="100" value="' + escapeHtml(selectedConfig.approver || workflow.owner) + '"></label></div><label class="form-field">Publish / Send integration<select name="integration"><option value=""' + (!selectedConfig.integration ? " selected" : "") + '>No configured integration</option><option value="publish-approved-mission"' + (selectedConfig.integration === "publish-approved-mission" ? " selected" : "") + '>Publish approved mission to Exchange</option></select></label><label class="form-field">Approved mission ID<input name="missionId" maxlength="100" value="' + escapeHtml(selectedConfig.missionId || "") + '" placeholder="Required only for Exchange publication"></label><fieldset class="node-dependencies"><legend>Dependencies / connections</legend>' + connectionTargets.map(function (node) { return '<label><input type="checkbox" name="dependency" value="' + escapeHtml(node.id) + '"' + (dependencies.indexOf(node.id) !== -1 ? " checked" : "") + '>' + escapeHtml(node.name) + '</label>'; }).join("") + '</fieldset><div class="node-config-actions"><button class="danger-button" type="button" data-node-delete="' + escapeHtml(selected.id) + '">Remove step</button><button class="primary-button" type="submit">Apply configuration</button></div></form>' : '<div class="clean-empty compact"><strong>Select a node</strong><p>Choose a step on the canvas to edit its inputs, outputs and dependencies.</p></div>';
     var latestRun = state.workflowRuns[0];
-    return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="automation">← Automation Studio</button><div><input id="workflow-name" maxlength="120" value="' + escapeHtml(workflow.name) + '" aria-label="Workflow name"><p>' + escapeHtml(workflow.id) + ' · Last saved ' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</p></div><div class="builder-actions"><button class="danger-button" type="button" data-workflow-action="delete">Delete</button><button class="secondary-button" type="button" data-workflow-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-workflow-action="test">Test Workflow</button><button class="secondary-button" type="button" data-workflow-action="save">Save Draft</button><button class="primary-button" type="button" data-workflow-action="run">Run Workflow</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Workflow canvas</strong><label>Add step<select id="workflow-node-type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '">' + item[1] + '</option>'; }).join("") + '</select></label><button class="secondary-button" type="button" data-node-add>Add step</button></div><div class="builder-flow">' + (nodes || '<div class="clean-empty"><strong>No steps yet</strong><p>Add a Trigger to begin.</p></div>') + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Node configuration</h2></div>' + config + '</aside></div><section class="panel builder-history"><div class="content-view-head"><div><h2>Validation &amp; execution history</h2><p>Every test and run is persisted by the Flask backend.</p></div>' + workflowStatus(workflow.status) + '</div>' + (latestRun ? '<div class="run-result">' + workflowStatus(latestRun.status) + '<span><strong>' + escapeHtml(latestRun.mode + " · " + latestRun.id) + '</strong><small>' + escapeHtml(latestRun.events.length ? latestRun.events[latestRun.events.length - 1].message : (latestRun.validation.errors || []).join(" ")) + '</small></span></div>' : '<div class="clean-empty compact"><strong>No tests or runs yet</strong></div>') + '</section></section>';
+    var runEvents = latestRun && latestRun.events ? latestRun.events.map(function (event) { return '<article class="agent-run-row">' + workflowStatus(event.status) + '<span><strong>' + escapeHtml(event.nodeName || "Validation") + '</strong><small>' + escapeHtml(event.message) + (event.retries ? " · retries: " + event.retries : "") + (event.error ? " · error: " + event.error : "") + '</small></span><time>' + escapeHtml(formatWorkflowDate(event.occurredAt)) + '</time></article>'; }).join("") : "";
+    var approvalActions = latestRun && latestRun.status === "WAITING_APPROVAL" ? '<div class="detail-callout">' + svg("i-shield") + '<span><strong>Review in Verification Centre</strong><small>This run is linked to the shared review queue and audit history.</small></span><button class="primary-button" type="button" data-page-jump="verification">Open review</button></div>' : "";
+    return '<section class="page page-enter workflow-builder-page"><header class="builder-head"><button class="secondary-button" type="button" data-page-jump="automation">← Automation Studio</button><div><input id="workflow-name" maxlength="120" value="' + escapeHtml(workflow.name) + '" aria-label="Workflow name"><p>' + escapeHtml(workflow.id) + ' · Last saved ' + escapeHtml(formatWorkflowDate(workflow.updatedAt)) + '</p></div><div class="builder-actions"><button class="danger-button" type="button" data-workflow-action="delete">Delete</button><button class="secondary-button" type="button" data-workflow-action="duplicate">Duplicate</button><button class="secondary-button" type="button" data-workflow-action="test">Test Workflow</button><button class="secondary-button" type="button" data-workflow-action="save">Save Draft</button><button class="primary-button" type="button" data-workflow-action="run">Run Workflow</button></div></header><div class="builder-layout"><section class="panel builder-canvas"><div class="builder-toolbar"><strong>Workflow canvas</strong><label>Add step<select id="workflow-node-type">' + nodeTypes.map(function (item) { return '<option value="' + item[0] + '">' + item[1] + '</option>'; }).join("") + '</select></label><button class="secondary-button" type="button" data-node-add>Add step</button></div><div class="builder-flow">' + (nodes || '<div class="clean-empty"><strong>No steps yet</strong><p>Add a Trigger to begin.</p></div>') + '</div></section><aside class="panel builder-properties"><div class="panel-head"><h2>' + svg("i-settings") + 'Node configuration</h2></div>' + config + '</aside></div><section class="panel builder-history"><div class="content-view-head"><div><h2>Validation &amp; execution history</h2><p>Inputs, outputs, errors, retries, and approval transitions are persisted by the Flask backend.</p></div>' + workflowStatus(workflow.status) + '</div>' + (latestRun ? '<div class="run-result">' + workflowStatus(latestRun.status) + '<span><strong>' + escapeHtml(latestRun.mode + " · " + latestRun.id) + '</strong><small>' + escapeHtml(latestRun.events.length ? latestRun.events[latestRun.events.length - 1].message : (latestRun.validation.errors || []).join(" ")) + '</small></span></div>' + approvalActions + '<div class="agent-run-list">' + runEvents + '</div>' : '<div class="clean-empty compact"><strong>No tests or runs yet</strong></div>') + '</section></section>';
   }
 
   function workflowNodeIcon(type) {
@@ -929,13 +1065,18 @@
     var selectedCase = selected ? state.verificationCases.filter(function (item) { return item.id === selected.verificationCaseId; })[0] : null;
     var linkedCaseIds = state.liveMissions.map(function (item) { return item.verificationCaseId; }).filter(Boolean);
     var standaloneCases = state.verificationCases.filter(function (item) { return linkedCaseIds.indexOf(item.id) === -1; });
-    var standaloneSelected = state.selectedVerificationCaseId ? standaloneCases.filter(function (item) { return item.id === state.selectedVerificationCaseId; })[0] : null;
+    var standaloneSelected = state.selectedVerificationCaseId ? standaloneCases.filter(function (item) { return item.id === state.selectedVerificationCaseId; })[0] : (!state.selectedVerificationMissionId && !pending.length ? standaloneCases.filter(function (item) { return item.status === "Pending review"; })[0] || standaloneCases[0] : null);
     if (standaloneSelected) { selected = null; selectedCase = standaloneSelected; }
     var retainedComment = selectedCase && selectedCase.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment retained</strong><small>' + escapeHtml(selectedCase.reviewerComment) + '</small></span></div>' : "";
     var queueItems = reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).concat(standaloneCases.map(function (item) { return '<button class="verification-item ' + (standaloneSelected && standaloneSelected.id === item.id ? "is-selected" : "") + '" type="button" data-verification-case="' + escapeHtml(item.id) + '">' + miniIcon("i-document", item.status === "Pending review" ? "amber" : "teal") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.workspace) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>'; }));
     var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : queueItems.length ? queueItems.join("") : '<div class="mission-empty"><strong>No packages awaiting review</strong><span>Submit a mission draft or verify an Assistant answer.</span></div>';
-    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + '<div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' source rows used</b><small>' + selected.result.metrics.tradingDays + ' reporting periods · source files fingerprinted</small></div></div><div class="review-scope"><div><small>Primary result</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p>' + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open deliverable</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect versioned mission outputs, evidence, and review history before they move forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Assigned reviewer") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Persisted output and source payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions are recorded with the active reviewer identity and persisted in the audit store.</p></section>';
+    var missionPreview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + missionResultSections(selected.result) + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : '') + '</div>' : "";
+    var caseDetails = standaloneSelected && standaloneSelected.details || {};
+    var caseEvents = (caseDetails.nodeEvents || []).map(function (event) { return '<article class="agent-run-row">' + workflowStatus(event.status) + '<span><strong>' + escapeHtml(event.nodeName || "Workflow step") + '</strong><small>' + escapeHtml(event.message || "") + (event.error ? " · " + event.error : "") + '</small></span><time>' + escapeHtml(formatWorkflowDate(event.occurredAt)) + '</time></article>'; }).join("");
+    var isWorkflowReview = caseDetails.kind === "workflow-approval";
+    var casePreview = standaloneSelected ? '<div class="content-view-head"><div><h2>' + escapeHtml(standaloneSelected.title) + '</h2><p>' + escapeHtml(standaloneSelected.id) + ' · ' + escapeHtml(standaloneSelected.workspace) + '</p></div>' + status(standaloneSelected.status) + '</div>' + retainedComment + '<div class="detail-callout">' + svg(isWorkflowReview ? "i-flow" : "i-shield") + '<span><strong>' + escapeHtml(caseDetails.answerTitle || standaloneSelected.title) + '</strong><small>' + escapeHtml(caseDetails.answerText || caseDetails.question || standaloneSelected.scope) + '</small></span></div>' + (caseEvents ? '<div class="agent-run-list">' + caseEvents + '</div>' : '') + (standaloneSelected.status === "Pending review" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="case-review-comment" maxlength="1000" placeholder="Required for rejection or requested changes"></textarea></label><div class="evidence-actions">' + (isWorkflowReview ? '<button class="danger-button" type="button" data-case-review="Rejected" data-case-id="' + escapeHtml(standaloneSelected.id) + '">Reject</button>' : '') + '<button class="secondary-button" type="button" data-case-review="Changes requested" data-case-id="' + escapeHtml(standaloneSelected.id) + '">Request changes</button><button class="primary-button" type="button" data-case-review="Approved" data-case-id="' + escapeHtml(standaloneSelected.id) + '">' + (isWorkflowReview ? "Approve and resume" : "Approve") + '</button></div>' : '') : "";
+    var preview = missionPreview || casePreview || '<div class="mission-empty"><strong>Select a review package</strong><span>Its evidence, audit context, and review actions will appear here.</span></div>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect versioned mission outputs, evidence, and review history before they move forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length + state.verificationCases.filter(function (item) { return item.status === "Pending review" && linkedCaseIds.indexOf(item.id) === -1; }).length), "Pending review", "Assigned reviewer") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Persisted output and source payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Review queue <b>' + queueItems.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions are recorded with the active reviewer identity and persisted in the audit store.</p></section>';
   }
 
   function connectorsPage() {
@@ -945,7 +1086,8 @@
 
   function actionPage() {
     var pendingRows = state.pendingActions.map(function (item) {
-      return '<button class="verification-item" type="button" data-page-jump="' + escapeHtml(item.page) + '">' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
+      var target = item.type === "workflow-approval" ? ' data-verification-case="' + escapeHtml(item.id) + '"' : ' data-page-jump="' + escapeHtml(item.page) + '"';
+      return '<button class="verification-item" type="button"' + target + '>' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
     }).join("");
     var decisionRows = state.savedDecisions.map(function (item) {
       return '<article class="action-record"><span class="action-record-icon">' + svg("i-brief") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.owner) + ' · ' + escapeHtml(item.created) + '</small></div><button type="button" data-action-open="' + escapeHtml(item.id) + '" aria-label="Open ' + escapeHtml(item.title) + '">' + svg("i-chevron") + '</button></article>';
@@ -1026,10 +1168,14 @@
     var config = creationConfig(type);
     if (!config) return;
     if (type === "mission") {
+      var executableCapabilities = state.missionCapabilities.filter(function (item) { return item.executable; });
+      var capabilityOptions = executableCapabilities.map(function (item) { return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.name + " · v" + item.version) + '</option>'; }).join("");
+      var defaultCapabilityId = executableCapabilities.length ? executableCapabilities[0].id : "";
+      var teamOptions = state.missionTeams.filter(function (team) { return team.status === "ACTIVE" && (!defaultCapabilityId || team.capability === defaultCapabilityId); }).map(function (team) { return '<option value="' + escapeHtml(team.id) + '">' + escapeHtml(team.name + " · v" + team.version + " · " + team.stages.length + " stages") + '</option>'; }).join("");
       openExperience({
         title: "Create AI mission",
         subtitle: "Describe the outcome. Your selected AI model will identify the supported mission capability and prepare the governed run.",
-        body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission name<input name="title" maxlength="140" required placeholder="e.g. Review operational incidents and prepare a management brief"></label><label class="form-field">What should the AI workforce accomplish?<textarea name="description" maxlength="1000" required placeholder="Describe the question, business outcome, evidence to use, and decisions this mission should support."></textarea></label><div class="form-split"><label class="form-field">Analysis period from <small>Optional</small><input type="date" name="dateStart"></label><label class="form-field">Analysis period to <small>Optional</small><input type="date" name="dateEnd"></label></div><div class="form-split"><label class="form-field">Preferred output<select name="output"><option>Interactive analysis and report</option><option>Executive briefing</option><option>Evidence review package</option><option>Reusable intelligence asset</option></select></label><label class="form-field">Governance<select name="governance"><option>Human review before publishing</option><option>High-impact approval</option><option>Draft for internal review</option></select></label></div><div class="detail-callout">' + svg("i-spark") + '<span><strong>AI-planned, capability-governed</strong><small>The live model interprets the request. BursaIQ starts work only when an executable mission capability and required data are available.</small></span></div><p class="form-error" id="mission-form-error" hidden></p></form>',
+        body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission name<input name="title" maxlength="140" required placeholder="e.g. Review operational incidents and prepare a management brief"></label><label class="form-field">What should the AI workforce accomplish?<textarea name="description" maxlength="1000" required placeholder="Describe the question, business outcome, evidence to use, and decisions this mission should support."></textarea></label><label class="form-field">Executable capability<select name="capabilityId" required>' + capabilityOptions + '</select><small>The live model confirms this selection from the executable registry.</small></label><label class="form-field">Mission team<select name="teamId" required>' + teamOptions + '</select><small>The backend validates agent status, capability coverage, and dependencies before creating the mission.</small></label><div class="form-split"><label class="form-field">Analysis period from <small>Optional</small><input type="date" name="dateStart"></label><label class="form-field">Analysis period to <small>Optional</small><input type="date" name="dateEnd"></label></div><div class="form-split"><label class="form-field">Preferred output<select name="output"><option>Interactive analysis and report</option><option>Executive briefing</option><option>Evidence review package</option><option>Reusable intelligence asset</option></select></label><label class="form-field">Governance<select name="governance"><option>Human review before publishing</option><option>High-impact approval</option><option>Draft for internal review</option></select></label></div><div class="detail-callout">' + svg("i-spark") + '<span><strong>AI-planned, capability-governed</strong><small>The live model interprets the request. BursaIQ starts work only when an executable mission capability, active team, and required data are available.</small></span></div><p class="form-error" id="mission-form-error" hidden></p></form>',
         footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Plan and run mission</button>'
       });
       return;
@@ -1073,7 +1219,9 @@
         if (form) {
           form.elements.title.value = decision.title;
           form.elements.description.value = decision.objective;
+          if (form.elements.capabilityId) form.elements.capabilityId.value = decision.missionType;
           form.dataset.routed = "true";
+          form.dataset.missionType = decision.missionType;
         }
         toast("Live model routed this to My Workforce", decision.reason || "Review the mission scope, then start the governed run.");
         return;
@@ -1103,11 +1251,11 @@
       var routingCommand = title + ". " + objective + " Preferred output: " + String(data.get("output") || "Interactive analysis and report") + ". Governance: " + String(data.get("governance") || "Human review before publishing") + ".";
       submit.disabled = true;
       submit.textContent = "Planning mission…";
-      var routing = form.dataset.routed === "true" ? Promise.resolve({ route: "mission", title: title, objective: objective }) : apiJson("/api/intent-route", { method: "POST", body: JSON.stringify({ command: routingCommand, provider: state.routingProvider }) });
+      var routing = form.dataset.routed === "true" ? Promise.resolve({ route: "mission", missionType: form.dataset.missionType, title: title, objective: objective }) : apiJson("/api/intent-route", { method: "POST", body: JSON.stringify({ command: routingCommand, provider: state.routingProvider }) });
       routing.then(function (decision) {
         if (decision.route !== "mission") throw new Error(decision.reason || "No executable mission capability currently supports this request. Add the required dataset and mission implementation before running it.");
         submit.textContent = "Creating mission…";
-        return apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: decision.title || title, objective: decision.objective || objective, requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart") || "2026-01-01", dateEnd: data.get("dateEnd") || "2026-09-30", boards: boards }) });
+        return apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: decision.title || title, objective: decision.objective || objective, requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart") || "2026-01-01", dateEnd: data.get("dateEnd") || "2026-09-30", boards: boards, capabilityId: decision.missionType || String(data.get("capabilityId") || ""), teamId: String(data.get("teamId") || "team-adv-governed") }) });
       }).then(function (mission) {
         return apiJson("/api/missions/" + encodeURIComponent(mission.id) + "/run", { method: "POST", body: "{}" }).then(function () { return mission; });
       }).then(function (mission) {
@@ -1195,11 +1343,32 @@
     });
   }
 
-  function missionChart(monthly) {
-    if (!monthly || !monthly.length) return "";
+  function resultValue(item) {
+    var value = item.value;
+    if (typeof value !== "number") return escapeHtml(value == null ? "—" : value);
+    var decimals = Number.isInteger(item.decimals) ? item.decimals : 2;
+    var formatted = value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    if (item.valueType === "percentage") return formatted + (item.unit || "%");
+    return escapeHtml(item.unit || "") + (item.unit ? " " : "") + formatted;
+  }
+
+  function normalizedMissionResult(result) {
+    if (result.summaryMetrics) return result;
+    return Object.assign({}, result, {
+      summaryMetrics: [],
+      tables: [],
+      charts: [], evidence: [], qualityChecks: [], interpretationBoundaries: [],
+      downloadableOutputs: []
+    });
+  }
+
+  function missionChart(chart) {
+    var series = chart && chart.series && chart.series[0];
+    if (!series || !series.values || !series.values.length) return "";
     var width = 520;
     var height = 190;
-    var values = monthly.map(function (item) { return Number(item.advBn); });
+    var values = series.values.map(Number);
+    var categories = chart.categories || [];
     var minimum = Math.min.apply(null, values) * .96;
     var maximum = Math.max.apply(null, values) * 1.04;
     var range = Math.max(.01, maximum - minimum);
@@ -1208,7 +1377,21 @@
       var y = 138 - ((value - minimum) / range) * 96;
       return x.toFixed(1) + "," + y.toFixed(1);
     }).join(" ");
-    return '<div class="mission-result-chart"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Monthly mission result"><title>Monthly mission trend</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g><polyline points="' + points + '"></polyline><g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle><text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(monthly[index].label.split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
+    var bars = chart.type === "bar" ? values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length)); var barWidth = Math.max(12, (width - 90) / values.length - 8); var y = 138 - ((value - Math.min(0, minimum)) / Math.max(.01, maximum - Math.min(0, minimum))) * 96; return '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barWidth.toFixed(1) + '" height="' + (138 - y).toFixed(1) + '" rx="4"></rect>'; }).join("") : '';
+    return '<div class="mission-result-chart"><h4>' + escapeHtml(chart.title || series.name || "Result chart") + '</h4><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(chart.title || "Mission result chart") + '"><title>' + escapeHtml(chart.title || "Mission result chart") + '</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g>' + (chart.type === "bar" ? '<g class="mission-chart-bars">' + bars + '</g>' : '<polyline points="' + points + '"></polyline>') + '<g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return (chart.type === "bar" ? "" : '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle>') + '<text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(String(categories[index] || index + 1).split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
+  }
+
+  function missionResultSections(rawResult) {
+    var result = normalizedMissionResult(rawResult);
+    var metrics = '<div class="mission-kpis">' + result.summaryMetrics.map(function (item) { return '<article><small>' + escapeHtml(item.label) + '</small><strong>' + resultValue(item) + '</strong><span>' + escapeHtml(item.description || item.unit || "Recorded result") + '</span></article>'; }).join("") + '</div>';
+    var charts = result.charts.map(missionChart).join("");
+    var tables = result.tables.map(function (table) { return '<section class="mission-result-table"><h3>' + escapeHtml(table.title) + '</h3><div class="table-wrap"><table><thead><tr>' + table.columns.map(function (column) { return '<th>' + escapeHtml(column.label) + '</th>'; }).join("") + '</tr></thead><tbody>' + table.rows.map(function (row) { return '<tr>' + table.columns.map(function (column) { return '<td>' + resultValue({ value: row[column.key], valueType: column.valueType, unit: column.unit, decimals: column.decimals }) + '</td>'; }).join("") + '</tr>'; }).join("") + '</tbody></table></div></section>'; }).join("");
+    var findings = '<div class="mission-findings"><h3>Findings</h3>' + result.findings.map(function (finding) { var text = typeof finding === "object" ? finding.text : finding; return '<p>' + svg("i-check") + '<span>' + escapeHtml(text) + '</span></p>'; }).join("") + '</div>';
+    var quality = '<div class="claim-list"><h3>Quality checks</h3>' + result.qualityChecks.map(function (check) { return '<article><span>' + svg(check.status === "PASSED" ? "i-check" : "i-help") + '</span><div><strong>' + escapeHtml(check.label) + ' · ' + escapeHtml(check.status) + '</strong><small>' + escapeHtml(check.detail || "No detail supplied") + '</small></div></article>'; }).join("") + '</div>';
+    var evidence = '<div class="claim-list"><h3>Evidence references</h3>' + result.evidence.map(function (item) { return '<article><span>' + svg("i-document") + '</span><div><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail || item.reference || "Governed evidence") + '</small></div></article>'; }).join("") + '</div>';
+    var boundaries = result.interpretationBoundaries.map(function (item) { return '<p class="review-boundary">' + escapeHtml(item) + '</p>'; }).join("");
+    var outputs = result.downloadableOutputs.map(function (item) { return '<a class="secondary-button" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener">' + escapeHtml(item.label) + '</a>'; }).join("");
+    return metrics + charts + tables + findings + quality + evidence + boundaries + (outputs ? '<div class="evidence-actions">' + outputs + '</div>' : "");
   }
 
   function missionLifecycleMarkup(mission) {
@@ -1233,24 +1416,26 @@
     var events = mission.events || [];
     var latestByWorker = {};
     events.forEach(function (event) { if (event.workerId !== "mission-manager" || !latestByWorker[event.workerId]) latestByWorker[event.workerId] = event; });
-    var workerMarkup = missionAgents.map(function (agent, index) {
-      var workerId = ["mission-manager", "data-agent", "analysis-agent", "insight-agent", "report-agent"][index];
+    var teamStages = mission.team && mission.team.stages && mission.team.stages.length ? mission.team.stages : ["mission-manager", "data-agent", "analysis-agent", "insight-agent", "report-agent"].map(function (id) { var agent = state.registeredAgents.filter(function (item) { return item.id === id; })[0] || {}; return { agentId: id, agentName: agent.name || id.replace(/-/g, " "), responsibility: agent.description || "Configured mission responsibility", provider: agent.provider || "registered", model: agent.model || "configured", tools: agent.tools || [], knowledgeCollections: agent.knowledgeCollections || [] }; });
+    var workerMarkup = teamStages.map(function (stage, index) {
+      var workerId = stage.agentId;
       var matching = events.filter(function (event) { return event.workerId === workerId; });
       var event = matching[matching.length - 1];
       var stateLabel = event ? event.status : "QUEUED";
       var itemClass = stateLabel === "COMPLETED" || stateLabel === "DRAFT READY" ? "is-done" : stateLabel === "RUNNING" ? "is-active" : stateLabel === "FAILED" ? "is-failed" : "";
-      return '<article class="' + itemClass + '">' + miniIcon(index === 1 ? "i-folder" : index === 4 ? "i-document" : "i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + escapeHtml(event ? event.message : agent.job) + '</small>' + (event && event.payload && Object.keys(event.payload).length ? '<button type="button" data-worker-evidence="' + workerId + '">Inspect output</button>' : "") + '</span>' + missionStatus(stateLabel) + '</article>';
+      return '<article class="' + itemClass + '">' + miniIcon(index === 1 ? "i-folder" : index === teamStages.length - 1 ? "i-document" : "i-spark", "teal") + '<span><strong>' + escapeHtml(stage.agentName || workerId) + '</strong><small>' + escapeHtml(event ? event.message : stage.responsibility) + '</small><em>' + escapeHtml((stage.provider || "registered") + " · " + (stage.model || "configured") + " · tools: " + agentListValue(stage.tools || []) + " · data: " + agentListValue(stage.knowledgeCollections || [])) + '</em>' + (event && event.payload && Object.keys(event.payload).length ? '<button type="button" data-worker-evidence="' + workerId + '">Inspect output</button>' : "") + '</span>' + missionStatus(stateLabel) + '</article>';
     }).join("");
     var result = mission.result;
     var resultMarkup = "";
     if (result) {
-      resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Primary result</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' reporting periods</span></article><article><small>Total measured value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last period</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Result change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible source rows</span></div></section>';
+      resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification || "Governed mission result") + '</p></div>' + missionStatus(mission.status) + '</div>' + missionResultSections(result) + '</section>';
     }
     var failure = mission.error ? '<div class="mission-failure">' + svg("i-help") + '<span><strong>Mission failed</strong><small>' + escapeHtml(mission.error) + ' Correct the inputs and run again.</small></span></div>' : "";
     var reviewComment = mission.verification && mission.verification.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment</strong><small>' + escapeHtml(mission.verification.reviewerComment) + '</small></span></div>' : "";
     var versions = (mission.versions || []).map(function (item) { return '<button type="button" data-mission-back="' + escapeHtml(item.id) + '"><strong>v' + Number(item.version || 1) + '</strong><span>' + missionDisplayStatus(item.status) + '</span><small>' + escapeHtml(item.id) + '</small></button>'; }).join("");
     var history = versions ? '<section class="mission-version-history"><h3>Version history</h3><div>' + versions + '</div></section>' : "";
-    return '<div class="mission-detail-progress"><div><span>v' + Number(mission.version || 1) + ' · ' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + missionLifecycleMarkup(mission) + failure + reviewComment + history + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
+    var teamHeader = mission.team ? '<div class="detail-callout">' + svg("i-agents") + '<span><strong>' + escapeHtml(mission.team.name) + ' · v' + Number(mission.team.version) + '</strong><small>Validated team snapshot · ' + mission.team.stages.length + ' configured stages · ' + escapeHtml(mission.team.capability) + '</small></span></div>' : '';
+    return '<div class="mission-detail-progress"><div><span>v' + Number(mission.version || 1) + ' · ' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + missionLifecycleMarkup(mission) + teamHeader + failure + reviewComment + history + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
   }
 
   function missionFooter(mission) {
@@ -1350,7 +1535,7 @@
     if (action === "notifications") {
       var pending = state.liveMissions.filter(function (item) { return item.status === "AWAITING REVIEW"; });
       var waits = state.workflowRuns.filter(function (item) { return item.status === "WAITING_APPROVAL"; });
-      var notificationRows = pending.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.title) + '</strong><small>Mission awaiting review</small></span>' + svg("i-chevron") + '</button>'; }).concat(waits.map(function (item) { return '<button type="button" data-page-target="automation"><span><strong>' + escapeHtml(item.id) + '</strong><small>Workflow waiting for approval</small></span>' + svg("i-chevron") + '</button>'; }));
+      var notificationRows = pending.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.title) + '</strong><small>Mission awaiting review</small></span>' + svg("i-chevron") + '</button>'; }).concat(waits.map(function (item) { return '<button type="button" data-page-target="verification"><span><strong>' + escapeHtml(item.id) + '</strong><small>Workflow waiting for approval</small></span>' + svg("i-chevron") + '</button>'; }));
       openExperience({ title: "Notifications", subtitle: notificationRows.length ? notificationRows.length + " pending actions" : "You are all caught up", body: notificationRows.length ? '<div class="focus-list">' + notificationRows.join("") + '</div>' : '<div class="clean-empty"><strong>No notifications</strong><p>Approvals and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
       return;
     }
@@ -1377,9 +1562,13 @@
     if (state.page === "home") html = homePage();
     else if (state.page === "assistant") html = assistantPage();
     else if (state.page === "ask-bursa") html = askBursaPage();
+    else if (state.page === "knowledge-admin") html = knowledgeAdministrationPage();
     else if (state.page === "workforce") html = workforcePage();
     else if (state.page === "agent-library") html = agentLibraryPage();
     else if (state.page === "agent-builder") html = agentBuilderPage();
+    else if (state.page === "mission-teams") html = missionTeamsPage();
+    else if (state.page === "mission-team-builder") html = missionTeamBuilderPage();
+    else if (state.page === "capability-library") html = capabilityLibraryPage();
     else if (state.page === "exchange") html = exchangePage();
     else if (state.page === "automation") html = automationPage();
     else if (state.page === "workflow-builder") html = workflowBuilderPage();
@@ -1393,7 +1582,7 @@
     else html = homePage();
     root.innerHTML = html;
     document.querySelectorAll(".nav-link[data-page]").forEach(function (button) {
-      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || ["agent-library", "agent-builder"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
+      var active = button.dataset.page === state.page || state.page === "workflow-builder" && button.dataset.page === "automation" || state.page === "knowledge-admin" && button.dataset.page === "ask-bursa" || ["agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library"].indexOf(state.page) !== -1 && button.dataset.page === "workforce";
       button.classList.toggle("is-active", active);
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
@@ -1412,6 +1601,8 @@
     if (page === "verification") loadVerification();
     if (page === "automation") loadWorkflows();
     if (page === "agent-library") loadAgents();
+    if (page === "mission-teams") loadMissionTeams();
+    if (page === "capability-library") loadMissionCapabilities();
     if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(page) !== -1) loadPlatform();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
@@ -1474,6 +1665,34 @@
     root.querySelectorAll("[data-page-jump]").forEach(function (button) {
       button.addEventListener("click", function () { navigate(button.dataset.pageJump); });
     });
+    var knowledgeUpload = document.getElementById("knowledge-upload-form");
+    if (knowledgeUpload) knowledgeUpload.addEventListener("submit", function (event) {
+      event.preventDefault();
+      var data = new FormData(knowledgeUpload);
+      var roles = data.getAll("allowedRoles");
+      if (!roles.length) { toast("Permissions required", "Select at least one role allowed to retrieve this source."); return; }
+      var requestData = new FormData();
+      requestData.append("file", data.get("file"));
+      requestData.append("metadata", JSON.stringify({ department: data.get("department"), owner: data.get("owner"), classification: data.get("classification"), version: data.get("version"), effectiveDate: data.get("effectiveDate"), expiryDate: data.get("expiryDate"), replacesDocumentId: data.get("replacesDocumentId"), allowedRoles: roles }));
+      var submit = knowledgeUpload.querySelector('[type="submit"]');
+      submit.disabled = true;
+      apiForm("/api/knowledge-admin/documents", requestData).then(function (payload) { state.knowledgeAdmin = payload.administration; return Promise.all([loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { render(); var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Upload stored; ingestion needs attention" : "Document indexed", failed ? "Open ingestion history to review the recorded failure." : "The source, metadata, permissions, and generated topics are now persisted."); }).catch(function (error) { submit.disabled = false; toast("Upload failed", error.message); });
+    });
+    root.querySelectorAll(".knowledge-metadata-form").forEach(function (form) {
+      form.addEventListener("submit", function (event) {
+        event.preventDefault();
+        var data = new FormData(form);
+        var roles = data.getAll("allowedRoles");
+        if (!roles.length) { toast("Permissions required", "Select at least one permitted role."); return; }
+        var submit = form.querySelector('[type="submit"]');
+        submit.disabled = true;
+        apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(form.dataset.documentId), { method: "PATCH", body: JSON.stringify({ owner: data.get("owner"), classification: data.get("classification"), version: data.get("version"), effectiveDate: data.get("effectiveDate"), expiryDate: data.get("expiryDate"), replacesDocumentId: data.get("replacesDocumentId"), allowedRoles: roles }) }).then(function (payload) { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Metadata saved; re-index needs attention" : "Metadata saved", failed ? "Review the recorded ingestion failure." : "Permissions and lifecycle metadata were re-indexed."); }).catch(function (error) { submit.disabled = false; toast("Metadata update failed", error.message); });
+      });
+    });
+    root.querySelectorAll("[data-knowledge-reindex]").forEach(function (button) { button.addEventListener("click", function () { button.disabled = true; apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(button.dataset.knowledgeReindex) + "/reindex", { method: "POST", body: "{}" }).then(function (payload) { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Re-index needs attention" : "Document re-indexed", failed ? "Review the failure in ingestion history." : "Content, embeddings, and suggested questions were rebuilt."); }).catch(function (error) { button.disabled = false; toast("Re-index failed", error.message); }); }); });
+    root.querySelectorAll("[data-knowledge-remove]").forEach(function (button) { button.addEventListener("click", function () { if (!window.confirm("Remove this source, its passages, and its generated questions?")) return; button.disabled = true; apiJson("/api/knowledge-admin/documents/" + encodeURIComponent(button.dataset.knowledgeRemove), { method: "DELETE" }).then(function () { return Promise.all([loadKnowledgeAdmin(), loadAskBursaStatus(), loadAskBursaSuggestions()]); }).then(function () { toast("Source removed", "The document is no longer available to Ask Bursa."); }).catch(function (error) { button.disabled = false; toast("Removal failed", error.message); }); }); });
+    root.querySelectorAll(".knowledge-suggestion-row").forEach(function (form) { form.addEventListener("submit", function (event) { event.preventDefault(); var data = new FormData(form); var submit = form.querySelector('[type="submit"]'); submit.disabled = true; apiJson("/api/knowledge-admin/suggestions/" + encodeURIComponent(form.dataset.suggestionId), { method: "PATCH", body: JSON.stringify({ question: data.get("question"), description: data.get("description"), status: data.get("status") }) }).then(function () { return Promise.all([loadKnowledgeAdmin(), loadAskBursaSuggestions()]); }).then(function () { toast("Suggested topic saved", "Ask Bursa visibility has been updated."); }).catch(function (error) { submit.disabled = false; toast("Suggestion update failed", error.message); }); }); });
+    root.querySelectorAll("[data-knowledge-ingest]").forEach(function (button) { button.addEventListener("click", function () { button.disabled = true; apiJson("/api/knowledge-admin/ingest", { method: "POST", body: "{}" }).then(function (payload) { state.knowledgeAdmin = payload.administration; return Promise.all([loadAskBursaStatus(), loadAskBursaSuggestions()]).then(function () { return payload; }); }).then(function (payload) { render(); var failed = payload.ingestion.errors && payload.ingestion.errors.length; toast(failed ? "Ingestion completed with failures" : "Ingestion completed", failed ? "Review the failure details recorded below." : "The catalogue and ingestion history have been refreshed."); }).catch(function (error) { button.disabled = false; toast("Ingestion failed", error.message); }); }); });
     root.querySelectorAll("[data-assistant-prompt]").forEach(function (button) {
       button.addEventListener("click", function () {
         var prompt = button.dataset.assistantPrompt;
@@ -1584,6 +1803,19 @@
         toast("Agent test completed", "The live response and provider provenance were recorded.");
       }).catch(function (error) { openAgentBuilder(state.activeAgent.id); toast("Agent test failed", error.message); });
     });
+    root.querySelectorAll("[data-team-id]").forEach(function (button) { button.addEventListener("click", function () { openMissionTeamBuilder(button.dataset.teamId); }); });
+    root.querySelectorAll("[data-team-new]").forEach(function (button) { button.addEventListener("click", function () { openMissionTeamBuilder(); }); });
+    var teamSearch = document.getElementById("team-search");
+    if (teamSearch) teamSearch.addEventListener("input", function () { filterCurrentView(teamSearch.value, ".team-card", document.getElementById("team-empty")); });
+    root.querySelectorAll("[data-team-stage]").forEach(function (button) { button.addEventListener("click", function (event) { if (event.target.closest("[data-team-stage-move]")) return; state.selectedTeamStageId = button.dataset.teamStage; render(); }); });
+    root.querySelectorAll("[data-team-stage-move]").forEach(function (button) { button.addEventListener("click", function () { var stages = state.activeMissionTeam.stages; var index = stages.findIndex(function (stage) { return stage.id === button.dataset.stageId; }); var target = button.dataset.teamStageMove === "up" ? index - 1 : index + 1; if (index < 0 || target < 0 || target >= stages.length) return; var moved = stages.splice(index, 1)[0]; stages.splice(target, 0, moved); render(); }); });
+    var teamStageAdd = root.querySelector("[data-team-stage-add]");
+    if (teamStageAdd) teamStageAdd.addEventListener("click", function () { var previous = state.activeMissionTeam.stages[state.activeMissionTeam.stages.length - 1]; var firstAgent = state.registeredAgents.filter(function (agent) { return agent.status === "ACTIVE"; })[0]; var stage = { id: "stage-" + Date.now(), name: "New stage", stageType: "analysis", agentId: firstAgent ? firstAgent.id : "", responsibility: "", dependencies: previous ? [previous.id] : [] }; state.activeMissionTeam.stages.push(stage); state.selectedTeamStageId = stage.id; render(); });
+    var teamStageForm = document.getElementById("team-stage-form");
+    if (teamStageForm) teamStageForm.addEventListener("submit", function (event) { event.preventDefault(); var data = new FormData(teamStageForm); var stage = state.activeMissionTeam.stages.filter(function (item) { return item.id === data.get("id"); })[0]; if (!stage) return; stage.name = String(data.get("name") || "").trim(); stage.responsibility = String(data.get("responsibility") || "").trim(); stage.stageType = String(data.get("stageType")); stage.agentId = String(data.get("agentId")); stage.dependencies = Array.prototype.slice.call(teamStageForm.querySelectorAll('[name="dependency"]:checked')).map(function (input) { return input.value; }); render(); toast("Stage updated", "Save the team to persist its new configuration."); });
+    var teamStageDelete = root.querySelector("[data-team-stage-delete]");
+    if (teamStageDelete) teamStageDelete.addEventListener("click", function () { var id = teamStageDelete.dataset.teamStageDelete; state.activeMissionTeam.stages = state.activeMissionTeam.stages.filter(function (stage) { return stage.id !== id; }); state.activeMissionTeam.stages.forEach(function (stage) { stage.dependencies = (stage.dependencies || []).filter(function (dependency) { return dependency !== id; }); }); state.selectedTeamStageId = state.activeMissionTeam.stages.length ? state.activeMissionTeam.stages[0].id : null; render(); });
+    root.querySelectorAll("[data-team-action]").forEach(function (button) { button.addEventListener("click", function () { var team = state.activeMissionTeam; if (!team) return; var action = button.dataset.teamAction; if (action === "duplicate") { apiJson("/api/mission-teams/" + encodeURIComponent(team.id) + "/duplicate", { method: "POST", body: JSON.stringify({ owner: "Lim Kim Hoong" }) }).then(function (copy) { return loadMissionTeams().then(function () { openMissionTeamBuilder(copy.id); toast("Mission team duplicated", "The reusable copy is ready to configure."); }); }).catch(function (error) { toast("Duplicate failed", error.message); }); return; } if (action === "validate") { apiJson("/api/mission-teams/" + encodeURIComponent(team.id) + "/validate", { method: "POST", body: "{}" }).then(function (result) { toast("Mission team validated", result.message); }).catch(function (error) { toast("Team validation failed", error.message); }); return; } var name = document.getElementById("team-name").value.trim(); var description = document.getElementById("team-description").value.trim(); var owner = document.getElementById("team-owner").value.trim(); var capabilityField = document.getElementById("team-capability"); var payload = { name: name, description: description, owner: owner, capability: capabilityField ? capabilityField.value : team.capability, status: team.status || "ACTIVE", stages: team.stages }; var errorField = document.getElementById("team-form-error"); apiJson(team.id ? "/api/mission-teams/" + encodeURIComponent(team.id) : "/api/mission-teams", { method: team.id ? "PATCH" : "POST", body: JSON.stringify(payload) }).then(function (saved) { state.activeMissionTeam = saved; return loadMissionTeams(); }).then(function () { openMissionTeamBuilder(state.activeMissionTeam.id); toast("Mission team saved", "The reusable team and its agent assignments are persisted."); }).catch(function (error) { if (errorField) { errorField.hidden = false; errorField.textContent = error.message; } }); }); });
     root.querySelectorAll("[data-metric-context]").forEach(function (button) {
       button.addEventListener("click", function () { openInfoPanel("detail", button.dataset.metricContext); });
     });
@@ -1668,7 +1900,7 @@
       button.addEventListener("click", function () {
         state.selectedVerificationMissionId = null;
         state.selectedVerificationCaseId = button.dataset.verificationCase;
-        render();
+        if (state.page !== "verification") navigate("verification"); else render();
       });
     });
     root.querySelectorAll("[data-mission-review]").forEach(function (button) {
@@ -1691,6 +1923,21 @@
           button.disabled = false;
           toast("Review action failed", error.message);
         });
+      });
+    });
+    root.querySelectorAll("[data-case-review]").forEach(function (button) {
+      button.addEventListener("click", function () {
+        var commentField = document.getElementById("case-review-comment");
+        var comment = commentField ? commentField.value.trim() : "";
+        if (["Rejected", "Changes requested"].indexOf(button.dataset.caseReview) !== -1 && !comment) {
+          toast("Reviewer comment required", "Record why the workflow is rejected or what the owner must change.");
+          if (commentField) commentField.focus();
+          return;
+        }
+        button.disabled = true;
+        apiJson("/api/verification/" + encodeURIComponent(button.dataset.caseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.caseReview, comment: comment }) }).then(function (payload) {
+          return Promise.all([loadVerification(), loadWorkflows(), loadPendingActionCount()]).then(function () { render(); var run = payload.workflowRun; toast("Review decision recorded", run && run.status === "COMPLETED" ? "The approved workflow resumed and completed." : button.dataset.caseReview + " is recorded in the shared audit history."); });
+        }).catch(function (error) { button.disabled = false; toast("Review action failed", error.message); });
       });
     });
     root.querySelectorAll("[data-mission-revise]").forEach(function (button) {
@@ -1779,7 +2026,7 @@
     if (nodeAdd) nodeAdd.addEventListener("click", function () {
       var type = document.getElementById("workflow-node-type").value;
       var label = document.getElementById("workflow-node-type").selectedOptions[0].textContent;
-      var node = { id: "node-" + Date.now(), type: type, name: label, config: { agent: "", inputs: "", outputs: "", expression: "" } };
+      var node = { id: "node-" + Date.now(), type: type, name: label, config: { agentId: "", capabilityId: "", inputs: "", outputs: "", expression: "", maxRetries: 0, approver: "", integration: "", missionId: "" } };
       var previous = state.activeWorkflow.nodes[state.activeWorkflow.nodes.length - 1];
       state.activeWorkflow.nodes.push(node);
       if (previous) state.activeWorkflow.connections.push({ source: previous.id, target: node.id });
@@ -1794,7 +2041,7 @@
       if (!node) return;
       node.name = String(data.get("name") || "Step").trim();
       node.type = String(data.get("type"));
-      node.config = { agentId: String(data.get("agentId") || ""), inputs: String(data.get("inputs") || ""), outputs: String(data.get("outputs") || ""), expression: String(data.get("expression") || "") };
+      node.config = { agentId: String(data.get("agentId") || ""), capabilityId: String(data.get("capabilityId") || ""), inputs: String(data.get("inputs") || ""), outputs: String(data.get("outputs") || ""), expression: String(data.get("expression") || ""), maxRetries: Number(data.get("maxRetries") || 0), approver: String(data.get("approver") || ""), integration: String(data.get("integration") || ""), missionId: String(data.get("missionId") || "") };
       state.activeWorkflow.connections = state.activeWorkflow.connections.filter(function (connection) { return connection.target !== node.id; });
       Array.prototype.slice.call(nodeForm.querySelectorAll('[name="dependency"]:checked')).forEach(function (input) { state.activeWorkflow.connections.push({ source: input.value, target: node.id }); });
       render();
@@ -2291,10 +2538,15 @@
   loadModelProviders();
   loadAskBursaStatus();
   loadAskBursaSuggestions();
+  loadKnowledgeAdmin();
   loadPlatform();
   loadAgents().then(function () {
     if (requestedPage === "agent-builder") openAgentBuilder(requestedAgentId);
   });
+  loadMissionTeams().then(function () {
+    if (requestedPage === "mission-team-builder") openMissionTeamBuilder(requestedTeamId);
+  });
+  loadMissionCapabilities();
   loadWorkflows().then(function () {
     if (requestedPage === "workflow-builder" && requestedWorkflowId) openWorkflowBuilder(requestedWorkflowId);
   });

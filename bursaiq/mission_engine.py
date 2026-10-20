@@ -14,6 +14,8 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any, Callable
 
+from .capabilities import ADV_CAPABILITY, MissionCapabilityRegistry
+
 
 MISSION_WORKERS = (
     ("mission-manager", "Mission Manager"),
@@ -34,6 +36,27 @@ def _month_label(value: str) -> str:
 
 def _money(value: float) -> str:
     return f"RM{value / 1_000_000_000:.2f}bn"
+
+
+def normalize_mission_result(result: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Upgrade persisted pre-schema ADV results without changing their evidence payload."""
+    if not result or "summaryMetrics" in result or "metrics" not in result:
+        return result
+    metrics, quality = result.get("metrics", {}), result.get("quality", {})
+    result.update({
+        "summaryMetrics": [
+            {"label": "Primary result", "value": metrics.get("periodAdvBn"), "valueType": "currency", "unit": "RM bn", "decimals": 3},
+            {"label": "Total measured value", "value": float(metrics.get("totalTradedValueMyr", 0)) / 1_000_000_000, "valueType": "currency", "unit": "RM bn", "decimals": 3},
+            {"label": "Reporting periods", "value": metrics.get("tradingDays"), "valueType": "number", "unit": "days", "decimals": 0},
+        ],
+        "tables": [],
+        "charts": [{"title": "Monthly result trend", "type": "line", "categories": [item.get("label", "") for item in result.get("monthly", [])], "series": [{"name": "Result", "values": [item.get("advBn", 0) for item in result.get("monthly", [])], "unit": "RM bn"}]}] if result.get("monthly") else [],
+        "evidence": [{"title": item.get("filename", "Evidence"), "detail": item.get("role", ""), "reference": item.get("sha256", "")} for item in result.get("sources", [])],
+        "qualityChecks": [{"label": "Source record validation", "status": "PASSED" if quality.get("passed") else "EXCEPTION", "detail": f"{int(quality.get('marketRowsEligible', 0)):,} eligible source records."}],
+        "interpretationBoundaries": [result["interpretationBoundary"]] if result.get("interpretationBoundary") else [],
+        "downloadableOutputs": [],
+    })
+    return result
 
 
 class MissionStore:
@@ -74,6 +97,10 @@ class MissionStore:
                     root_mission_id TEXT,
                     version INTEGER NOT NULL DEFAULT 1,
                     supersedes_mission_id TEXT
+                    ,team_id TEXT
+                    ,team_snapshot_json TEXT
+                    ,capability_id TEXT
+                    ,capability_snapshot_json TEXT
                 );
                 CREATE TABLE IF NOT EXISTS mission_events (
                     event_id TEXT PRIMARY KEY,
@@ -110,6 +137,14 @@ class MissionStore:
                 connection.execute("ALTER TABLE missions ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
             if "supersedes_mission_id" not in columns:
                 connection.execute("ALTER TABLE missions ADD COLUMN supersedes_mission_id TEXT")
+            if "team_id" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN team_id TEXT")
+            if "team_snapshot_json" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN team_snapshot_json TEXT")
+            if "capability_id" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN capability_id TEXT")
+            if "capability_snapshot_json" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN capability_snapshot_json TEXT")
             connection.execute("UPDATE missions SET root_mission_id = id WHERE root_mission_id IS NULL")
 
     def create(self, payload: dict[str, Any], *, root_mission_id: str | None = None, version: int = 1, supersedes_mission_id: str | None = None) -> dict[str, Any]:
@@ -119,8 +154,9 @@ class MissionStore:
             connection.execute(
                 """INSERT INTO missions
                    (id, title, objective, requested_by, date_start, date_end, boards_json,
-                    status, current_worker, progress, created_at, updated_at, root_mission_id, version, supersedes_mission_id)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'PLANNED', 'mission-manager', 0, ?, ?, ?, ?, ?)""",
+                    status, current_worker, progress, created_at, updated_at, root_mission_id, version, supersedes_mission_id,
+                    team_id, team_snapshot_json, capability_id, capability_snapshot_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'PLANNED', ?, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     mission_id,
                     payload["title"],
@@ -129,14 +165,20 @@ class MissionStore:
                     payload["dateStart"],
                     payload["dateEnd"],
                     json.dumps(payload["boards"], sort_keys=True),
+                    (payload.get("team") or {}).get("stages", [{}])[0].get("agentId", "mission-manager"),
                     created,
                     created,
                     root_mission_id or mission_id,
                     version,
                     supersedes_mission_id,
+                    payload.get("teamId"),
+                    json.dumps(payload.get("team"), ensure_ascii=True, sort_keys=True) if payload.get("team") else None,
+                    payload.get("capabilityId"),
+                    json.dumps(payload.get("capability"), ensure_ascii=True, sort_keys=True) if payload.get("capability") else None,
                 ),
             )
-            self._event(connection, mission_id, "mission-manager", "Mission Manager", "PLANNED", "Mission request persisted with an adjustable reporting window.", payload={"dateStart": payload["dateStart"], "dateEnd": payload["dateEnd"], "boards": payload["boards"], "objective": payload["objective"]})
+            first_stage = (payload.get("team") or {}).get("stages", [{}])[0]
+            self._event(connection, mission_id, first_stage.get("agentId", "mission-manager"), first_stage.get("agentName", "Mission Manager"), "PLANNED", "Mission request persisted with an adjustable reporting window and versioned team snapshot.", payload={"dateStart": payload["dateStart"], "dateEnd": payload["dateEnd"], "boards": payload["boards"], "objective": payload["objective"], "teamId": payload.get("teamId")})
         return self.get(mission_id)
 
     @staticmethod
@@ -147,7 +189,9 @@ class MissionStore:
         )
 
     def event(self, mission_id: str, worker_id: str, status: str, message: str, payload: dict[str, Any] | None = None, duration_ms: int | None = None) -> None:
-        worker_name = dict(MISSION_WORKERS).get(worker_id, worker_id)
+        mission = self.get(mission_id)
+        team_stage = next((stage for stage in (mission.get("team") or {}).get("stages", []) if stage.get("agentId") == worker_id), None)
+        worker_name = (team_stage or {}).get("agentName") or dict(MISSION_WORKERS).get(worker_id, worker_id)
         with self._lock, self._connect() as connection:
             self._event(connection, mission_id, worker_id, worker_name, status, message, payload, duration_ms)
 
@@ -202,6 +246,8 @@ class MissionStore:
         revised = self.create({
             "title": prior["title"], "objective": prior["objective"], "requestedBy": requested_by,
             "dateStart": prior["dateStart"], "dateEnd": prior["dateEnd"], "boards": prior["boards"],
+            "teamId": prior.get("teamId"), "team": prior.get("team"),
+            "capabilityId": prior.get("capabilityId"), "capability": prior.get("capability"),
         }, root_mission_id=root_id, version=int(latest) + 1, supersedes_mission_id=prior["id"])
         self.event(revised["id"], "mission-manager", "REVISION", "New mission version created from reviewer-requested changes.", {"previousMissionId": prior["id"], "version": revised["version"]})
         self.event(prior["id"], "mission-manager", "SUPERSEDED", "A new revision was created while this version remains immutable.", {"revisionMissionId": revised["id"], "version": revised["version"]})
@@ -235,10 +281,10 @@ class MissionStore:
                 "publishedAt": published_at,
                 "sourceMissionId": mission_id,
                 "report": {"filename": mission.get("reportFilename"), "downloadUrl": mission.get("downloadUrl")},
-                "evidence": mission["result"].get("sources", []),
-                "parameters": {"objective": mission["objective"], "dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"]},
+                "evidence": mission["result"].get("evidence") or mission["result"].get("sources", []),
+                "parameters": {"objective": mission["objective"], "dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"], "teamId": mission.get("teamId"), "capabilityId": mission.get("capabilityId"), "capability": mission.get("capability")},
                 "approvalRecord": approval,
-                "resultSummary": {"metrics": mission["result"].get("metrics", {}), "findings": mission["result"].get("findings", []), "classification": mission["result"].get("classification", "")},
+                "resultSummary": {"summaryMetrics": mission["result"].get("summaryMetrics", []), "findings": mission["result"].get("findings", []), "classification": mission["result"].get("classification", "")},
                 "reuseCount": 0,
             }
             connection.execute(
@@ -281,7 +327,7 @@ class MissionStore:
 
     @staticmethod
     def _mission_dict(row: sqlite3.Row, include_events: bool) -> dict[str, Any]:
-        result = json.loads(row["result_json"]) if row["result_json"] else None
+        result = normalize_mission_result(json.loads(row["result_json"]) if row["result_json"] else None)
         mission = {
             "id": row["id"],
             "title": row["title"],
@@ -302,6 +348,10 @@ class MissionStore:
             "rootMissionId": row["root_mission_id"] or row["id"],
             "version": row["version"] if "version" in row.keys() else 1,
             "supersedesMissionId": row["supersedes_mission_id"] if "supersedes_mission_id" in row.keys() else None,
+            "teamId": row["team_id"] if "team_id" in row.keys() else None,
+            "team": json.loads(row["team_snapshot_json"]) if "team_snapshot_json" in row.keys() and row["team_snapshot_json"] else None,
+            "capabilityId": row["capability_id"] if "capability_id" in row.keys() else None,
+            "capability": json.loads(row["capability_snapshot_json"]) if "capability_snapshot_json" in row.keys() and row["capability_snapshot_json"] else None,
             "error": row["error"],
         }
         if include_events:
@@ -460,7 +510,7 @@ class AdvMissionAnalyser:
             {"filename": self.market_path.name, "sha256": self._fingerprint(self.market_path), "rowsRead": market_rows, "eligibleRows": eligible_rows, "coveredDates": f"{min(daily)} to {max(daily)}", "role": "ADV, monthly trend and sector contribution"},
             {"filename": self.investor_path.name, "sha256": self._fingerprint(self.investor_path), "rowsRead": investor_rows, "eligibleRows": investor_eligible, "coveredDates": f"{start.isoformat()} to {end.isoformat()}", "role": "Investor participation and net activity"},
         ]
-        return {
+        result = {
             "classification": "SYNTHETIC DEMONSTRATION DATA — NOT FOR MARKET DECISIONS",
             "scope": {"dateStart": start.isoformat(), "dateEnd": end.isoformat(), "boards": sorted(selected_boards) if selected_boards else sorted(available_boards), "unit": "MYR", "tradingDayRule": "Distinct dates with at least one eligible market record", "duplicateRule": "Exact duplicate rows are excluded; repeated stock/date rows with different attributes remain distinct source records."},
             "quality": {"marketRowsRead": market_rows, "marketRowsEligible": eligible_rows, "marketInvalidRows": invalid_rows, "marketExactDuplicatesExcluded": exact_duplicates, "investorRowsRead": investor_rows, "investorInvalidRows": investor_invalid, "availableBoards": sorted(available_boards), "passed": invalid_rows == 0 and investor_invalid == 0},
@@ -473,6 +523,27 @@ class AdvMissionAnalyser:
             "formula": "Average Daily Trading Value (ADV) = total eligible traded value / number of distinct eligible trading dates",
             "sources": source_register,
         }
+        result.update({
+            "summaryMetrics": [
+                {"id": "period-adv", "label": "Period average daily trading value", "value": round(period_adv / 1_000_000_000, 3), "valueType": "currency", "unit": "RM bn", "decimals": 3},
+                {"id": "total-value", "label": "Total measured traded value", "value": round(total_value / 1_000_000_000, 3), "valueType": "currency", "unit": "RM bn", "decimals": 3},
+                {"id": "period-count", "label": "Eligible trading days", "value": trading_days, "valueType": "number", "unit": "days", "decimals": 0},
+                {"id": "period-change", "label": "First to last period change", "value": round(change_pct, 2), "valueType": "percentage", "unit": "%", "decimals": 2},
+            ],
+            "tables": [
+                {"id": "sector-contribution", "title": "Sector contribution", "columns": [{"key": "sector", "label": "Sector"}, {"key": "sharePct", "label": "Share", "valueType": "percentage", "unit": "%"}], "rows": sectors},
+                {"id": "investor-participation", "title": "Investor participation", "columns": [{"key": "group", "label": "Investor group"}, {"key": "netMyr", "label": "Net value", "valueType": "currency", "unit": "MYR"}, {"key": "grossSharePct", "label": "Gross share", "valueType": "percentage", "unit": "%"}], "rows": investors},
+            ],
+            "charts": [{"id": "monthly-trend", "title": "Monthly average daily trading value", "type": "line", "categories": [item["label"] for item in monthly], "series": [{"name": "ADV", "values": [item["advBn"] for item in monthly], "unit": "RM bn"}]}],
+            "evidence": [{"title": item["filename"], "reference": item["sha256"], "detail": item["role"], "metadata": {"rowsRead": item["rowsRead"], "eligibleRows": item["eligibleRows"], "coveredDates": item["coveredDates"]}} for item in source_register],
+            "qualityChecks": [
+                {"id": "market-validity", "label": "Market record validation", "status": "PASSED" if invalid_rows == 0 else "EXCEPTION", "detail": f"{eligible_rows:,} eligible rows; {invalid_rows:,} invalid rows; {exact_duplicates:,} exact duplicates excluded."},
+                {"id": "investor-validity", "label": "Investor record validation", "status": "PASSED" if investor_invalid == 0 else "EXCEPTION", "detail": f"{investor_eligible:,} eligible rows; {investor_invalid:,} invalid rows."},
+            ],
+            "interpretationBoundaries": [interpretation],
+            "downloadableOutputs": [],
+        })
+        return result
 
 
 class MissionRunner:
@@ -511,34 +582,50 @@ class MissionRunner:
     def _run(self, mission_id: str) -> None:
         try:
             mission = self.store.get(mission_id)
-            started = self._stage(mission_id, "mission-manager", 8, "Validating scope, dates, output contract and worker dependencies.", {"dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"], "objective": mission["objective"]})
-            date.fromisoformat(mission["dateStart"])
-            date.fromisoformat(mission["dateEnd"])
-            self._complete_stage(mission_id, "mission-manager", started, "Mission plan accepted; four specialist workers assigned.", {"workers": [name for _, name in MISSION_WORKERS[1:]], "output": "dashboard + charts + PDF + review package"})
-
-            started = self._stage(mission_id, "data-agent", 24, "Reading and validating the two approved CSV sources.", {"sources": [self.analyser.market_path.name, self.analyser.investor_path.name], "dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"]})
+            default_stages = [{"stageType": stage_type, "agentId": agent_id, "agentName": name} for stage_type, agent_id, name in (("mission-manager", "mission-manager", "Mission Manager"), ("data", "data-agent", "Data Agent"), ("analysis", "analysis-agent", "Analysis Agent"), ("insight", "insight-agent", "Insight Agent"), ("report", "report-agent", "Report Agent"))]
+            stages = (mission.get("team") or {}).get("stages") or default_stages
             stage_payloads: dict[str, dict[str, Any]] = {}
+            result: dict[str, Any] | None = None
+            report: dict[str, Any] | None = None
 
             def capture(stage: str, message: str, payload: dict[str, Any]) -> None:
                 stage_payloads[stage] = {"message": message, "payload": payload}
-
-            result = self.analyser.analyse(mission["dateStart"], mission["dateEnd"], mission["boards"], capture)
-            data_info = stage_payloads.get("data", {})
-            self._complete_stage(mission_id, "data-agent", started, data_info.get("message", "Sources validated."), data_info.get("payload"))
-
-            started = self._stage(mission_id, "analysis-agent", 50, "Executing governed ADV and contribution calculations.", {"formula": "sum(eligible traded_value_myr) / distinct eligible trading dates", "marketRowsEligible": result["quality"]["marketRowsEligible"], "tradingDays": result["metrics"]["tradingDays"]})
-            analysis_info = stage_payloads.get("analysis", {})
-            self._complete_stage(mission_id, "analysis-agent", started, analysis_info.get("message", "Metrics recomputed."), analysis_info.get("payload"))
-
-            started = self._stage(mission_id, "insight-agent", 70, "Translating verified fields into bounded management observations.", {"verifiedMetrics": ["periodAdvMyr", "firstToLastChangePct", "peakMonth"], "causalClaimsAllowed": False})
-            insight_info = stage_payloads.get("insight", {})
-            self._complete_stage(mission_id, "insight-agent", started, insight_info.get("message", "Findings prepared."), insight_info.get("payload"))
-
-            started = self._stage(mission_id, "report-agent", 86, "Rendering the PDF from the same verified result payload used by the dashboard.", {"output": "dashboard + PDF", "classification": result["classification"], "sourceCount": len(result["sources"])})
-            report = self.report_factory({"mission": mission, "result": result})
-            self._complete_stage(mission_id, "report-agent", started, "Dashboard payload and verified PDF assembled.", {"filename": report["filename"], "validation": report["validation"]})
-            self.store.update(mission_id, status="DRAFT READY", current_worker="report-agent", progress=100, result=result, report_filename=report["filename"])
-            self.store.event(mission_id, "mission-manager", "DRAFT READY", "Mission completed successfully and is ready for human review.", {"reportFilename": report["filename"]})
+            for index, stage in enumerate(stages):
+                stage_type, worker_id = stage["stageType"], stage["agentId"]
+                progress = max(5, round((index / max(1, len(stages))) * 90))
+                if stage_type == "mission-manager":
+                    started = self._stage(mission_id, worker_id, progress, "Validating scope, dates, output contract and team dependencies.", {"dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"], "objective": mission["objective"], "teamId": mission.get("teamId")})
+                    date.fromisoformat(mission["dateStart"]); date.fromisoformat(mission["dateEnd"])
+                    self._complete_stage(mission_id, worker_id, started, "Mission plan and configurable team accepted.", {"stages": len(stages), "output": "dashboard + charts + PDF + review package"})
+                elif stage_type == "data":
+                    started = self._stage(mission_id, worker_id, progress, "Reading and validating approved mission sources.", {"sources": [self.analyser.market_path.name, self.analyser.investor_path.name]})
+                    result = self.analyser.analyse(mission["dateStart"], mission["dateEnd"], mission["boards"], capture)
+                    info = stage_payloads.get("data", {})
+                    self._complete_stage(mission_id, worker_id, started, info.get("message", "Sources validated."), info.get("payload"))
+                elif stage_type == "analysis":
+                    if result is None: raise ValueError("Analysis requires a completed data stage.")
+                    started = self._stage(mission_id, worker_id, progress, "Executing the governed analytical capability.", {"formula": result["formula"]})
+                    info = stage_payloads.get("analysis", {})
+                    self._complete_stage(mission_id, worker_id, started, info.get("message", "Metrics recomputed."), info.get("payload"))
+                elif stage_type == "insight":
+                    if result is None: raise ValueError("Insight development requires a completed analysis payload.")
+                    started = self._stage(mission_id, worker_id, progress, "Translating verified fields into bounded management observations.", {"causalClaimsAllowed": False})
+                    info = stage_payloads.get("insight", {})
+                    self._complete_stage(mission_id, worker_id, started, info.get("message", "Findings prepared."), info.get("payload"))
+                elif stage_type == "report":
+                    if result is None: raise ValueError("Report generation requires a verified result payload.")
+                    started = self._stage(mission_id, worker_id, progress, "Rendering the deliverable from the verified mission payload.", {"classification": result["classification"], "sourceCount": len(result["sources"])})
+                    report = self.report_factory({"mission": mission, "result": result})
+                    self._complete_stage(mission_id, worker_id, started, "Dashboard payload and verified PDF assembled.", {"filename": report["filename"], "validation": report["validation"]})
+            if result is None or report is None:
+                raise ValueError("The mission team did not produce the required analysis and report outputs.")
+            result["downloadableOutputs"] = [{"id": "mission-report", "label": "Mission report", "filename": report["filename"], "url": f"/api/reports/{report['filename']}", "mimeType": "application/pdf"}]
+            capability_contract = mission.get("capability") or ADV_CAPABILITY
+            MissionCapabilityRegistry.validate_result(capability_contract, result)
+            last_worker = stages[-1]["agentId"]
+            manager = next((stage["agentId"] for stage in stages if stage["stageType"] == "mission-manager"), last_worker)
+            self.store.update(mission_id, status="DRAFT READY", current_worker=last_worker, progress=100, result=result, report_filename=report["filename"])
+            self.store.event(mission_id, manager, "DRAFT READY", "Mission completed successfully and is ready for human review.", {"reportFilename": report["filename"], "teamId": mission.get("teamId")})
         except Exception as exc:  # The failure remains inspectable in mission history.
             failed_worker = self.store.get(mission_id).get("currentWorker") or "mission-manager"
             self.store.event(mission_id, failed_worker, "FAILED", "Worker stopped with an inspectable error.", {"error": str(exc)[:1000]})

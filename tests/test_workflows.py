@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from bursaiq.workflows import WorkflowStore
+from bursaiq.store import VerificationStore
 
 
 class WorkflowBuilderTests(unittest.TestCase):
@@ -83,6 +84,48 @@ class WorkflowBuilderTests(unittest.TestCase):
         self.assertEqual(run["events"][1]["status"], "COMPLETED")
         self.assertIn("live result", run["events"][1]["message"])
 
+    def test_approval_resumes_same_run_and_persists_node_io(self) -> None:
+        definition = self.definition()
+        definition["nodes"].append({"id": "report", "type": "generate-report", "name": "Report", "config": {"inputs": "Prepare report"}})
+        definition["connections"].append({"source": "approval", "target": "report"})
+        workflow = self.store.create(definition)
+        waiting = self.store.run(workflow["id"], lambda node, context: {"message": "done", "outputs": {"filename": "report.pdf"}})
+        self.assertEqual(waiting["status"], "WAITING_APPROVAL")
+        resumed = self.store.decide_approval(waiting["id"], "APPROVE", "Demo Approver", "Evidence checked.", lambda node, context: {"message": "Report generated.", "outputs": {"filename": "report.pdf"}})
+        self.assertEqual(resumed["id"], waiting["id"])
+        self.assertEqual(resumed["status"], "COMPLETED")
+        self.assertEqual(resumed["events"][-2]["approvalTransition"]["to"], "APPROVED")
+        self.assertEqual(resumed["events"][-1]["outputs"]["filename"], "report.pdf")
+        with self.assertRaisesRegex(ValueError, "waiting for approval"):
+            self.store.decide_approval(waiting["id"], "APPROVE", "Demo Approver", "Duplicate")
+
+        changes_run = self.store.run(workflow["id"], lambda node, context: {"message": "done", "outputs": {}})
+        returned = self.store.decide_approval(changes_run["id"], "CHANGES", "Demo Approver", "Update the report scope.")
+        self.assertEqual(returned["status"], "CHANGES_REQUESTED")
+        self.assertEqual(self.store.get(workflow["id"])["status"], "DRAFT")
+        self.assertEqual(returned["events"][-1]["approvalTransition"]["to"], "CHANGES_REQUESTED")
+
+    def test_conditions_use_persisted_outputs_and_retries_are_recorded(self) -> None:
+        definition = self.definition()
+        definition["nodes"] = [
+            {"id": "trigger", "type": "trigger", "name": "Trigger", "config": {"inputs": "go"}},
+            {"id": "agent", "type": "ai-agent", "name": "Agent", "config": {"inputs": "work", "maxRetries": 2}},
+            {"id": "condition", "type": "condition", "name": "Check", "config": {"expression": "agent.score >= 2"}},
+        ]
+        definition["connections"] = [{"source": "trigger", "target": "agent"}, {"source": "agent", "target": "condition"}]
+        attempts = {"count": 0}
+        def execute(_node, _context):
+            attempts["count"] += 1
+            if attempts["count"] < 2:
+                raise ValueError("temporary failure")
+            return {"message": "scored", "outputs": {"score": 3}}
+        run = self.store.run(self.store.create(definition)["id"], execute)
+        self.assertEqual(run["status"], "COMPLETED")
+        self.assertEqual(run["events"][1]["retries"], 1)
+        self.assertEqual(run["events"][1]["error"], "temporary failure")
+        self.assertTrue(run["events"][2]["outputs"]["resolved"])
+        self.assertIn("upstream", run["events"][2]["inputs"])
+
     def test_duplicate_and_delete_manage_independent_drafts(self) -> None:
         workflow = self.store.create(self.definition())
         copy = self.store.duplicate(workflow["id"])
@@ -95,7 +138,8 @@ class WorkflowBuilderTests(unittest.TestCase):
     def test_flask_crud_validation_reopening_and_execution(self) -> None:
         from server import app
 
-        with patch("server.workflows", self.store):
+        verification_store = VerificationStore(Path(self.temp.name) / "verification.sqlite3")
+        with patch("server.workflows", self.store), patch("server.verification", verification_store):
             with app.test_client() as client:
                 created_response = client.post("/api/workflows", json=self.definition())
                 self.assertEqual(created_response.status_code, 201)
@@ -105,10 +149,29 @@ class WorkflowBuilderTests(unittest.TestCase):
                 reopened = client.get(f"/api/workflows/{workflow['id']}").get_json()
                 self.assertEqual(reopened["workflow"]["name"], "API edited")
                 self.assertEqual(client.post(f"/api/workflows/{workflow['id']}/test").get_json()["status"], "VALIDATED")
-                self.assertEqual(client.post(f"/api/workflows/{workflow['id']}/run").get_json()["status"], "WAITING_APPROVAL")
+                waiting = client.post(f"/api/workflows/{workflow['id']}/run").get_json()
+                self.assertEqual(waiting["status"], "WAITING_APPROVAL")
+                self.assertIsNotNone(waiting["verificationCaseId"])
+                case_id = waiting["verificationCaseId"]
+                decided = client.patch(f"/api/verification/{waiting['verificationCaseId']}", json={"status": "Approved", "role": "securities", "comment": "Proceed."})
+                self.assertEqual(decided.status_code, 200)
+                self.assertEqual(decided.get_json()["workflowRun"]["status"], "COMPLETED")
+                approved_case = verification_store.get_case(case_id)
+                self.assertEqual(approved_case["status"], "Approved")
+                self.assertEqual(verification_store.history(case_id)[-1]["action"], "approved")
+
+                changes_run = client.post(f"/api/workflows/{workflow['id']}/run").get_json()
+                changes = client.patch(f"/api/verification/{changes_run['verificationCaseId']}", json={"status": "Changes requested", "role": "securities", "comment": "Revise the scope."})
+                self.assertEqual(changes.status_code, 200)
+                self.assertEqual(changes.get_json()["workflowRun"]["status"], "CHANGES_REQUESTED")
+
+                rejected_run = client.post(f"/api/workflows/{workflow['id']}/run").get_json()
+                rejected = client.patch(f"/api/verification/{rejected_run['verificationCaseId']}", json={"status": "Rejected", "role": "securities", "comment": "The workflow must not continue."})
+                self.assertEqual(rejected.status_code, 200)
+                self.assertEqual(rejected.get_json()["workflowRun"]["status"], "REJECTED")
                 listed = client.get("/api/workflows").get_json()
-                self.assertEqual(listed["workflows"][0]["runCount"], 2)
-                self.assertEqual(len(listed["runs"]), 2)
+                self.assertEqual(listed["workflows"][0]["runCount"], 4)
+                self.assertEqual(len(listed["runs"]), 4)
 
     def test_pending_action_count_uses_only_persisted_attention_statuses(self) -> None:
         from server import app
@@ -116,6 +179,7 @@ class WorkflowBuilderTests(unittest.TestCase):
         verification_store = Mock()
         verification_store.list_cases.return_value = [
             {"id": "pending", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Pending review"},
+            {"id": "workflow-pending", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Pending review", "details": {"kind": "workflow-approval"}},
             {"id": "approved", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Approved"},
             {"id": "cancelled", "reviewer": "Market Intelligence Lead", "requestedBy": "Other", "status": "Cancelled"},
             {"id": "unassigned", "reviewer": "Another reviewer", "requestedBy": "Other", "status": "Pending review"},
@@ -123,8 +187,8 @@ class WorkflowBuilderTests(unittest.TestCase):
         workflow_store = Mock()
         workflow_store.list.return_value = [{"id": "WF-1", "name": "Weekly report"}]
         workflow_store.list_runs.return_value = [
-            {"id": "waiting-1", "workflowId": "WF-1", "status": "WAITING_APPROVAL"},
-            {"id": "waiting-2", "workflowId": "WF-1", "status": "WAITING_APPROVAL"},
+            {"id": "waiting-1", "workflowId": "WF-1", "status": "WAITING_APPROVAL", "verificationCaseId": "workflow-pending"},
+            {"id": "waiting-2", "workflowId": "WF-1", "status": "WAITING_APPROVAL", "verificationCaseId": "workflow-finished"},
             {"id": "complete", "status": "COMPLETED"},
             {"id": "rejected", "status": "REJECTED"},
         ]
@@ -133,12 +197,22 @@ class WorkflowBuilderTests(unittest.TestCase):
             with app.test_client() as client:
                 payload = client.get("/api/actions/pending-count?role=securities").get_json()
 
-        self.assertEqual(payload["count"], 3)
+        self.assertEqual(payload["count"], 2)
         self.assertEqual(payload["pendingReviews"], 1)
-        self.assertEqual(payload["pendingWorkflowApprovals"], 2)
-        self.assertEqual(len(payload["actions"]), 3)
+        self.assertEqual(payload["pendingWorkflowApprovals"], 1)
+        self.assertEqual(len(payload["actions"]), 2)
         self.assertEqual(payload["actions"][0]["page"], "verification")
-        self.assertEqual(payload["actions"][1]["title"], "Weekly report")
+        self.assertEqual(payload["actions"][1]["type"], "workflow-approval")
+
+    def test_server_report_executor_is_live_and_agent_names_are_not_provider_aliases(self) -> None:
+        import server
+        report = {"filename": "workflow-report.pdf", "fingerprint": "abc", "validation": {"valid": True}}
+        with patch.object(server.reports, "generate", return_value=report) as generate:
+            result = server.execute_workflow_node({"id": "report", "type": "generate-report", "name": "Risk report", "config": {"inputs": "Prepare the report"}}, {"workflow": {"owner": "Demo User"}, "outputs": {"agent": {"response": "Checked"}}})
+        self.assertEqual(result["outputs"]["downloadUrl"], "/api/reports/workflow-report.pdf")
+        self.assertTrue(generate.called)
+        with self.assertRaisesRegex(ValueError, "registered agent"):
+            server.execute_workflow_node({"id": "agent", "type": "ai-agent", "name": "Agent", "config": {"agentId": "ollama", "inputs": "Work"}})
 
 
 if __name__ == "__main__":

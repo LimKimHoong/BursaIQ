@@ -97,6 +97,31 @@ test('Agent Library is persistent and Workflow Builder assigns registry agents',
   assert.doesNotMatch(js, /var missionAgents = \[/);
 });
 
+test('Configurable Mission Teams persist and are validated before mission execution', () => {
+  assert.match(js, /function missionTeamsPage\(\)/);
+  assert.match(js, /function missionTeamBuilderPage\(\)/);
+  assert.match(js, /apiJson\("\/api\/mission-teams\?includeArchived=true"/);
+  assert.match(js, /data-team-stage-add/);
+  assert.match(js, /data-team-stage-delete/);
+  assert.match(js, /data-team-stage-move/);
+  assert.match(js, /name="dependency"/);
+  assert.match(js, /teamId: String\(data\.get\("teamId"\)/);
+  assert.match(js, /Validated team snapshot/);
+  assert.doesNotMatch(js, /var missionAgents = \[/);
+});
+
+test('mission results render from capability-neutral schema sections', () => {
+  assert.match(js, /function missionResultSections\(rawResult\)/);
+  assert.match(js, /result\.summaryMetrics\.map/);
+  assert.match(js, /result\.tables\.map/);
+  assert.match(js, /result\.charts\.map\(missionChart\)/);
+  assert.match(js, /result\.qualityChecks\.map/);
+  assert.match(js, /result\.evidence\.map/);
+  assert.match(js, /result\.interpretationBoundaries\.map/);
+  assert.match(js, /result\.downloadableOutputs\.map/);
+  assert.doesNotMatch(js, /periodAdvBn|totalTradedValueMyr|marketRowsEligible|\.advBn/);
+});
+
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
   const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function createMissionRevision('));
@@ -105,7 +130,7 @@ test('mission lifecycle appears only after opening a clickable mission', () => {
   assert.match(missionPollingSource, /refreshMissionRow\(mission\)/);
   assert.match(js, /class="mission-title mission-title-button"[^>]*data-mission=/);
   assert.match(js, /function missionLifecycleMarkup\(mission\)/);
-  assert.match(js, /missionLifecycleMarkup\(mission\) \+ failure/);
+  assert.match(js, /missionLifecycleMarkup\(mission\) \+ teamHeader \+ failure/);
   assert.match(css, /\.experience-body\.is-live-refresh/);
   assert.match(js, /data-mission-publish=/);
   assert.match(js, /Publish to Exchange/);
@@ -185,6 +210,19 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   }
 });
 
+test('Knowledge Administration manages the persisted Ask Bursa document lifecycle', () => {
+  assert.match(html, /data-page="knowledge-admin"/);
+  assert.match(js, /function knowledgeAdministrationPage/);
+  assert.match(js, /\/api\/knowledge-admin\/documents/);
+  assert.match(js, /data-knowledge-ingest/);
+  assert.match(js, /data-knowledge-reindex/);
+  assert.match(js, /data-knowledge-remove/);
+  assert.match(js, /knowledge-suggestion-row/);
+  assert.match(js, /allowedRoles/);
+  assert.match(js, /replacesDocumentId/);
+  assert.match(css, /\.knowledge-admin-page/);
+});
+
 test('live backend state survives page refresh routes', () => {
   assert.match(js, /apiJson\("\/api\/missions"/);
   assert.match(js, /apiJson\("\/api\/verification\?role=securities"/);
@@ -234,6 +272,21 @@ test('Automation Studio uses a persistent visual Workflow Builder', () => {
   assert.match(css, /\.builder-canvas/);
   assert.match(css, /\.builder-properties/);
   assert.doesNotMatch(js, /function openRunPanel\(name\)[\s\S]{0,700}Trigger validated/);
+});
+
+test('Workflow Builder uses registries and supports persisted approval resume', () => {
+  assert.match(js, /assignableAgents = state\.registeredAgents/);
+  assert.match(js, /capabilityOptions = state\.missionCapabilities/);
+  assert.match(js, /name="agentId"/);
+  assert.match(js, /name="capabilityId"/);
+  assert.match(js, /name="maxRetries"/);
+  assert.match(js, /Review in Verification Centre/);
+  assert.match(js, /data-case-review="Approved"/);
+  assert.match(js, /data-case-review="Rejected"/);
+  assert.match(js, /data-case-review="Changes requested"/);
+  assert.match(js, /\/api\/verification\//);
+  assert.doesNotMatch(js, /data-workflow-decision=/);
+  assert.match(js, /Inputs, outputs, errors, retries, and approval transitions/);
 });
 
 test('Create Workflow waits for form submission before calling the backend', () => {
