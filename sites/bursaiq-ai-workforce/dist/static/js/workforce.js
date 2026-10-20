@@ -507,13 +507,25 @@
     return '<button class="suggestion" type="button" data-bursa-prompt="' + escapeHtml(title) + '"><strong>' + escapeHtml(title) + '</strong><small>' + escapeHtml(description) + '</small></button>';
   }
 
-  function bursaMessageHtml(message) {
+  function bursaMessageHtml(message, messageIndex) {
     if (message.role === "user") return '<article class="chat-message user"><div class="chat-bubble"><p>' + escapeHtml(message.text) + '</p></div></article>';
     if (message.pending) return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble"><div class="typing" aria-label="Ask Bursa is preparing an answer"><i></i><i></i><i></i></div></div></article>';
     var answer = message.answer;
     if (!answer) return "";
-    var citations = (answer.citations || []).map(function (item) { return '<a class="bursa-citation" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener"><b>[' + Number(item.number) + ']</b><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.location) + ' · ' + escapeHtml(item.department) + ' · v' + escapeHtml(item.version) + '</small></span></a>'; }).join("");
-    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>' + (answer.isError ? "No answer was generated" : citations ? answer.citations.length + " permitted source passage" + (answer.citations.length === 1 ? "" : "s") : "No indexed evidence retrieved") + '</small></span></div>' + (citations ? '<div class="bursa-citations">' + citations + '</div>' : '') + '<div class="answer-actions"><button type="button" data-demo-action="internal-sources">View source scope</button></div></div></article>';
+    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="answer-actions"><button type="button" data-bursa-sources="' + Number(messageIndex) + '">View Source Scope</button></div></div></article>';
+  }
+
+  function openAskBursaSources(messageIndex) {
+    var message = state.askBursaMessages[Number(messageIndex)];
+    var answer = message && message.answer;
+    if (!answer) return;
+    var citations = (answer.citations || []).map(function (item) { return '<a class="bursa-citation" href="' + escapeHtml(item.url) + '" target="_blank" rel="noopener"><b>[' + Number(item.number) + ']</b><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.location) + ' · ' + escapeHtml(item.department) + ' · v' + escapeHtml(item.version) + ' · ' + escapeHtml(item.classification || "Internal") + '</small></span></a>'; }).join("");
+    openExperience({
+      title: "Ask Bursa source scope",
+      subtitle: (answer.citations || []).length + " permitted source passage" + ((answer.citations || []).length === 1 ? "" : "s"),
+      body: '<div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>Sources were filtered for the active role before answer generation.</small></span></div>' + (citations ? '<div class="bursa-citations">' + citations + '</div>' : '<div class="clean-empty"><strong>No indexed evidence retrieved</strong><p>The answer service did not receive any document passage for this response.</p></div>'),
+      footer: '<button class="primary-button" type="button" data-experience-close>Done</button>'
+    });
   }
 
   function suggestion(title, description) {
@@ -1505,6 +1517,9 @@
           submitAskBursa(prompt);
         }
       });
+    });
+    root.querySelectorAll("[data-bursa-sources]").forEach(function (button) {
+      button.addEventListener("click", function () { openAskBursaSources(button.dataset.bursaSources); });
     });
     root.querySelectorAll("[data-assistant-canvas-tab]").forEach(function (button) {
       button.addEventListener("click", function () {

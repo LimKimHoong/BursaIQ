@@ -145,6 +145,12 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   assert.match(js, /apiJson\("\/api\/ask-bursa\/status"/);
   assert.match(js, /answer\.citations/);
   assert.match(js, /class="bursa-citation"/);
+  assert.match(js, /data-bursa-sources/);
+  assert.match(js, /function openAskBursaSources\(/);
+  assert.match(js, /Ask Bursa source scope/);
+  const messageMarkup = js.slice(js.indexOf('function bursaMessageHtml('), js.indexOf('function openAskBursaSources('));
+  assert.doesNotMatch(messageMarkup, /class="bursa-source-note"/);
+  assert.doesNotMatch(messageMarkup, /class="bursa-citation"/);
   for (const source of [js, designDocs, designLibrary]) {
     assert.doesNotMatch(source, /Your role and permissions are applied/);
     assert.doesNotMatch(source, /Ask Bursa Permission Scope/);
