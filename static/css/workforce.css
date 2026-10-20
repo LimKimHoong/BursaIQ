@@ -798,6 +798,13 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .agent-run-row strong { font-size: 10px; }
 .agent-run-row small { max-height: 48px; margin-top: 3px; overflow: hidden; color: var(--muted); font-size: 9px; line-height: 1.45; }
 .agent-run-row time { color: var(--muted); font-size: 8px; }
+.mission-launch-action .secondary-button { margin-top: 8px; }
+.team-details { margin-top: 14px; padding: 16px; }
+.team-details textarea { min-height: 82px; }
+.agent-assignment-scope { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 5px 9px; margin: -3px 0 13px; border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #f8fbff; }
+.agent-assignment-scope small { color: var(--muted); font-size: 9px; }
+.agent-assignment-scope strong { overflow: hidden; font-size: 9px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.live-worker-journey article em { display: block; margin-top: 4px; color: var(--muted); font-size: 8px; font-style: normal; }
 .mission-rulebook dl { margin: 0; padding: 5px 12px 12px; }
 .mission-rulebook dl div { padding: 9px 0; border-bottom: 1px solid var(--line); }
 .mission-rulebook dl div:last-child { border-bottom: 0; }
@@ -1235,3 +1242,9 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+.mission-result-table { margin-top: 20px; }
+.mission-result-table h3 { margin: 0 0 12px; }
+.mission-result-table table { width: 100%; border-collapse: collapse; }
+.mission-result-table th, .mission-result-table td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+.mission-result-chart h4 { margin: 0 0 8px; color: var(--ink); }
+.mission-chart-bars rect { fill: var(--blue); opacity: .78; }

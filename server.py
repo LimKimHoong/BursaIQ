@@ -38,6 +38,8 @@ from bursaiq.store import VerificationStore
 from bursaiq.workflows import WorkflowStore
 from bursaiq.platform_store import PlatformStore
 from bursaiq.agents import AgentRegistry
+from bursaiq.mission_teams import MissionTeamStore
+from bursaiq.capabilities import MissionCapabilityRegistry
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -55,6 +57,8 @@ verification = VerificationStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 workflows = WorkflowStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 platform = PlatformStore(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 agent_registry = AgentRegistry(RUNTIME_DIR / "bursaiq_demo.sqlite3")
+mission_teams = MissionTeamStore(RUNTIME_DIR / "bursaiq_demo.sqlite3", agent_registry)
+capability_registry = MissionCapabilityRegistry(RUNTIME_DIR / "bursaiq_demo.sqlite3")
 copilot = CopilotStudioService()
 ollama = OllamaService()
 knowledge = KnowledgeIndex(RUNTIME_DIR / "bursaiq_demo.sqlite3", BASE_DIR / "knowledge", ollama.embed, ollama.suggest_questions)
@@ -65,6 +69,7 @@ mission_runner = MissionRunner(
     AdvMissionAnalyser(BASE_DIR / "input" / "market_trades_demo.csv", BASE_DIR / "input" / "investor_participation_demo.csv"),
     reports.generate_mission,
 )
+MISSION_EXECUTORS = {"adv_analysis": mission_runner}
 _mission_fallback_cache: dict[str, Any] | None = None
 
 
@@ -158,38 +163,95 @@ def platform_item_payload(payload: dict[str, Any], *, partial: bool = False) -> 
     return result
 
 
-def execute_workflow_node(node: dict[str, Any]) -> dict[str, Any]:
+def execute_workflow_node(node: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
     """Run only node types backed by configured BursaIQ services."""
     config = node.get("config") if isinstance(node.get("config"), dict) else {}
     instruction = str(config.get("inputs", "")).strip()
+    context = context or {"outputs": {}, "inputs": {}}
     if not instruction:
-        raise ValueError(f"{node.get('name', 'Workflow node')} requires configured inputs.")
+        if node.get("type") in {"gather-data", "ai-agent"}:
+            raise ValueError(f"{node.get('name', 'Workflow node')} requires configured inputs.")
     if node.get("type") == "gather-data":
         results = repository.search(instruction, "market", "gcmc", 5)
         if not results:
             raise ValueError("Gather Data found no permitted governed sources.")
-        return {"message": f"Gathered {len(results)} permitted governed sources."}
+        sources = [{"id": item.document_id, "title": item.title, "filename": item.filename, "excerpt": item.excerpt} for item in results]
+        return {"message": f"Gathered {len(results)} permitted governed sources.", "outputs": {"query": instruction, "sourceCount": len(sources), "sources": sources}}
     if node.get("type") == "ai-agent":
-        assigned = str(config.get("agentId") or config.get("agent", "")).strip()
+        assigned = str(config.get("agentId") or "").strip()
         if not assigned:
             raise ValueError("Assign an active registered agent before running this AI Agent node.")
         try:
             registered = agent_registry.get(assigned)
         except KeyError:
-            # Preserve execution of saved workflows created before the Agent Registry migration.
-            lowered = assigned.lower()
-            if "ollama" in lowered or "local" in lowered:
-                reply = ollama.ask(instruction, json_format=False)
-                return {"message": f"Legacy Local Ollama assignment returned a live response ({reply.request_id})."}
-            if "copilot" in lowered:
-                reply = copilot.ask(instruction)
-                return {"message": f"Legacy Microsoft Copilot Studio assignment returned a live response ({reply.conversation_id})."}
             raise ValueError("The assigned registered agent no longer exists.")
         if not agent_registry.can_access(registered, "employee"):
             raise ValueError("The assigned agent is outside the workflow owner's permitted scope.")
-        result = execute_registered_agent(registered, instruction)
-        return {"message": f"{result['agentName']} returned a live response ({result['requestId']})."}
+        capability_id = str(config.get("capabilityId") or "").strip()
+        if capability_id:
+            capability = capability_registry.get(capability_id)
+            if capability["status"] != "ACTIVE":
+                raise ValueError("The selected capability is not active.")
+            if capability_id not in registered.get("capabilities", []):
+                raise ValueError(f"{registered['name']} does not declare the selected {capability_id} capability.")
+        upstream = json.dumps(context.get("outputs", {}), ensure_ascii=False)[:8000]
+        prompt = instruction + (f"\n\nPersisted upstream workflow outputs:\n{upstream}" if upstream != "{}" else "")
+        result = execute_registered_agent(registered, prompt)
+        agent_registry.record_execution(registered["id"], prompt, "employee", result=result)
+        return {"message": f"{result['agentName']} returned a live response ({result['requestId']}).", "outputs": {"agentId": registered["id"], "agentVersion": registered["version"], "capabilityId": capability_id or None, "response": result["response"], "requestId": result["requestId"]}}
+    if node.get("type") == "generate-report":
+        title = str(config.get("title") or node.get("name") or "Workflow report")[:140]
+        output_snapshot = context.get("outputs", {})
+        report = reports.generate({"title": title, "question": instruction or "Workflow execution report", "requestedBy": context.get("workflow", {}).get("owner", "BursaIQ user"), "workspace": "Automation Studio", "verification": "Workflow-generated draft", "answer": {"summary": json.dumps(output_snapshot, ensure_ascii=False, indent=2), "sources": []}})
+        return {"message": f"Generated and validated {report['filename']}.", "outputs": {"filename": report["filename"], "downloadUrl": f"/api/reports/{report['filename']}", "fingerprint": report["fingerprint"], "validation": report["validation"]}}
+    if node.get("type") == "publish-send":
+        integration = str(config.get("integration") or "").strip()
+        if integration == "publish-approved-mission":
+            mission_id = str(config.get("missionId") or "").strip()
+            if not mission_id:
+                raise ValueError("Publishing requires an approved mission id.")
+            mission = missions.get(mission_id)
+            if not mission.get("verificationCaseId"):
+                raise ValueError("Publishing requires a persisted approval record.")
+            case = verification.get_case(mission["verificationCaseId"])
+            asset = missions.publish_asset(mission_id, context.get("workflow", {}).get("owner", "Workflow owner"), {"case": case, "events": verification.history(case["id"])})
+            return {"message": f"Published approved mission as {asset['id']}.", "outputs": {"assetId": asset["id"], "sourceMissionId": mission_id}}
+        raise ValueError("Publish / Send has no configured approved integration. Select Publish approved mission or configure a connector.")
     raise ValueError("No live integration is configured for this node type.")
+
+
+def workflow_resource_errors(workflow: dict[str, Any]) -> list[str]:
+    """Validate persisted registry references without calling an external service."""
+    errors: list[str] = []
+    for node in workflow.get("nodes", []):
+        config = node.get("config") if isinstance(node.get("config"), dict) else {}
+        label = node.get("name") or node.get("id") or "Workflow node"
+        if node.get("type") == "ai-agent":
+            agent_id = str(config.get("agentId") or "").strip()
+            if not agent_id:
+                errors.append(f"{label} must reference an Agent Registry id.")
+                continue
+            try:
+                agent = agent_registry.get(agent_id)
+            except KeyError:
+                errors.append(f"{label} references an agent that does not exist.")
+                continue
+            if agent["status"] != "ACTIVE" or not agent_registry.can_access(agent, "employee"):
+                errors.append(f"{label} references an agent that is not active or permitted.")
+            capability_id = str(config.get("capabilityId") or "").strip()
+            if capability_id:
+                try:
+                    capability = capability_registry.get(capability_id)
+                except KeyError:
+                    errors.append(f"{label} references a capability that does not exist.")
+                else:
+                    if capability["status"] != "ACTIVE":
+                        errors.append(f"{label} references a capability that is not active.")
+                    if capability_id not in agent.get("capabilities", []):
+                        errors.append(f"{label}'s assigned agent does not declare {capability_id}.")
+        if node.get("type") == "publish-send" and config.get("integration") not in {"publish-approved-mission"}:
+            errors.append(f"{label} has no configured live Publish / Send integration.")
+    return errors
 
 
 def execute_registered_agent(agent: dict[str, Any], prompt: str) -> dict[str, Any]:
@@ -205,6 +267,51 @@ def execute_registered_agent(agent: dict[str, Any], prompt: str) -> dict[str, An
         reply = copilot.ask(governed_prompt)
         return {"agentName": agent["name"], "response": reply.text, "requestId": reply.conversation_id}
     raise ValueError("The assigned agent provider is unsupported.")
+
+
+def mission_team_snapshot(team: dict[str, Any]) -> dict[str, Any]:
+    """Freeze agent versions and access declarations into a mission execution contract."""
+    stages = []
+    for stage in team.get("orderedStages") or mission_teams.ordered_stages(team["stages"]):
+        agent = agent_registry.get(stage["agentId"])
+        stages.append({**stage, "agentName": agent["name"], "agentVersion": agent["version"], "provider": agent["provider"], "model": agent["model"], "tools": agent["tools"], "knowledgeCollections": agent["knowledgeCollections"], "connectors": agent["connectors"], "capabilities": agent["capabilities"], "approvalPolicy": agent["approvalPolicy"]})
+    return {"id": team["id"], "name": team["name"], "version": team["version"], "capability": team["capability"], "validatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds"), "stages": stages}
+
+
+def available_mission_inputs() -> set[str]:
+    inputs: set[str] = set()
+    if (BASE_DIR / "input" / "market_trades_demo.csv").is_file():
+        inputs.add("market_trades")
+    if (BASE_DIR / "input" / "investor_participation_demo.csv").is_file():
+        inputs.add("investor_participation")
+    return inputs
+
+
+def executable_capability(capability_id: str) -> dict[str, Any]:
+    return capability_registry.validate_for_execution(capability_id, set(MISSION_EXECUTORS), available_mission_inputs())
+
+
+def execute_mission(mission_id: str) -> dict[str, Any]:
+    mission = missions.get(mission_id)
+    snapshot = mission.get("capability")
+    if not snapshot:  # Legacy persisted missions retain the original ADV execution contract.
+        snapshot = capability_registry.snapshot(executable_capability("adv-analysis"))
+    current = executable_capability(snapshot["id"])
+    if current["executor"] != snapshot["executor"]:
+        raise ValueError("The installed executor no longer matches this mission's frozen capability contract.")
+    # Resolve the built-in at call time so tests and deployments may replace the runner safely.
+    executor = mission_runner if snapshot["executor"] == "adv_analysis" else MISSION_EXECUTORS.get(snapshot["executor"])
+    if executor is None:
+        raise ValueError(f"Python executor '{snapshot['executor']}' is not installed.")
+    return executor.start(mission_id)
+
+
+def validate_mission_team_contract(mission: dict[str, Any]) -> None:
+    """Recheck the frozen team against current agent availability before every execution."""
+    snapshot = mission.get("team")
+    if not snapshot:
+        return  # Legacy missions retain their original fixed execution contract.
+    mission_teams.validate({"name": snapshot["name"], "description": "Frozen mission execution contract.", "owner": mission.get("requestedBy", "BursaIQ"), "capability": snapshot["capability"], "status": "ACTIVE", "stages": snapshot["stages"]})
 
 
 def review_details(payload: dict[str, Any]) -> dict[str, Any]:
@@ -534,7 +641,7 @@ def mission_request(payload: dict[str, Any]) -> dict[str, Any]:
     return {"title": title, "objective": objective, "requestedBy": requested_by, "dateStart": start.isoformat(), "dateEnd": end.isoformat(), "boards": selected}
 
 
-def parse_intent_route(text: str) -> dict[str, Any]:
+def parse_intent_route(text: str, allowed_capabilities: set[str] | None = None) -> dict[str, Any]:
     """Validate the model's routing envelope without inferring intent locally."""
     candidate = text.strip()
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", candidate, re.IGNORECASE | re.DOTALL)
@@ -553,13 +660,15 @@ def parse_intent_route(text: str) -> dict[str, Any]:
     reason = str(route.get("reason") or "").strip()[:240]
     if route["route"] == "assistant":
         return {"route": "assistant", "reason": reason}
-    if str(route.get("missionType") or "").strip() != "adv-analysis":
+    allowed = allowed_capabilities if allowed_capabilities is not None else {"adv-analysis"}
+    mission_type = str(route.get("missionType") or "").strip()
+    if mission_type not in allowed:
         return {"route": "assistant", "reason": reason or "The requested task is not supported by the available executable mission."}
-    title = str(route.get("title") or "Malaysia Equity Market ADV Intelligence Report").strip()[:140]
+    title = str(route.get("title") or "AI workforce mission").strip()[:140]
     objective = str(route.get("objective") or "").strip()[:1000]
     if not objective:
         raise ModelRequestError("The selected model did not provide a mission objective.")
-    return {"route": "mission", "missionType": "adv-analysis", "title": title, "objective": objective, "reason": reason}
+    return {"route": "mission", "missionType": mission_type, "title": title, "objective": objective, "reason": reason}
 
 
 @app.post("/api/intent-route")
@@ -570,18 +679,24 @@ def intent_route():
     provider = bounded_text(payload, "provider", 30, required=False).lower() or "ollama"
     if provider not in {"ollama", "copilot"}:
         raise ValueError("provider must be ollama or copilot.")
+    available = [capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs()) for item in capability_registry.list()]
+    executable = [item for item in available if item["executable"]]
+    capability_prompt = json.dumps([{"id": item["id"], "name": item["name"], "description": item["description"], "requiredInputs": item["requiredInputs"], "outputSchema": item["outputSchema"]} for item in executable], ensure_ascii=False)
     prompt = f"""You are the intent router for BursaIQ. Decide from the user's meaning, not keyword matching.
 
 Available routes:
 - assistant: questions, explanations, comparisons, unsupported tasks, and anything that should not execute work.
-- mission: only a request to execute a multi-step Malaysia equity Average Daily Trading Value (ADV) analysis using the governed market-trades and investor-participation datasets, including validation, calculation, insights, and a PDF report.
+- mission: a request to execute one of the registered executable capabilities listed below.
 
-Do not route a mere question about ADV to mission unless the user asks BursaIQ to carry out that multi-step deliverable. Never claim other mission types are available.
+Executable capability registry:
+{capability_prompt}
+
+Choose mission only when the user asks BursaIQ to carry out a multi-step deliverable. Set missionType to an exact registry id. If no capability faithfully supports the request, choose assistant. Never invent a capability.
 
 Return JSON only. For assistant:
 {{"route":"assistant","reason":"brief reason"}}
 For mission:
-{{"route":"mission","missionType":"adv-analysis","title":"concise title","objective":"faithful executable objective","reason":"brief reason"}}
+{{"route":"mission","missionType":"exact registered id","title":"concise title","objective":"faithful executable objective","reason":"brief reason"}}
 
 User command:
 {json.dumps(command, ensure_ascii=False)}"""
@@ -595,7 +710,9 @@ User command:
         reply_text = copilot_reply.text
         request_id = copilot_reply.conversation_id
         routed_by = "copilot-studio-language-model"
-    route = parse_intent_route(reply_text)
+    route = parse_intent_route(reply_text, {item["id"] for item in executable})
+    if route["route"] == "mission":
+        route["capability"] = next(item for item in executable if item["id"] == route["missionType"])
     route.update({"provider": provider, "routedBy": routed_by, "modelRequestId": request_id})
     return jsonify(route)
 
@@ -628,7 +745,25 @@ def list_missions():
 
 @app.post("/api/missions")
 def create_mission():
-    mission = missions.create(mission_request(body_json()))
+    payload = body_json()
+    capability_id = bounded_text(payload, "capabilityId", 100, required=False) or bounded_text(payload, "missionType", 100, required=False) or "adv-analysis"
+    try:
+        capability = executable_capability(capability_id)
+    except KeyError:
+        return jsonify({"error": "Mission capability not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+    request_payload = mission_request(payload)
+    team_id = bounded_text(payload, "teamId", 100, required=False) or "team-adv-governed"
+    try:
+        team = mission_teams.validate_for_execution(team_id, capability_id, capability["requiredAgentCapabilities"])
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+    snapshot = mission_team_snapshot(team)
+    request_payload.update({"teamId": team_id, "team": snapshot, "capabilityId": capability_id, "capability": capability_registry.snapshot(capability)})
+    mission = missions.create(request_payload)
     return jsonify(mission), 201
 
 
@@ -649,9 +784,12 @@ def get_mission(mission_id: str):
 @app.post("/api/missions/<mission_id>/run")
 def run_mission(mission_id: str):
     try:
-        mission = mission_runner.start(mission_id)
+        validate_mission_team_contract(missions.get(mission_id))
+        mission = execute_mission(mission_id)
     except KeyError:
         return jsonify({"error": "Mission not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
     return jsonify(mission), 202
 
 
@@ -670,8 +808,14 @@ def rerun_mission(mission_id: str):
         "dateEnd": override.get("dateEnd") or prior["dateEnd"],
         "boards": override.get("boards") if "boards" in override else prior["boards"],
     })
+    request_payload.update({"teamId": prior.get("teamId"), "team": prior.get("team")})
+    request_payload.update({"capabilityId": prior.get("capabilityId"), "capability": prior.get("capability")})
+    try:
+        validate_mission_team_contract(prior)
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
     mission = missions.create(request_payload)
-    mission_runner.start(mission["id"])
+    execute_mission(mission["id"])
     return jsonify(missions.get(mission["id"])), 201
 
 
@@ -694,10 +838,10 @@ def submit_mission_review(mission_id: str):
         details={
             "question": mission["objective"],
             "answerTitle": mission["title"],
-            "answerText": " ".join(result.get("findings", [])),
+            "answerText": " ".join(str(item.get("text", "")) if isinstance(item, dict) else str(item) for item in result.get("findings", [])),
             "formula": result.get("formula", ""),
             "context": result.get("scope", {}),
-            "sources": [{"title": item["filename"], "filename": item["filename"], "owner": "BursaIQ demo input", "detail": item["role"]} for item in result.get("sources", [])],
+            "sources": [{"title": item.get("title") or item.get("filename", "Evidence"), "filename": item.get("filename", ""), "owner": item.get("owner", "BursaIQ governed source"), "detail": item.get("detail") or item.get("role", "Supporting evidence")} for item in (result.get("evidence") or result.get("sources", []))],
             "missionId": mission["id"],
             "rootMissionId": mission.get("rootMissionId", mission["id"]),
             "version": mission.get("version", 1),
@@ -712,8 +856,9 @@ def submit_mission_review(mission_id: str):
 def revise_mission(mission_id: str):
     payload = body_json()
     try:
+        validate_mission_team_contract(missions.get(mission_id))
         revised = missions.create_revision(mission_id, bounded_text(payload, "requestedBy", 100, required=False) or "Lim Kim Hoong")
-        mission_runner.start(revised["id"])
+        execute_mission(revised["id"])
     except KeyError:
         return jsonify({"error": "Mission not found."}), 404
     except ValueError as error:
@@ -761,6 +906,13 @@ def reuse_exchange_asset(asset_id: str):
     except KeyError:
         return jsonify({"error": "Exchange asset not found."}), 404
     parameters = asset["parameters"]
+    capability_id = bounded_text(payload, "capabilityId", 100, required=False) or parameters.get("capabilityId") or "adv-analysis"
+    try:
+        capability = executable_capability(capability_id)
+    except KeyError:
+        return jsonify({"error": "Mission capability not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
     request_payload = mission_request({
         "title": bounded_text(payload, "title", 140, required=False) or asset["title"],
         "objective": bounded_text(payload, "objective", 1000, required=False) or parameters["objective"],
@@ -769,10 +921,19 @@ def reuse_exchange_asset(asset_id: str):
         "dateEnd": bounded_text(payload, "dateEnd", 10, required=False) or parameters["dateEnd"],
         "boards": payload.get("boards", parameters["boards"]),
     })
+    team_id = bounded_text(payload, "teamId", 100, required=False) or parameters.get("teamId") or "team-adv-governed"
+    try:
+        team = mission_teams.validate_for_execution(team_id, capability_id, capability["requiredAgentCapabilities"])
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+    request_payload.update({"teamId": team_id, "team": mission_team_snapshot(team), "capabilityId": capability_id, "capability": capability_registry.snapshot(capability)})
     mission = missions.create(request_payload)
     missions.event(mission["id"], "mission-manager", "REUSED", "Mission created from an approved Exchange asset.", {"assetId": asset_id, "sourceMissionId": asset["sourceMissionId"], "version": asset["version"]})
     missions.record_reuse(asset_id)
-    mission_runner.start(mission["id"])
+    validate_mission_team_contract(mission)
+    execute_mission(mission["id"])
     return jsonify({"mission": missions.get(mission["id"]), "asset": missions.get_asset(asset_id)}), 201
 
 
@@ -782,6 +943,105 @@ def list_agents():
     include_archived = str(request.args.get("includeArchived", "false")).lower() == "true"
     items = agent_registry.list(role, include_archived)
     return jsonify({"agents": items, "role": role})
+
+
+@app.get("/api/mission-teams")
+def list_mission_teams():
+    include_archived = str(request.args.get("includeArchived", "false")).lower() == "true"
+    return jsonify({"teams": mission_teams.list(include_archived)})
+
+
+@app.get("/api/mission-capabilities")
+def list_mission_capabilities():
+    include_archived = str(request.args.get("includeArchived", "false")).lower() == "true"
+    items = [capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs()) for item in capability_registry.list(include_archived)]
+    return jsonify({"capabilities": items})
+
+
+@app.post("/api/mission-capabilities")
+def create_mission_capability():
+    try:
+        item = capability_registry.create(body_json())
+        return jsonify(capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs())), 201
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.get("/api/mission-capabilities/<capability_id>")
+def get_mission_capability(capability_id: str):
+    try:
+        item = capability_registry.get(capability_id)
+        return jsonify(capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs()))
+    except KeyError:
+        return jsonify({"error": "Mission capability not found."}), 404
+
+
+@app.patch("/api/mission-capabilities/<capability_id>")
+def update_mission_capability(capability_id: str):
+    try:
+        item = capability_registry.update(capability_id, body_json())
+        return jsonify(capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs()))
+    except KeyError:
+        return jsonify({"error": "Mission capability not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.post("/api/mission-capabilities/<capability_id>/duplicate")
+def duplicate_mission_capability(capability_id: str):
+    try:
+        item = capability_registry.duplicate(capability_id)
+        return jsonify(capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs())), 201
+    except KeyError:
+        return jsonify({"error": "Mission capability not found."}), 404
+
+
+@app.post("/api/mission-teams")
+def create_mission_team():
+    try:
+        return jsonify(mission_teams.create(body_json())), 201
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.get("/api/mission-teams/<team_id>")
+def get_mission_team(team_id: str):
+    try:
+        return jsonify(mission_teams.get(team_id))
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+
+
+@app.patch("/api/mission-teams/<team_id>")
+def update_mission_team(team_id: str):
+    try:
+        return jsonify(mission_teams.update(team_id, body_json()))
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 400
+
+
+@app.post("/api/mission-teams/<team_id>/duplicate")
+def duplicate_mission_team(team_id: str):
+    payload = body_json()
+    try:
+        return jsonify(mission_teams.duplicate(team_id, bounded_text(payload, "owner", 120, required=False))), 201
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+
+
+@app.post("/api/mission-teams/<team_id>/validate")
+def validate_mission_team(team_id: str):
+    try:
+        stored = mission_teams.get(team_id)
+        capability = executable_capability(stored["capability"])
+        team = mission_teams.validate_for_execution(team_id, capability["id"], capability["requiredAgentCapabilities"])
+        return jsonify({"valid": True, "team": mission_team_snapshot(team), "capability": capability_registry.snapshot(capability), "message": "The team can execute the registered mission capability."})
+    except KeyError:
+        return jsonify({"error": "Mission team not found."}), 404
+    except ValueError as error:
+        return jsonify({"valid": False, "error": str(error)}), 409
 
 
 @app.post("/api/agents")
@@ -950,7 +1210,7 @@ def duplicate_workflow(workflow_id: str):
 @app.post("/api/workflows/<workflow_id>/test")
 def test_workflow(workflow_id: str):
     try:
-        run = workflows.test(workflow_id)
+        run = workflows.test(workflow_id, workflow_resource_errors)
     except KeyError:
         return jsonify({"error": "Workflow not found."}), 404
     return jsonify(run)
@@ -962,6 +1222,24 @@ def run_workflow(workflow_id: str):
         run = workflows.run(workflow_id, execute_workflow_node)
     except KeyError:
         return jsonify({"error": "Workflow not found."}), 404
+    return jsonify(run)
+
+
+@app.post("/api/workflow-runs/<run_id>/decision")
+def decide_workflow_run(run_id: str):
+    payload = body_json()
+    try:
+        run = workflows.decide_approval(
+            run_id,
+            bounded_text(payload, "decision", 20),
+            bounded_text(payload, "actor", 100, required=False) or "Lim Kim Hoong",
+            bounded_text(payload, "comment", 1000, required=False),
+            execute_workflow_node,
+        )
+    except KeyError:
+        return jsonify({"error": "Workflow run not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
     return jsonify(run)
 
 

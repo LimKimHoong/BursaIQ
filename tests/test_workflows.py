@@ -83,6 +83,42 @@ class WorkflowBuilderTests(unittest.TestCase):
         self.assertEqual(run["events"][1]["status"], "COMPLETED")
         self.assertIn("live result", run["events"][1]["message"])
 
+    def test_approval_resumes_same_run_and_persists_node_io(self) -> None:
+        definition = self.definition()
+        definition["nodes"].append({"id": "report", "type": "generate-report", "name": "Report", "config": {"inputs": "Prepare report"}})
+        definition["connections"].append({"source": "approval", "target": "report"})
+        workflow = self.store.create(definition)
+        waiting = self.store.run(workflow["id"], lambda node, context: {"message": "done", "outputs": {"filename": "report.pdf"}})
+        self.assertEqual(waiting["status"], "WAITING_APPROVAL")
+        resumed = self.store.decide_approval(waiting["id"], "APPROVE", "Demo Approver", "Evidence checked.", lambda node, context: {"message": "Report generated.", "outputs": {"filename": "report.pdf"}})
+        self.assertEqual(resumed["id"], waiting["id"])
+        self.assertEqual(resumed["status"], "COMPLETED")
+        self.assertEqual(resumed["events"][-2]["approvalTransition"]["to"], "APPROVED")
+        self.assertEqual(resumed["events"][-1]["outputs"]["filename"], "report.pdf")
+        with self.assertRaisesRegex(ValueError, "waiting for approval"):
+            self.store.decide_approval(waiting["id"], "APPROVE", "Demo Approver", "Duplicate")
+
+    def test_conditions_use_persisted_outputs_and_retries_are_recorded(self) -> None:
+        definition = self.definition()
+        definition["nodes"] = [
+            {"id": "trigger", "type": "trigger", "name": "Trigger", "config": {"inputs": "go"}},
+            {"id": "agent", "type": "ai-agent", "name": "Agent", "config": {"inputs": "work", "maxRetries": 2}},
+            {"id": "condition", "type": "condition", "name": "Check", "config": {"expression": "agent.score >= 2"}},
+        ]
+        definition["connections"] = [{"source": "trigger", "target": "agent"}, {"source": "agent", "target": "condition"}]
+        attempts = {"count": 0}
+        def execute(_node, _context):
+            attempts["count"] += 1
+            if attempts["count"] < 2:
+                raise ValueError("temporary failure")
+            return {"message": "scored", "outputs": {"score": 3}}
+        run = self.store.run(self.store.create(definition)["id"], execute)
+        self.assertEqual(run["status"], "COMPLETED")
+        self.assertEqual(run["events"][1]["retries"], 1)
+        self.assertEqual(run["events"][1]["error"], "temporary failure")
+        self.assertTrue(run["events"][2]["outputs"]["resolved"])
+        self.assertIn("upstream", run["events"][2]["inputs"])
+
     def test_duplicate_and_delete_manage_independent_drafts(self) -> None:
         workflow = self.store.create(self.definition())
         copy = self.store.duplicate(workflow["id"])
@@ -105,7 +141,11 @@ class WorkflowBuilderTests(unittest.TestCase):
                 reopened = client.get(f"/api/workflows/{workflow['id']}").get_json()
                 self.assertEqual(reopened["workflow"]["name"], "API edited")
                 self.assertEqual(client.post(f"/api/workflows/{workflow['id']}/test").get_json()["status"], "VALIDATED")
-                self.assertEqual(client.post(f"/api/workflows/{workflow['id']}/run").get_json()["status"], "WAITING_APPROVAL")
+                waiting = client.post(f"/api/workflows/{workflow['id']}/run").get_json()
+                self.assertEqual(waiting["status"], "WAITING_APPROVAL")
+                decided = client.post(f"/api/workflow-runs/{waiting['id']}/decision", json={"decision": "APPROVE", "actor": "Demo Approver", "comment": "Proceed."})
+                self.assertEqual(decided.status_code, 200)
+                self.assertEqual(decided.get_json()["status"], "COMPLETED")
                 listed = client.get("/api/workflows").get_json()
                 self.assertEqual(listed["workflows"][0]["runCount"], 2)
                 self.assertEqual(len(listed["runs"]), 2)
@@ -139,6 +179,16 @@ class WorkflowBuilderTests(unittest.TestCase):
         self.assertEqual(len(payload["actions"]), 3)
         self.assertEqual(payload["actions"][0]["page"], "verification")
         self.assertEqual(payload["actions"][1]["title"], "Weekly report")
+
+    def test_server_report_executor_is_live_and_agent_names_are_not_provider_aliases(self) -> None:
+        import server
+        report = {"filename": "workflow-report.pdf", "fingerprint": "abc", "validation": {"valid": True}}
+        with patch.object(server.reports, "generate", return_value=report) as generate:
+            result = server.execute_workflow_node({"id": "report", "type": "generate-report", "name": "Risk report", "config": {"inputs": "Prepare the report"}}, {"workflow": {"owner": "Demo User"}, "outputs": {"agent": {"response": "Checked"}}})
+        self.assertEqual(result["outputs"]["downloadUrl"], "/api/reports/workflow-report.pdf")
+        self.assertTrue(generate.called)
+        with self.assertRaisesRegex(ValueError, "registered agent"):
+            server.execute_workflow_node({"id": "agent", "type": "ai-agent", "name": "Agent", "config": {"agentId": "ollama", "inputs": "Work"}})
 
 
 if __name__ == "__main__":

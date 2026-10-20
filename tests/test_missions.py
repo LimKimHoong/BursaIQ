@@ -60,6 +60,10 @@ class AdvMissionTests(unittest.TestCase):
     def test_full_window_computes_verified_adv_and_pdf(self) -> None:
         mission = self.run_mission()
         self.assertEqual(mission["status"], "DRAFT READY")
+        required_sections = {"summaryMetrics", "tables", "charts", "findings", "evidence", "qualityChecks", "interpretationBoundaries", "downloadableOutputs"}
+        self.assertTrue(required_sections.issubset(mission["result"]))
+        self.assertEqual(mission["result"]["charts"][0]["type"], "line")
+        self.assertEqual(mission["result"]["downloadableOutputs"][0]["mimeType"], "application/pdf")
         self.assertEqual(mission["result"]["metrics"]["tradingDays"], 181)
         self.assertAlmostEqual(mission["result"]["metrics"]["periodAdvBn"], 12.561, places=3)
         self.assertEqual(mission["result"]["quality"]["marketRowsRead"], 475174)
