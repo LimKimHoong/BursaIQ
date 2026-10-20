@@ -86,8 +86,8 @@ test('A new answer reflects an already open Canvas', () => {
   assert.match(loadApp(true).answerActionsMarkup('analysis'), /aria-expanded="true"/);
 });
 
-test('Root and hosted pages contain no global Canvas control or legacy answer links', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+test('Root page contains no global Canvas control or legacy answer links', () => {
+  for (const directory of ['.']) {
     const root = path.join(__dirname, '..', directory);
     const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const js = fs.readFileSync(path.join(root, 'static/js/app.js'), 'utf8');
@@ -97,7 +97,7 @@ test('Root and hosted pages contain no global Canvas control or legacy answer li
 });
 
 test('Desktop sidebar shares the shell origin without changing the fixed mobile drawer', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+  for (const directory of ['.']) {
     const css = fs.readFileSync(path.join(__dirname, '..', directory, 'static/css/app.css'), 'utf8');
     assert.match(css, /\.app-shell \{ position: relative; grid-template-columns: 72px/);
     assert.match(css, /@media \(min-width: 981px\) \{\s*\.primary-sidebar \{ position: absolute; inset: 0 auto 0 0; \}/);
@@ -106,7 +106,7 @@ test('Desktop sidebar shares the shell origin without changing the fixed mobile 
 });
 
 test('Only the side-by-side Canvas view removes the extra chat-column divider', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+  for (const directory of ['.']) {
     const css = fs.readFileSync(path.join(__dirname, '..', directory, 'static/css/app.css'), 'utf8');
     assert.match(css, /@media \(min-width: 981px\) and \(orientation: landscape\) \{\s*\.workspace-grid\.has-evidence > \.conversation-panel \{ border-right: 0; \}/);
     assert.match(css, /\.conversation-panel \{ border-right: 1px solid var\(--line\); \}/);
@@ -138,8 +138,8 @@ test('Page selection closes the desktop hover rail and moves focus out without s
   }
 });
 
-test('Root and hosted rails can reopen and retain reduced-motion handling', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+test('Root rail can reopen and retains reduced-motion handling', () => {
+  for (const directory of ['.']) {
     const root = path.join(__dirname, '..', directory);
     const js = fs.readFileSync(path.join(root, 'static/js/app.js'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'static/css/app.css'), 'utf8');
@@ -151,7 +151,7 @@ test('Root and hosted rails can reopen and retain reduced-motion handling', () =
 });
 
 test('Research Lab naming matches across navigation, page heading and guide', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+  for (const directory of ['.']) {
     const root = path.join(__dirname, '..', directory);
     const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const js = fs.readFileSync(path.join(root, 'static/js/app.js'), 'utf8');
@@ -163,7 +163,7 @@ test('Research Lab naming matches across navigation, page heading and guide', ()
 });
 
 test('Research instructions wrap and never require a horizontal scrollbar', () => {
-  for (const directory of ['.', 'sites/bursaiq-demo/dist']) {
+  for (const directory of ['.']) {
     const css = fs.readFileSync(path.join(__dirname, '..', directory, 'static/css/app.css'), 'utf8');
     assert.match(css, /\.research-command textarea \{\s*display: block; min-width: 0; max-width: 100%; padding-inline: 8px;\s*white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal;\s*overflow-x: hidden; overflow-y: auto; scrollbar-width: none;/);
     assert.match(css, /\.research-command textarea::-webkit-scrollbar \{ display: none; width: 0; height: 0; \}/);

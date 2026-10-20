@@ -237,6 +237,15 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .clean-empty.compact { min-height: 112px; padding: 16px; }
 .clean-empty strong { color: var(--ink); font-size: 11px; }
 .clean-empty p { max-width: 34ch; margin: 0; font-size: 10px; line-height: 1.5; }
+.home-live-list { display: grid; }
+.home-live-list > button { display: grid; width: 100%; min-height: 66px; grid-template-columns: minmax(0, 1fr) auto 14px; align-items: center; gap: 10px; border-top: 1px solid var(--line); padding: 10px 14px; color: var(--ink); background: #fff; cursor: pointer; text-align: left; }
+.home-live-list > button:first-child { border-top: 0; }
+.home-live-list strong, .home-live-list small { display: block; }
+.home-live-list small { margin-top: 4px; color: var(--muted); font-size: 10px; }
+.home-live-list svg { width: 13px; color: var(--muted); }
+.home-live-count { display: flex; min-height: 112px; align-items: baseline; justify-content: center; gap: 8px; padding: 24px 16px; }
+.home-live-count strong { color: var(--blue); font: 760 34px/1 var(--font-display); }
+.home-live-count span { color: var(--muted); font-size: 10px; }
 .progress-item { display: grid; min-height: 67px; grid-template-columns: 35px minmax(0, 1fr) auto; align-items: center; gap: 9px; border-bottom: 1px solid #edf1f6; }
 .progress-item:last-child { border-bottom: 0; }
 .progress-item strong, .progress-item small { display: block; }
@@ -545,6 +554,14 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .featured-card p { min-height: 49px; margin: 0; color: var(--muted); font-size: 10px; line-height: 1.5; }
 .featured-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; color: var(--muted); font-size: 10px; }
 .featured-foot button { min-height: 31px; border-radius: 7px; padding: 0 12px; color: #fff; background: var(--blue); cursor: pointer; font-size: 10px; }
+.exchange-flow { display: grid; gap: 9px; padding: 16px; text-align: center; }
+.exchange-flow strong { border: 1px solid #dbe6f4; border-radius: 9px; padding: 10px; color: var(--blue-dark); background: #f7faff; font-size: 10.5px; }
+.exchange-flow span { color: var(--blue); font-weight: 800; }
+.asset-passport { margin-top: 14px; border: 1px solid var(--line); border-radius: 11px; padding: 13px; }
+.asset-passport h3 { margin: 0 0 8px; font-size: 12px; }
+.asset-passport li { display: grid; gap: 3px; border-top: 1px solid #edf1f6; padding: 9px 0; list-style: none; }
+.asset-passport li:first-child { border-top: 0; }
+.asset-passport small { color: var(--muted); }
 .asset-market-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; padding: 12px; }
 .market-asset { display: grid; min-height: 90px; grid-template-columns: 39px 1fr auto; align-items: start; gap: 9px; border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
 .market-asset strong, .market-asset small { display: block; }
@@ -772,6 +789,14 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .review-scope small { color: var(--muted); font-size: 9px; }
 .review-scope strong { margin-top: 5px; font-size: 10.5px; }
 .review-boundary, .verification-demo-note { color: var(--muted); font-size: 9px; line-height: 1.5; }
+.review-comment { display: grid; gap: 6px; margin-top: 13px; color: var(--ink); font-size: 10px; font-weight: 700; }
+.review-comment textarea { min-height: 78px; resize: vertical; border: 1px solid var(--line-strong); border-radius: 9px; padding: 10px; color: var(--ink); background: #fff; font: inherit; font-weight: 500; }
+.mission-version-history { margin: 14px 0; border: 1px solid var(--line); border-radius: 11px; padding: 12px; }
+.mission-version-history h3 { margin: 0 0 9px; font-size: 12px; }
+.mission-version-history > div { display: flex; flex-wrap: wrap; gap: 7px; }
+.mission-version-history button { display: grid; min-width: 126px; gap: 2px; border: 1px solid #dbe5f2; border-radius: 8px; padding: 8px 10px; color: var(--ink); background: #f8fbff; cursor: pointer; text-align: left; }
+.mission-version-history button strong { color: var(--blue); }
+.mission-version-history button span, .mission-version-history button small { color: var(--muted); font-size: 9px; }
 .verification-demo-note { margin: 10px 0 0; }
 .review-summary, .source-list, .notification-list, .guide-steps { display: grid; gap: 9px; }
 .review-checks { display: grid; gap: 8px; margin: 16px 0; }

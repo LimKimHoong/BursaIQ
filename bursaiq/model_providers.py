@@ -94,14 +94,16 @@ class OllamaService:
                 status.update({"available": False, "error": str(exc)})
         return status
 
-    def ask(self, prompt: str) -> ModelReply:
-        response = self._request_json("/api/chat", payload={
+    def ask(self, prompt: str, *, json_format: bool = True) -> ModelReply:
+        payload: dict[str, Any] = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "format": "json",
             "stream": False,
-            "options": {"temperature": 0},
-        })
+            "options": {"temperature": 0 if json_format else 0.2},
+        }
+        if json_format:
+            payload["format"] = "json"
+        response = self._request_json("/api/chat", payload=payload)
         content = str((response.get("message") or {}).get("content") or "").strip()
         if not content:
             raise ModelRequestError("Ollama returned an empty model response.")

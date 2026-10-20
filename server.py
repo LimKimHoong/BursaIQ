@@ -528,7 +528,10 @@ def model_providers():
 
 @app.get("/api/missions")
 def list_missions():
-    return jsonify({"missions": missions.list()})
+    items = missions.list()
+    for item in items:
+        item["publishedAsset"] = missions.asset_for_mission(item["id"])
+    return jsonify({"missions": items})
 
 
 @app.post("/api/missions")
@@ -540,7 +543,13 @@ def create_mission():
 @app.get("/api/missions/<mission_id>")
 def get_mission(mission_id: str):
     try:
-        return jsonify(missions.get(mission_id))
+        mission = missions.get(mission_id)
+        mission["publishedAsset"] = missions.asset_for_mission(mission_id)
+        mission["versions"] = missions.version_history(mission_id)
+        if mission.get("verificationCaseId"):
+            mission["verification"] = verification.get_case(mission["verificationCaseId"])
+            mission["verificationHistory"] = verification.history(mission["verificationCaseId"])
+        return jsonify(mission)
     except KeyError:
         return jsonify({"error": "Mission not found."}), 404
 
@@ -597,6 +606,9 @@ def submit_mission_review(mission_id: str):
             "formula": result.get("formula", ""),
             "context": result.get("scope", {}),
             "sources": [{"title": item["filename"], "filename": item["filename"], "owner": "BursaIQ demo input", "detail": item["role"]} for item in result.get("sources", [])],
+            "missionId": mission["id"],
+            "rootMissionId": mission.get("rootMissionId", mission["id"]),
+            "version": mission.get("version", 1),
         },
     )
     missions.update(mission_id, status="AWAITING REVIEW", current_worker="mission-manager", verification_case_id=case["id"])
@@ -604,14 +616,85 @@ def submit_mission_review(mission_id: str):
     return jsonify({"mission": missions.get(mission_id), "verification": case}), 201
 
 
+@app.post("/api/missions/<mission_id>/revise")
+def revise_mission(mission_id: str):
+    payload = body_json()
+    try:
+        revised = missions.create_revision(mission_id, bounded_text(payload, "requestedBy", 100, required=False) or "Lim Kim Hoong")
+        mission_runner.start(revised["id"])
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+    return jsonify({"mission": missions.get(revised["id"]), "versions": missions.version_history(revised["id"])}), 201
+
+
+@app.get("/api/missions/<mission_id>/versions")
+def mission_versions(mission_id: str):
+    try:
+        versions = missions.version_history(mission_id)
+    except KeyError:
+        return jsonify({"error": "Mission not found."}), 404
+    return jsonify({"rootMissionId": versions[0]["rootMissionId"] if versions else mission_id, "versions": versions})
+
+
+@app.get("/api/exchange/assets")
+def list_exchange_assets():
+    return jsonify({"assets": missions.list_assets()})
+
+
+@app.post("/api/missions/<mission_id>/publish")
+def publish_mission(mission_id: str):
+    payload = body_json()
+    try:
+        mission = missions.get(mission_id)
+        if not mission.get("verificationCaseId"):
+            return jsonify({"error": "The mission has no approval record."}), 409
+        case = verification.get_case(mission["verificationCaseId"])
+        approval = {"case": case, "events": verification.history(case["id"])}
+        actor = bounded_text(payload, "publishedBy", 100, required=False) or mission["requestedBy"]
+        asset = missions.publish_asset(mission_id, actor, approval)
+    except KeyError:
+        return jsonify({"error": "Mission or approval record not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
+    return jsonify(asset), 201
+
+
+@app.post("/api/exchange/assets/<asset_id>/reuse")
+def reuse_exchange_asset(asset_id: str):
+    payload = body_json()
+    try:
+        asset = missions.get_asset(asset_id)
+    except KeyError:
+        return jsonify({"error": "Exchange asset not found."}), 404
+    parameters = asset["parameters"]
+    request_payload = mission_request({
+        "title": bounded_text(payload, "title", 140, required=False) or asset["title"],
+        "objective": bounded_text(payload, "objective", 1000, required=False) or parameters["objective"],
+        "requestedBy": bounded_text(payload, "requestedBy", 100, required=False) or "Lim Kim Hoong",
+        "dateStart": bounded_text(payload, "dateStart", 10, required=False) or parameters["dateStart"],
+        "dateEnd": bounded_text(payload, "dateEnd", 10, required=False) or parameters["dateEnd"],
+        "boards": payload.get("boards", parameters["boards"]),
+    })
+    mission = missions.create(request_payload)
+    missions.event(mission["id"], "mission-manager", "REUSED", "Mission created from an approved Exchange asset.", {"assetId": asset_id, "sourceMissionId": asset["sourceMissionId"], "version": asset["version"]})
+    missions.record_reuse(asset_id)
+    mission_runner.start(mission["id"])
+    return jsonify({"mission": missions.get(mission["id"]), "asset": missions.get_asset(asset_id)}), 201
+
+
 @app.post("/api/chat")
 def chat():
-    """Enforce BursaIQ workspace policy, then proxy a turn to Copilot Studio."""
+    """Enforce workspace policy, then use the employee-selected live model."""
     payload = body_json()
     question = bounded_text(payload, "question", 1000)
     requested_workspace = bounded_text(payload, "workspace", 30).lower()
     role = bounded_text(payload, "role", 30).lower()
     conversation_id = bounded_text(payload, "conversationId", 200, required=False) or None
+    provider = bounded_text(payload, "provider", 30, required=False).lower() or "copilot"
+    if provider not in {"ollama", "copilot"}:
+        raise ValueError("provider must be ollama or copilot.")
     routed_by = "selected-workspace"
 
     if requested_workspace == "assistant":
@@ -636,15 +719,34 @@ def chat():
             "agent": copilot.status(),
         }), 403
 
-    reply = copilot.ask(question, conversation_id)
+    if provider == "ollama":
+        prompt = (
+            "You are BursaIQ, an internal enterprise assistant. Answer the employee's question clearly and concisely. "
+            "Do not invent access, approvals, company policy, live market facts, or completed actions. If the request needs "
+            "a controlled source or accountable owner that is not supplied, state that boundary.\n\nEmployee question:\n" + question
+        )
+        local_reply = ollama.ask(prompt, json_format=False)
+        answer_text = local_reply.text
+        active_conversation_id = local_reply.request_id
+        suggestions: list[str] = []
+        agent_status = ollama.status(check_connection=False)
+        narrative_mode = "ollama-live"
+    else:
+        reply = copilot.ask(question, conversation_id)
+        answer_text = reply.text
+        active_conversation_id = reply.conversation_id
+        suggestions = reply.suggestions
+        agent_status = copilot.status()
+        narrative_mode = "copilot-studio"
     return jsonify({
-        "answer": reply.text,
-        "conversationId": reply.conversation_id,
-        "suggestedActions": reply.suggestions,
+        "answer": answer_text,
+        "conversationId": active_conversation_id,
+        "suggestedActions": suggestions,
         "workspace": workspace,
         "routedBy": routed_by,
-        "narrativeMode": "copilot-studio",
-        "agent": copilot.status(),
+        "narrativeMode": narrative_mode,
+        "provider": provider,
+        "agent": agent_status,
         "classification": "SYNTHETIC_DEMO_ONLY",
     })
 
@@ -820,14 +922,19 @@ def review_verification(case_id: str):
         if not reviewer_can_access(existing, role):
             return jsonify({"error": "This verification case is not assigned to the active reviewer."}), 403
         requested_status = bounded_text(payload, "status", 30)
-        case = verification.update_status(case_id, requested_status, DEMO_IDENTITIES.get(role, "Demo reviewer"))
+        reviewer_comment = bounded_text(payload, "comment", 1000, required=False)
+        if requested_status == "Changes requested" and not reviewer_comment:
+            return jsonify({"error": "A reviewer comment is required when requesting changes."}), 400
+        case = verification.update_status(case_id, requested_status, DEMO_IDENTITIES.get(role, "Demo reviewer"), reviewer_comment)
         mission = missions.by_verification_case(case_id)
         if mission:
             mission_status = "APPROVED" if requested_status == "Approved" else "REVISION REQUESTED"
             missions.update(mission["id"], status=mission_status, current_worker="mission-manager")
-            missions.event(mission["id"], "mission-manager", mission_status, f"Human review recorded: {requested_status}.", {"verificationCaseId": case_id, "reviewer": DEMO_IDENTITIES.get(role, "Demo reviewer")})
+            missions.event(mission["id"], "mission-manager", mission_status, f"Human review recorded: {requested_status}.", {"verificationCaseId": case_id, "reviewer": DEMO_IDENTITIES.get(role, "Demo reviewer"), "comment": reviewer_comment, "version": mission.get("version", 1)})
     except KeyError:
         return jsonify({"error": "Verification case not found."}), 404
+    except ValueError as error:
+        return jsonify({"error": str(error)}), 409
     return jsonify(case)
 
 

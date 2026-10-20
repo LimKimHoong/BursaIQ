@@ -84,6 +84,44 @@ class AdvMissionTests(unittest.TestCase):
         self.assertEqual(completed, {"mission-manager", "data-agent", "analysis-agent", "insight-agent", "report-agent"})
         self.assertTrue(any(event["payload"] for event in mission["events"] if event["workerId"] == "analysis-agent"))
 
+    def test_approved_mission_becomes_a_versioned_reusable_asset(self) -> None:
+        mission = self.run_mission()
+        self.store.update(mission["id"], status="APPROVED", verification_case_id="VER-APPROVED-1")
+        approval = {"case": {"id": "VER-APPROVED-1", "status": "Approved", "reviewer": "Market Intelligence Lead"}, "events": [{"action": "approved", "actor": "Market Intelligence Lead"}]}
+        asset = self.store.publish_asset(mission["id"], "Demo User", approval)
+
+        self.assertEqual(asset["type"], "Reusable Mission")
+        self.assertEqual(asset["version"], "v1.0")
+        self.assertEqual(asset["owner"], "Demo User")
+        self.assertEqual(asset["sourceMissionId"], mission["id"])
+        self.assertEqual(asset["parameters"]["dateStart"], "2026-01-01")
+        self.assertEqual(len(asset["evidence"]), 2)
+        self.assertEqual(asset["approvalRecord"]["case"]["status"], "Approved")
+        self.assertEqual(self.store.publish_asset(mission["id"], "Demo User", approval)["id"], asset["id"])
+        self.assertEqual(len(self.store.list_assets()), 1)
+
+        reused = self.store.create({**self.request(), "objective": asset["parameters"]["objective"]})
+        self.store.event(reused["id"], "mission-manager", "REUSED", "Mission created from an approved Exchange asset.", {"assetId": asset["id"]})
+        updated_asset = self.store.record_reuse(asset["id"])
+        self.assertEqual(updated_asset["reuseCount"], 1)
+        self.assertTrue(any(event["status"] == "REUSED" for event in self.store.get(reused["id"])["events"]))
+
+    def test_revision_creates_linked_version_without_overwriting_original(self) -> None:
+        original = self.store.create(self.request())
+        self.store.update(original["id"], status="REVISION REQUESTED", result={"snapshot": "original"}, verification_case_id="VER-1")
+        revised = self.store.create_revision(original["id"], "Demo User")
+
+        retained = self.store.get(original["id"])
+        self.assertEqual(retained["status"], "REVISION REQUESTED")
+        self.assertEqual(retained["result"], {"snapshot": "original"})
+        self.assertEqual(retained["verificationCaseId"], "VER-1")
+        self.assertEqual(revised["version"], 2)
+        self.assertEqual(revised["rootMissionId"], original["id"])
+        self.assertEqual(revised["supersedesMissionId"], original["id"])
+        self.assertEqual([item["version"] for item in self.store.version_history(revised["id"])], [1, 2])
+        self.assertTrue(any(event["status"] == "SUPERSEDED" for event in retained["events"]))
+
+
 
 if __name__ == "__main__":
     unittest.main()

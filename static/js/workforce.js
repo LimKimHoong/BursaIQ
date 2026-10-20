@@ -23,6 +23,7 @@
     }
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
+  var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
   if (["assistant", "ask-bursa", "workforce", "exchange", "automation", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var state = {
     page: requestedPage,
@@ -31,8 +32,10 @@
     routingProvider: storedRoutingProvider(),
     modelProviders: [],
     assistantMessages: [],
+    assistantConversationId: null,
     assistantCanvasTab: "plot",
     askBursaMessages: [],
+    askBursaConversationId: null,
     savedDecisions: [],
     emailAutomations: [],
     selectedNode: "trigger",
@@ -51,6 +54,8 @@
     missionError: "",
     selectedMissionId: null,
     selectedVerificationMissionId: null,
+    verificationCases: [],
+    verificationError: "",
     missionPoll: null
   };
 
@@ -137,18 +142,44 @@
     if (!quiet) {
       state.missionLoading = true;
       state.missionError = "";
-      if (state.page === "workforce" || state.page === "verification") render();
+      if (state.page === "home" || state.page === "workforce" || state.page === "verification") render();
     }
     return apiJson("/api/missions").then(function (payload) {
       state.liveMissions = payload.missions || [];
       state.missionLoading = false;
       state.missionError = "";
-      if (state.page === "workforce" || state.page === "verification") render();
+      if (state.page === "home" || state.page === "workforce" || state.page === "verification") render();
       return state.liveMissions;
     }).catch(function (error) {
       state.missionLoading = false;
       state.missionError = error.message;
-      if (state.page === "workforce" || state.page === "verification") render();
+      if (state.page === "home" || state.page === "workforce" || state.page === "verification") render();
+      return [];
+    });
+  }
+
+  function loadExchangeAssets() {
+    return apiJson("/api/exchange/assets").then(function (payload) {
+      assets = payload.assets || [];
+      if (state.page === "home" || state.page === "exchange") render();
+      return assets;
+    }).catch(function () {
+      assets = [];
+      if (state.page === "home" || state.page === "exchange") render();
+      return [];
+    });
+  }
+
+  function loadVerification() {
+    return apiJson("/api/verification?role=securities").then(function (payload) {
+      state.verificationCases = payload.cases || [];
+      state.verificationError = "";
+      if (state.page === "verification") render();
+      return state.verificationCases;
+    }).catch(function (error) {
+      state.verificationCases = [];
+      state.verificationError = error.message;
+      if (state.page === "verification") render();
       return [];
     });
   }
@@ -208,6 +239,9 @@
       return state.homeAssetCategory === "Featured" || asset.type === state.homeAssetCategory.slice(0, -1) || asset.type === state.homeAssetCategory;
     }).slice(0, 4);
     if (!assetSlice.length) assetSlice = assets.slice(0, 4);
+    var activeMissions = state.liveMissions.filter(function (mission) { return ["PLANNED", "RUNNING", "DRAFT READY", "REVISION REQUESTED"].indexOf(mission.status) !== -1; });
+    var pendingReviews = state.liveMissions.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
+    var latestMission = state.liveMissions[0];
     return [
       '<section class="page page-enter">',
       '<div class="home-grid"><div class="home-main">',
@@ -226,8 +260,8 @@
         return '<button class="quick-action" type="button" data-page-jump="' + item[4] + '">' + miniIcon(item[0], item[1]) + '<span><strong>' + item[2] + '</strong><small>' + item[3] + "</small></span></button>";
       }).join("") + "</div>",
       '<div class="brief-continuation">',
-      '<section class="panel">' + panelHead("My Work Brief", "i-spark", "brief") + '<div class="clean-empty">' + miniIcon("i-brief", "blue") + '<strong>Your brief is clear</strong><p>Priorities and approvals will appear here as you start working.</p></div></section>',
-      '<section class="panel">' + panelHead("Continue Your Work", "i-brief", "workforce") + '<div class="clean-empty">' + miniIcon("i-flow", "teal") + '<strong>No work in progress</strong><p>Start a mission or ask BursaIQ a question to begin.</p></div></section></div>',
+      '<section class="panel">' + panelHead("My Work Brief", "i-spark", "verification") + (pendingReviews.length ? '<div class="home-live-list">' + pendingReviews.slice(0, 3).map(homeMissionItem).join("") + '</div>' : '<div class="clean-empty">' + miniIcon("i-brief", "blue") + '<strong>Your brief is clear</strong><p>No mission approvals currently need attention.</p></div>') + '</section>',
+      '<section class="panel">' + panelHead("Continue Your Work", "i-brief", "workforce") + (latestMission ? '<div class="home-live-list">' + homeMissionItem(latestMission) + '</div>' : '<div class="clean-empty">' + miniIcon("i-flow", "teal") + '<strong>No work in progress</strong><p>Start a mission or ask BursaIQ a question to begin.</p></div>') + '</section></div>',
       '<section class="panel exchange-strip">' + panelHead("Explore the Intelligence Exchange", "i-exchange", "exchange") +
       '<div class="strip-tabs">' + ["Featured", "AI Agent", "Workflow", "Template", "Knowledge"].map(function (label) {
         var display = label === "AI Agent" ? "Agents" : label === "Workflow" ? "Workflows" : label === "Template" ? "Templates" : label;
@@ -236,11 +270,15 @@
       '<div class="asset-row">' + (assetSlice.length ? assetSlice.map(homeAssetCard).join("") : '<div class="clean-empty"><strong>No saved intelligence yet</strong><p>Verified assets will appear after they are published to the Exchange.</p></div>') + "</div></section>",
       "</div>",
       '<aside class="home-rail">',
-      '<section class="panel rail-panel">' + panelHead("Active AI Workforce", "i-agents", "workforce") + '<div class="clean-empty compact"><strong>No agents working yet</strong><p>Agents will appear here when a mission starts.</p></div></section>',
-      '<section class="panel rail-panel">' + panelHead("Pending Approvals", "i-shield", "verification") + '<div class="clean-empty compact"><strong>No pending approvals</strong><p>Items sent for review will appear here.</p></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Active AI Workforce", "i-agents", "workforce") + (activeMissions.length ? '<div class="home-live-count"><strong>' + activeMissions.length + '</strong><span>mission' + (activeMissions.length === 1 ? '' : 's') + ' active</span></div>' : '<div class="clean-empty compact"><strong>No agents working yet</strong><p>Agents will appear here when a mission starts.</p></div>') + '</section>',
+      '<section class="panel rail-panel">' + panelHead("Pending Approvals", "i-shield", "verification") + (pendingReviews.length ? '<div class="home-live-count"><strong>' + pendingReviews.length + '</strong><span>mission' + (pendingReviews.length === 1 ? '' : 's') + ' awaiting review</span></div>' : '<div class="clean-empty compact"><strong>No pending approvals</strong><p>Items sent for review will appear here.</p></div>') + '</section>',
       '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "exchange") + '<div class="clean-empty compact"><strong>No recommendations yet</strong><p>Recommendations will improve as you use BursaIQ.</p></div></section>',
       "</aside></div></section>"
     ].join("");
+  }
+
+  function homeMissionItem(mission) {
+    return '<button type="button" data-mission="' + escapeHtml(mission.id) + '"><span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + Number(mission.progress || 0) + '%</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>';
   }
 
   function workItem(icon, tone, title, meta, tag, tagTone) {
@@ -261,7 +299,7 @@
   }
 
   function homeAssetCard(asset) {
-    return '<article class="asset-card"><button class="asset-open" type="button" data-asset-open="' + escapeHtml(asset.title) + '"><div class="asset-cover">' + svg(asset.icon) + '</div><div class="asset-body"><strong>' + asset.title + '</strong><div class="asset-meta"><span>' + asset.uses + '</span><span>Open ' + svg("i-arrow") + '</span></div></div></button></article>';
+    return '<article class="asset-card"><button class="asset-open" type="button" data-asset-open="' + escapeHtml(asset.id || asset.title) + '"><div class="asset-cover">' + svg(asset.icon || "i-flow") + '</div><div class="asset-body"><strong>' + escapeHtml(asset.title) + '</strong><div class="asset-meta"><span>' + escapeHtml(asset.version || asset.uses || "Verified") + '</span><span>Open ' + svg("i-arrow") + '</span></div></div></button></article>';
   }
 
   function railItem(icon, tone, title, meta, action) {
@@ -325,8 +363,9 @@
   function bursaMessageHtml(message) {
     if (message.role === "user") return '<article class="chat-message user"><div class="chat-bubble"><p>' + escapeHtml(message.text) + '</p></div></article>';
     if (message.pending) return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble"><div class="typing" aria-label="Ask Bursa is preparing an answer"><i></i><i></i><i></i></div></div></article>';
-    var answer = message.answer || askBursaAnswer(message.question || "");
-    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>Approved internal guidance · synthetic demo</small></span></div><div class="answer-actions"><button type="button" data-bursa-prompt="' + escapeHtml(answer.followup) + '">Ask a follow-up</button><button type="button" data-demo-action="internal-sources">View source scope</button></div></div></article>';
+    var answer = message.answer;
+    if (!answer) return "";
+    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="bursa-source-note">' + svg("i-book") + '<span><strong>' + escapeHtml(answer.source) + '</strong><small>' + (answer.isError ? "No static fallback used" : "Live language model response") + '</small></span></div><div class="answer-actions">' + (answer.followup ? '<button type="button" data-bursa-prompt="' + escapeHtml(answer.followup) + '">Ask suggested follow-up</button>' : '') + '<button type="button" data-demo-action="internal-sources">View source scope</button></div></div></article>';
   }
 
   function askBursaAnswer(question) {
@@ -357,10 +396,46 @@
     if (message.pending) {
       return '<article class="chat-message"><div class="avatar violet">IQ</div><div class="chat-bubble"><div class="typing" aria-label="BursaIQ is preparing an answer"><i></i><i></i><i></i></div></div></article>';
     }
-    var answer = message.answer || assistantAnswer(message.question || "");
-    return '<article class="chat-message"><div class="avatar violet">IQ</div><div class="chat-bubble"><span class="answer-label">Governed answer</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.summary) + '</p><div class="answer-evidence">' + answer.stats.map(function (item) {
+    var answer = message.answer;
+    if (!answer) return "";
+    return '<article class="chat-message"><div class="avatar violet">IQ</div><div class="chat-bubble"><span class="answer-label">' + (answer.isError ? "Connection error" : "Live governed answer") + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.summary) + '</p><div class="answer-evidence">' + answer.stats.map(function (item) {
       return '<div class="evidence-stat"><strong>' + escapeHtml(item[0]) + '</strong><small>' + escapeHtml(item[1]) + '</small></div>';
     }).join("") + '</div><p class="answer-takeaway"><strong>What this means:</strong> ' + escapeHtml(answer.takeaway) + '</p><div class="answer-actions"><button type="button" data-assistant-canvas-tab="analysis">View analysis</button><button type="button" data-assistant-canvas-tab="source">Check sources</button><button type="button" data-demo-action="verify">Verify answer</button><button type="button" data-demo-action="briefing">Create briefing</button></div></div></article>';
+  }
+
+  function liveAssistantAnswer(payload, question) {
+    var provider = payload.provider === "copilot" ? "Microsoft Copilot Studio" : "Local Ollama model";
+    return {
+      title: "BursaIQ live response",
+      summary: payload.answer,
+      stats: [[provider, "Live language model"], [payload.workspace || "assistant", "Governed workspace"], [payload.classification || "Controlled", "Data classification"]],
+      takeaway: payload.answer,
+      analysis: payload.answer,
+      method: "Generated live through the Flask /api/chat integration. Route: " + (payload.routedBy || "selected workspace") + ".",
+      plotTitle: "Live response provenance",
+      plotValues: [100, 100, 100],
+      plotLabels: ["Request", "Model", "Response"],
+      observation: "This response came from " + provider + " for the current question.",
+      sources: [{ title: provider, meta: payload.narrativeMode || "live-model", detail: "Live model response for: " + question, coverage: payload.workspace || "assistant" }],
+      suggestedActions: payload.suggestedActions || []
+    };
+  }
+
+  function chatErrorAnswer(error) {
+    return {
+      title: "Live response unavailable",
+      summary: error.message,
+      stats: [["Unavailable", "Language model"], ["No fallback", "Response mode"], ["Retry", "Next step"]],
+      takeaway: "Check the selected model connection, then retry the question.",
+      analysis: error.message,
+      method: "The Flask API returned an error; no static answer was substituted.",
+      plotTitle: "Connection state",
+      plotValues: [100, 35, 0],
+      plotLabels: ["Request", "API", "Model"],
+      observation: "The request did not produce a live model response.",
+      sources: [],
+      isError: true
+    };
   }
 
   function assistantCurrentAnswer() {
@@ -546,27 +621,24 @@
   function missionRow(mission) {
     var worker = mission.currentWorker ? mission.currentWorker.replace(/-/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); }) : "Mission Manager";
     var updated = mission.updatedAt ? new Date(mission.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-    return '<tr data-mission-row="' + escapeHtml(mission.id) + '"><td><button class="mission-title mission-title-button" type="button" data-mission="' + escapeHtml(mission.id) + '" aria-label="Open mission ' + escapeHtml(mission.title) + '">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></button></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
+    return '<tr data-mission-row="' + escapeHtml(mission.id) + '"><td><button class="mission-title mission-title-button" type="button" data-mission="' + escapeHtml(mission.id) + '" aria-label="Open mission ' + escapeHtml(mission.title) + '">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>v' + Number(mission.version || 1) + ' · ' + escapeHtml(mission.id) + '</small></span></button></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : mission.status === "REVISION REQUESTED" ? "Revise" : "Open") + '</button></td></tr>';
   }
 
   function exchangePage() {
-    var categoryMap = { agent: "AI Agent", workflow: "Workflow", template: "Template", knowledge: "Knowledge" };
-    var visibleAssets = categoryMap[state.exchangeCategory] ? assets.filter(function (asset) { return asset.type === categoryMap[state.exchangeCategory]; }) : assets;
+    var reuseTotal = assets.reduce(function (total, asset) { return total + Number(asset.reuseCount || 0); }, 0);
+    var assetGrid = assets.length ? assets.map(featuredCard).join("") : '<div class="clean-empty"><strong>No reusable missions yet</strong><p>Approve a mission, then publish it from My Workforce.</p></div>';
+    var marketGrid = assets.length ? assets.map(marketAsset).join("") + '<div class="empty-state" id="exchange-empty" hidden><h3>No reusable missions found</h3></div>' : '<div class="clean-empty"><strong>The Exchange is empty</strong><p>Published mission intelligence will appear here with its evidence and approval record.</p></div>';
     return [
       '<section class="page page-enter">',
-      pageHead("Intelligence Exchange", "Discover, adapt and share verified intelligence across Bursa.", "Publish asset", "skill"),
+      pageHead("Intelligence Exchange", "Turn approved mission results into reusable, governed intelligence."),
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' + metric("i-exchange", "blue", "0", "Verified assets", "Nothing published yet") + metric("i-document", "violet", "0", "Published this month", "New workspace") + metric("i-flow", "blue", "0", "Active reuses", "No reuse yet") + metric("i-agents", "teal", "0", "Departments contributing", "No contributors yet") + "</div>",
-      '<section class="panel exchange-search"><div class="exchange-search-box"><label class="large-search">' + svg("i-search") + '<input id="exchange-search-input" type="search" placeholder="Search agents, workflows, templates or knowledge…"></label><select class="select-field" id="exchange-category-select" aria-label="Exchange category"><option value="featured">All categories</option><option value="agent">AI agents</option><option value="workflow">Workflows</option><option value="template">Templates</option><option value="knowledge">Knowledge</option></select></div>',
-      '<div class="category-row">' +
-      category("featured", "i-spark", "Featured") + category("agent", "i-agents", "Agents") + category("workflow", "i-flow", "Workflows") + category("template", "i-document", "Templates") + category("knowledge", "i-book", "Knowledge") + category("department", "i-grid", "By department") +
-      "</div></section>",
-      '<section class="panel">' + panelHead(state.exchangeCategory === "featured" ? "Featured Intelligence Assets" : "Recommended " + (categoryMap[state.exchangeCategory] || "Intelligence"), "i-spark", "featured") + '<div class="clean-empty"><strong>No intelligence assets yet</strong><p>Published and verified assets will appear here.</p></div></section>',
-      '<section class="panel">' + panelHead("Explore the Exchange", "i-exchange", "all-assets") + '<div class="clean-empty"><strong>The Exchange is empty</strong><p>Teach or publish a verified capability to add the first asset.</p></div></section>',
+      '<div class="metric-row">' + metric("i-exchange", "blue", String(assets.length), "Reusable missions", assets.length ? "Approved and versioned" : "Nothing published yet") + metric("i-document", "violet", String(assets.length), "Versioned reports", "Evidence retained") + metric("i-flow", "blue", String(reuseTotal), "Mission reuses", reuseTotal ? "Fresh executions created" : "No reuse yet") + metric("i-shield", "teal", String(assets.length), "Approval records", "Human decisions attached") + "</div>",
+      '<section class="panel exchange-search"><div class="exchange-search-box"><label class="large-search">' + svg("i-search") + '<input id="exchange-search-input" type="search" placeholder="Search reusable missions, owners or evidence…"></label></div></section>',
+      '<section class="panel">' + panelHead("Approved reusable missions", "i-spark", "featured") + '<div class="featured-assets">' + assetGrid + '</div></section>',
+      '<section class="panel">' + panelHead("Mission library", "i-exchange", "all-assets") + '<div class="asset-market-grid" id="asset-market-grid">' + marketGrid + '</div></section>',
       '</div><aside class="page-rail">',
-      '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "recommendations") + '<div class="clean-empty compact"><strong>No recommendations yet</strong><p>Use BursaIQ to build your recommendations.</p></div></section>',
-      '<section class="panel rail-panel">' + panelHead("Top Contributors", "i-agents", "contributors") + '<div class="clean-empty compact"><strong>No contributors yet</strong></div></section>',
-      '<section class="panel rail-panel">' + panelHead("My Saved Assets", "i-book", "saved") + '<div class="clean-empty compact"><strong>No saved assets</strong></div></section>',
+      '<section class="panel rail-panel">' + panelHead("How intelligence travels", "i-flow", "lifecycle") + '<div class="exchange-flow"><strong>Approved Mission</strong><span>→</span><strong>Intelligence Exchange</strong><span>→</span><strong>Reusable Mission</strong></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Publication contract", "i-shield", "governance") + '<div class="clean-empty compact"><strong>Nothing is published automatically</strong><p>An employee publishes only after human approval. The report, parameters, sources, owner and approval record travel together.</p></div></section>',
       "</aside></div></section>"
     ].join("");
   }
@@ -576,11 +648,11 @@
   }
 
   function featuredCard(asset) {
-    return '<article class="featured-card"><div class="featured-top">' + miniIcon(asset.icon, asset.tone) + '<span class="status green">' + svg("i-check") + ' Verified</span></div><h3>' + asset.title + '</h3><p>' + asset.description + '</p><div class="featured-foot"><span>' + asset.owner + '<br>' + asset.uses + '</span><button type="button" data-asset-open="' + escapeHtml(asset.title) + '">Inspect</button></div></article>';
+    return '<article class="featured-card"><div class="featured-top">' + miniIcon("i-flow", "violet") + '<span class="status green">' + svg("i-check") + ' Approved · ' + escapeHtml(asset.version) + '</span></div><h3>' + escapeHtml(asset.title) + '</h3><p>' + escapeHtml(asset.resultSummary.classification || "Verified mission intelligence") + '</p><div class="featured-foot"><span>' + escapeHtml(asset.owner) + '<br>' + Number(asset.reuseCount || 0) + ' reuses</span><button type="button" data-asset-open="' + escapeHtml(asset.id) + '">Inspect &amp; reuse</button></div></article>';
   }
 
   function marketAsset(asset) {
-    return '<article class="market-asset" data-asset-type="' + asset.type.toLowerCase() + '">' + miniIcon(asset.icon, asset.tone) + '<span><strong>' + asset.title + '</strong><small>' + asset.description + '<br>' + asset.owner + ' · ' + asset.uses + '</small></span><button type="button" data-asset-open="' + escapeHtml(asset.title) + '">Inspect</button></article>';
+    return '<article class="market-asset">' + miniIcon("i-document", "blue") + '<span><strong>' + escapeHtml(asset.title) + '</strong><small>' + escapeHtml(asset.version) + ' · ' + escapeHtml(asset.owner) + ' · ' + asset.evidence.length + ' evidence sources</small></span><button type="button" data-asset-open="' + escapeHtml(asset.id) + '">Open</button></article>';
   }
 
   function contributor(rank, name, count) {
@@ -700,9 +772,11 @@
     var reviewable = state.liveMissions.filter(function (mission) { return ["AWAITING REVIEW", "APPROVED", "REVISION REQUESTED"].indexOf(mission.status) !== -1; });
     var pending = reviewable.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
     var selected = missionById(state.selectedVerificationMissionId) || pending[0] || reviewable[0];
+    var selectedCase = selected ? state.verificationCases.filter(function (item) { return item.id === selected.verificationCaseId; })[0] : null;
+    var retainedComment = selectedCase && selectedCase.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment retained</strong><small>' + escapeHtml(selectedCase.reviewerComment) + '</small></span></div>' : "";
     var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : reviewable.length ? reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).join("") : '<div class="mission-empty"><strong>No mission packages awaiting review</strong><span>Complete an ADV mission and submit its draft from My Workforce.</span></div>';
-    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div><div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p><div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Same dashboard and PDF payload" : "Available after the first mission") + metric("i-clock", "violet", reviewable.length ? "2" : "0", "Source files", reviewable.length ? "Fingerprinted evidence" : "No evidence yet") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
+    var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>Version ' + Number(selected.version || 1) + ' · ' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div>' + retainedComment + '<div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p>' + (selected.status === "AWAITING REVIEW" ? '<label class="review-comment"><span>Reviewer comment</span><textarea id="mission-review-comment" maxlength="1000" placeholder="Required when requesting changes; optional for approval"></textarea></label>' : '') + '<div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : selected.status === "REVISION REQUESTED" ? '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(selected.id) + '">Create revision</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + (state.verificationError ? '<div class="mission-failure"><strong>Verification API unavailable</strong><small>' + escapeHtml(state.verificationError) + '</small></div>' : '') + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Same dashboard and PDF payload" : "Available after the first mission") + metric("i-clock", "violet", String(state.verificationCases.length), "Persisted review cases", "Loaded from verification API") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
   }
 
   function connectorsPage() {
@@ -885,13 +959,16 @@
     return { mission: "Mission created", workflow: "Workflow draft created", room: "Room created", skill: "Skill draft created", project: "Project created", connector: "Connector request submitted", policy: "Policy answer ready" }[type] || "Created";
   }
 
-  function openAsset(title) {
-    var asset = assets.filter(function (item) { return item.title === title; })[0] || assets[0];
+  function openAsset(id) {
+    var asset = assets.filter(function (item) { return item.id === id || item.title === id; })[0];
+    if (!asset) return;
+    var approval = asset.approvalRecord && asset.approvalRecord.case || {};
+    var evidence = (asset.evidence || []).map(function (item) { return '<li><strong>' + escapeHtml(item.filename || item.title) + '</strong><small>' + escapeHtml(item.role || item.detail || "Approved evidence") + '</small></li>'; }).join("");
     openExperience({
       title: asset.title,
-      subtitle: asset.type + " · " + asset.owner + " · " + asset.uses,
-      body: '<div class="asset-detail-hero">' + miniIcon(asset.icon, asset.tone) + '<div><span class="status green">' + svg("i-check") + ' Verified intelligence</span><p>' + asset.description + '</p></div></div><div class="detail-grid"><article><small>What it can do</small><strong>Turn an approved request into a reusable, governed result.</strong></article><article><small>Access boundary</small><strong>Uses only sources already permitted to the employee.</strong></article><article><small>Human control</small><strong>External actions pause for accountable approval.</strong></article><article><small>Last verified</small><strong>Today · synthetic demonstration state</strong></article></div><div class="detail-callout">' + svg("i-shield") + '<span><strong>Intelligence Passport included</strong><small>Owner, sources, version and reuse history travel with this asset.</small></span></div>',
-      footer: '<button class="secondary-button" type="button" data-dialog-action="save-asset" data-context="' + escapeHtml(asset.title) + '">Save</button><button class="primary-button" type="button" data-dialog-action="use-asset" data-context="' + escapeHtml(asset.title) + '">Use in workspace</button>'
+      subtitle: "Reusable Mission · " + asset.version + " · " + asset.owner,
+      body: '<div class="asset-detail-hero">' + miniIcon("i-flow", "violet") + '<div><span class="status green">' + svg("i-check") + ' Approved reusable mission</span><p>' + escapeHtml(asset.parameters.objective) + '</p></div></div><div class="detail-grid"><article><small>Owner</small><strong>' + escapeHtml(asset.owner) + '</strong></article><article><small>Parameters</small><strong>' + escapeHtml(asset.parameters.dateStart) + ' → ' + escapeHtml(asset.parameters.dateEnd) + '</strong></article><article><small>Approval</small><strong>' + escapeHtml(approval.status || "Approved") + ' by ' + escapeHtml(approval.reviewer || "Reviewer") + '</strong></article><article><small>Reuse history</small><strong>' + Number(asset.reuseCount || 0) + ' fresh missions</strong></article></div><section class="asset-passport"><h3>Evidence passport</h3><ul>' + evidence + '</ul></section><div class="detail-callout">' + svg("i-shield") + '<span><strong>' + escapeHtml(asset.version) + ' keeps the approved snapshot intact</strong><small>A reuse starts a new execution with copied parameters. It does not alter the approved result.</small></span></div>',
+      footer: (asset.report && asset.report.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(asset.report.downloadUrl) + '" target="_blank" rel="noopener">Open approved report</a>' : '') + '<button class="primary-button" type="button" data-asset-reuse="' + escapeHtml(asset.id) + '">Run reusable mission</button>'
     });
   }
 
@@ -931,7 +1008,7 @@
       ["Research", "Validate approved CSVs", healthy && (progress >= 50 || verificationActive || approved), healthy && progress < 50],
       ["Synthesis", "Calculate and explain", healthy && progress >= 100, healthy && progress >= 50 && progress < 100],
       ["Verification", "Review dashboard and PDF", approved, verificationActive],
-      ["Exchange", "Approve for reuse", approved, false]
+      ["Exchange", "Publish for governed reuse", Boolean(mission.publishedAsset), approved && !mission.publishedAsset]
     ];
     return '<div class="journey-wrap mission-detail-lifecycle" aria-label="Mission lifecycle"><div class="mission-journey">' + stages.map(function (stage, index) {
       var itemClass = stage[2] ? "is-done" : stage[3] ? "is-active" : "";
@@ -957,20 +1034,26 @@
       resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Period ADV</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' trading days</span></article><article><small>Total traded value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last month</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Monthly ADV change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible market rows</span></div></section>';
     }
     var failure = mission.error ? '<div class="mission-failure">' + svg("i-help") + '<span><strong>Mission failed</strong><small>' + escapeHtml(mission.error) + ' Correct the inputs and run again.</small></span></div>' : "";
-    return '<div class="mission-detail-progress"><div><span>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + missionLifecycleMarkup(mission) + failure + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
+    var reviewComment = mission.verification && mission.verification.reviewerComment ? '<div class="detail-callout review-comment-callout">' + svg("i-help") + '<span><strong>Reviewer comment</strong><small>' + escapeHtml(mission.verification.reviewerComment) + '</small></span></div>' : "";
+    var versions = (mission.versions || []).map(function (item) { return '<button type="button" data-mission-back="' + escapeHtml(item.id) + '"><strong>v' + Number(item.version || 1) + '</strong><span>' + missionDisplayStatus(item.status) + '</span><small>' + escapeHtml(item.id) + '</small></button>'; }).join("");
+    var history = versions ? '<section class="mission-version-history"><h3>Version history</h3><div>' + versions + '</div></section>' : "";
+    return '<div class="mission-detail-progress"><div><span>v' + Number(mission.version || 1) + ' · ' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + missionLifecycleMarkup(mission) + failure + reviewComment + history + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
   }
 
   function missionFooter(mission) {
     var controls = '<button class="secondary-button" type="button" data-mission-rerun="' + escapeHtml(mission.id) + '">Rerun with new dates</button>';
     if (mission.downloadUrl) controls += '<a class="secondary-button" href="' + escapeHtml(mission.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>';
-    if (mission.status === "DRAFT READY" || mission.status === "REVISION REQUESTED") controls += '<button class="primary-button" type="button" data-mission-submit-review="' + escapeHtml(mission.id) + '">Submit for review</button>';
+    if (mission.status === "DRAFT READY") controls += '<button class="primary-button" type="button" data-mission-submit-review="' + escapeHtml(mission.id) + '">Submit for review</button>';
+    else if (mission.status === "REVISION REQUESTED") controls += '<button class="primary-button" type="button" data-mission-revise="' + escapeHtml(mission.id) + '">Create revision</button>';
     else if (mission.status === "AWAITING REVIEW") controls += '<button class="primary-button" type="button" data-page-target="verification">Open Verification Centre</button>';
-    else if (mission.status === "APPROVED") controls += '<span class="status green">Approved for reuse</span>';
+    else if (mission.status === "APPROVED" && mission.publishedAsset) controls += '<button class="primary-button" type="button" data-page-target="exchange">Open in Exchange</button>';
+    else if (mission.status === "APPROVED") controls += '<button class="primary-button" type="button" data-mission-publish="' + escapeHtml(mission.id) + '">Publish to Exchange</button>';
     return controls;
   }
 
   function openMission(id) {
     state.selectedMissionId = id;
+    window.history.replaceState(null, "", "?page=workforce&mission=" + encodeURIComponent(id));
     apiJson("/api/missions/" + encodeURIComponent(id)).then(function (mission) {
       var existing = missionById(id);
       if (existing) Object.assign(existing, mission);
@@ -1030,6 +1113,24 @@
     };
     if (forceOpen) poll();
     state.missionPoll = window.setInterval(poll, 650);
+  }
+
+  function createMissionRevision(id, button) {
+    button.disabled = true;
+    button.textContent = "Creating revision…";
+    apiJson("/api/missions/" + encodeURIComponent(id) + "/revise", { method: "POST", body: JSON.stringify({ requestedBy: "Lim Kim Hoong" }) }).then(function (payload) {
+      closeExperience();
+      state.liveMissions.unshift(payload.mission);
+      state.page = "workforce";
+      render();
+      startMissionPolling(payload.mission.id, true);
+      window.setTimeout(function () { openMission(payload.mission.id); }, 180);
+      toast("Revision started", "Version " + payload.mission.version + " preserves the prior result and review history.");
+    }).catch(function (error) {
+      button.disabled = false;
+      button.textContent = "Create revision";
+      toast("Revision failed", error.message);
+    });
   }
 
   function openReview(context) {
@@ -1101,7 +1202,10 @@
   function navigate(page) {
     if (!pages[page]) return;
     state.page = page;
+    window.history.replaceState(null, "", "?page=" + encodeURIComponent(page));
     render();
+    if (page === "exchange") loadExchangeAssets();
+    if (page === "verification") loadVerification();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1251,15 +1355,23 @@
     root.querySelectorAll("[data-verification-mission]").forEach(function (button) {
       button.addEventListener("click", function () {
         state.selectedVerificationMissionId = button.dataset.verificationMission;
+        window.history.replaceState(null, "", "?page=verification&mission=" + encodeURIComponent(state.selectedVerificationMissionId));
         render();
       });
     });
     root.querySelectorAll("[data-mission-review]").forEach(function (button) {
       button.addEventListener("click", function () {
         var id = button.dataset.missionId;
+        var commentField = document.getElementById("mission-review-comment");
+        var comment = commentField ? commentField.value.trim() : "";
+        if (button.dataset.missionReview === "Changes requested" && !comment) {
+          toast("Reviewer comment required", "Explain what must change before this mission can be resubmitted.");
+          if (commentField) commentField.focus();
+          return;
+        }
         button.disabled = true;
-        apiJson("/api/verification/" + encodeURIComponent(missionById(id).verificationCaseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.missionReview }) }).then(function () {
-          return loadMissions(true);
+        apiJson("/api/verification/" + encodeURIComponent(missionById(id).verificationCaseId), { method: "PATCH", body: JSON.stringify({ role: "securities", status: button.dataset.missionReview, comment: comment }) }).then(function () {
+          return Promise.all([loadMissions(true), loadVerification()]);
         }).then(function () {
           render();
           toast(button.dataset.missionReview === "Approved" ? "Mission approved" : "Changes requested", "The human decision is persisted in the mission audit history.");
@@ -1268,6 +1380,9 @@
           toast("Review action failed", error.message);
         });
       });
+    });
+    root.querySelectorAll("[data-mission-revise]").forEach(function (button) {
+      button.addEventListener("click", function () { createMissionRevision(button.dataset.missionRevise, button); });
     });
     root.querySelectorAll("[data-category]").forEach(function (button) {
       button.addEventListener("click", function () {
@@ -1406,11 +1521,16 @@
     state.assistantCanvasTab = "plot";
     render();
     scrollAssistant();
-    window.setTimeout(function () {
-      state.assistantMessages[state.assistantMessages.length - 1] = { role: "assistant", question: text, answer: assistantAnswer(text) };
+    apiJson("/api/chat", { method: "POST", body: JSON.stringify({ question: text, workspace: "assistant", role: "gcmc", provider: state.routingProvider, conversationId: state.assistantConversationId }) }).then(function (payload) {
+      state.assistantConversationId = payload.conversationId || state.assistantConversationId;
+      state.assistantMessages[state.assistantMessages.length - 1] = { role: "assistant", question: text, answer: liveAssistantAnswer(payload, text) };
       render();
       scrollAssistant();
-    }, 850);
+    }).catch(function (error) {
+      state.assistantMessages[state.assistantMessages.length - 1] = { role: "assistant", question: text, answer: chatErrorAnswer(error) };
+      render();
+      scrollAssistant();
+    });
   }
 
   function submitAskBursa(text) {
@@ -1418,11 +1538,17 @@
     state.askBursaMessages.push({ role: "assistant", pending: true });
     render();
     scrollAskBursa();
-    window.setTimeout(function () {
-      state.askBursaMessages[state.askBursaMessages.length - 1] = { role: "assistant", question: text, answer: askBursaAnswer(text) };
+    apiJson("/api/chat", { method: "POST", body: JSON.stringify({ question: text, workspace: "learn", role: "gcmc", provider: state.routingProvider, conversationId: state.askBursaConversationId }) }).then(function (payload) {
+      state.askBursaConversationId = payload.conversationId || state.askBursaConversationId;
+      var provider = payload.provider === "copilot" ? "Microsoft Copilot Studio" : "Local Ollama model";
+      state.askBursaMessages[state.askBursaMessages.length - 1] = { role: "assistant", question: text, answer: { department: payload.workspace || "Internal Knowledge", title: "Ask Bursa live response", body: payload.answer, source: provider + " · " + (payload.narrativeMode || "live"), followup: (payload.suggestedActions || [])[0] || "What approved source should I check next?" } };
       render();
       scrollAskBursa();
-    }, 650);
+    }).catch(function (error) {
+      state.askBursaMessages[state.askBursaMessages.length - 1] = { role: "assistant", question: text, answer: { department: "Connection error", title: "Live response unavailable", body: error.message, source: "Flask /api/chat", followup: "", isError: true } };
+      render();
+      scrollAskBursa();
+    });
   }
 
   function scrollAskBursa() {
@@ -1632,8 +1758,45 @@
     completeCreation(event.target);
   });
   experienceOverlay.addEventListener("click", function (event) {
-    var target = event.target.closest("[data-dialog-action], [data-page-target], [data-mission-rerun], [data-mission-submit-review], [data-worker-evidence], [data-mission-back]");
+    var target = event.target.closest("[data-dialog-action], [data-page-target], [data-mission-rerun], [data-mission-submit-review], [data-mission-revise], [data-mission-publish], [data-asset-reuse], [data-worker-evidence], [data-mission-back]");
     if (!target) return;
+    if (target.dataset.missionRevise) { createMissionRevision(target.dataset.missionRevise, target); return; }
+    if (target.dataset.missionPublish) {
+      var publishId = target.dataset.missionPublish;
+      target.disabled = true;
+      target.textContent = "Publishing…";
+      apiJson("/api/missions/" + encodeURIComponent(publishId) + "/publish", { method: "POST", body: JSON.stringify({ publishedBy: "Lim Kim Hoong" }) }).then(function (asset) {
+        var publishedMission = missionById(publishId);
+        if (publishedMission) publishedMission.publishedAsset = asset;
+        assets = [asset].concat(assets.filter(function (item) { return item.id !== asset.id; }));
+        if (publishedMission) refreshOpenMission(publishedMission);
+        toast("Published to Intelligence Exchange", asset.version + " is now a reusable mission with its evidence and approval record.");
+      }).catch(function (error) {
+        target.disabled = false;
+        target.textContent = "Publish to Exchange";
+        toast("Publication failed", error.message);
+      });
+      return;
+    }
+    if (target.dataset.assetReuse) {
+      var assetId = target.dataset.assetReuse;
+      target.disabled = true;
+      target.textContent = "Starting mission…";
+      apiJson("/api/exchange/assets/" + encodeURIComponent(assetId) + "/reuse", { method: "POST", body: JSON.stringify({ requestedBy: "Lim Kim Hoong" }) }).then(function (payload) {
+        closeExperience();
+        state.liveMissions.unshift(payload.mission);
+        state.page = "workforce";
+        render();
+        startMissionPolling(payload.mission.id, true);
+        window.setTimeout(function () { openMission(payload.mission.id); }, 180);
+        toast("Reusable mission started", "A fresh execution was created from " + payload.asset.version + ".");
+      }).catch(function (error) {
+        target.disabled = false;
+        target.textContent = "Run reusable mission";
+        toast("Reuse failed", error.message);
+      });
+      return;
+    }
     if (target.dataset.missionBack) { openMission(target.dataset.missionBack); return; }
     if (target.dataset.workerEvidence) {
       var currentMission = missionById(state.selectedMissionId);
@@ -1704,6 +1867,13 @@
   });
 
   render();
-  loadMissions(false);
+  loadMissions(false).then(function () {
+    if (requestedMissionId && (state.page === "workforce" || state.page === "verification")) {
+      if (state.page === "verification") { state.selectedVerificationMissionId = requestedMissionId; render(); }
+      else openMission(requestedMissionId);
+    }
+  });
+  loadVerification();
+  loadExchangeAssets();
   loadModelProviders();
 })();

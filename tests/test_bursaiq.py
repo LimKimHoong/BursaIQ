@@ -13,6 +13,7 @@ from bursaiq.data_loader import LocalDataRepository
 from bursaiq.metrics import MetricEngine
 from bursaiq.copilot_studio import CopilotReply, CopilotRequestError, CopilotStudioService
 from bursaiq.model_providers import ModelReply, OllamaService
+from bursaiq.mission_engine import MissionStore
 from bursaiq.reporting import BriefingGenerator
 from bursaiq.routing import choose_workspace
 from bursaiq.store import VerificationStore
@@ -55,6 +56,45 @@ class IngestionTests(unittest.TestCase):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_mission_verification_revision_and_resubmission_lifecycle(self) -> None:
+        from server import app
+
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "workflow.sqlite3"
+            mission_store = MissionStore(database)
+            verification_store = VerificationStore(database)
+            result = {"findings": ["Verified finding"], "formula": "total / days", "scope": {}, "sources": []}
+            original = mission_store.create({"title": "ADV report", "objective": "Analyse ADV", "requestedBy": "Demo User", "dateStart": "2026-01-01", "dateEnd": "2026-09-30", "boards": []})
+            mission_store.update(original["id"], status="DRAFT READY", result=result, report_filename="adv.pdf", progress=100)
+
+            class NoopRunner:
+                def start(inner_self, mission_id: str) -> dict:
+                    return mission_store.get(mission_id)
+
+            with patch("server.missions", mission_store), patch("server.verification", verification_store), patch("server.mission_runner", NoopRunner()):
+                with app.test_client() as client:
+                    first_submission = client.post(f"/api/missions/{original['id']}/submit-review", json={}).get_json()
+                    first_case_id = first_submission["verification"]["id"]
+                    changes = client.patch(f"/api/verification/{first_case_id}", json={"status": "Changes requested", "role": "securities", "comment": "Explain the monthly shift."})
+                    self.assertEqual(changes.status_code, 200)
+                    duplicate = client.patch(f"/api/verification/{first_case_id}", json={"status": "Approved", "role": "securities"})
+                    self.assertEqual(duplicate.status_code, 409)
+
+                    revision_payload = client.post(f"/api/missions/{original['id']}/revise", json={"requestedBy": "Demo User"}).get_json()
+                    revision = revision_payload["mission"]
+                    self.assertEqual(revision["version"], 2)
+                    mission_store.update(revision["id"], status="DRAFT READY", result=result, report_filename="adv-v2.pdf", progress=100)
+                    second_submission = client.post(f"/api/missions/{revision['id']}/submit-review", json={}).get_json()
+                    second_case_id = second_submission["verification"]["id"]
+                    self.assertNotEqual(second_case_id, first_case_id)
+                    approval = client.patch(f"/api/verification/{second_case_id}", json={"status": "Approved", "role": "securities", "comment": "Revision confirmed."})
+                    self.assertEqual(approval.status_code, 200)
+
+            self.assertEqual(mission_store.get(original["id"])["status"], "REVISION REQUESTED")
+            self.assertEqual(mission_store.get(revision["id"])["status"], "APPROVED")
+            self.assertEqual(verification_store.get_case(first_case_id)["reviewerComment"], "Explain the monthly shift.")
+            self.assertEqual([item["version"] for item in mission_store.version_history(revision["id"])], [1, 2])
+
     def test_live_model_routes_semantic_work_request_to_adv_mission(self) -> None:
         from server import app
 
@@ -165,10 +205,13 @@ class WorkflowTests(unittest.TestCase):
                 "Demo User",
                 details={"question": "How did ADV change?", "formula": "latest / prior - 1"},
             )
-            updated = store.update_status(case["id"], "Approved", "Demo Reviewer")
+            updated = store.update_status(case["id"], "Approved", "Demo Reviewer", "Figures and evidence confirmed.")
             self.assertEqual(case["details"]["question"], "How did ADV change?")
             self.assertEqual(updated["status"], "Approved")
+            self.assertEqual(updated["reviewerComment"], "Figures and evidence confirmed.")
             self.assertEqual([event["action"] for event in store.history(case["id"])], ["submitted", "approved"])
+            with self.assertRaisesRegex(ValueError, "already has a final decision"):
+                store.update_status(case["id"], "Approved", "Demo Reviewer")
 
     def test_report_is_rendered_and_verified(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -226,6 +269,25 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(payload["narrativeMode"], "copilot-studio")
         ask.assert_called_once_with("How did ADV change?", "conv-1")
+
+    def test_chat_can_use_live_local_model_without_json_mode(self) -> None:
+        from server import app
+
+        with patch("server.ollama.ask", return_value=ModelReply("Live local answer", "ollama-chat-1")) as ask:
+            with app.test_client() as client:
+                response = client.post("/api/chat", json={
+                    "question": "Explain the approved market process",
+                    "workspace": "learn",
+                    "role": "gcmc",
+                    "provider": "ollama",
+                })
+        payload = response.get_json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payload["answer"], "Live local answer")
+        self.assertEqual(payload["provider"], "ollama")
+        self.assertEqual(payload["narrativeMode"], "ollama-live")
+        self.assertEqual(payload["conversationId"], "ollama-chat-1")
+        self.assertFalse(ask.call_args.kwargs["json_format"])
 
     def test_ask_reg_is_restricted_to_approved_role(self) -> None:
         from server import app

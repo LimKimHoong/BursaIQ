@@ -40,7 +40,8 @@ class VerificationStore:
                     created_at TEXT NOT NULL,
                     reviewed_at TEXT,
                     report_filename TEXT,
-                    details_json TEXT NOT NULL DEFAULT '{}'
+                    details_json TEXT NOT NULL DEFAULT '{}',
+                    reviewer_comment TEXT
                 );
                 CREATE TABLE IF NOT EXISTS audit_events (
                     event_id TEXT PRIMARY KEY,
@@ -56,6 +57,8 @@ class VerificationStore:
             columns = {row["name"] for row in connection.execute("PRAGMA table_info(verification_cases)").fetchall()}
             if "details_json" not in columns:
                 connection.execute("ALTER TABLE verification_cases ADD COLUMN details_json TEXT NOT NULL DEFAULT '{}'")
+            if "reviewer_comment" not in columns:
+                connection.execute("ALTER TABLE verification_cases ADD COLUMN reviewer_comment TEXT")
             seed_details = {
                 "question": "How did the market perform in July?",
                 "answerTitle": "The market advanced in July, with broad but selective support",
@@ -123,15 +126,18 @@ class VerificationStore:
             raise KeyError(case_id)
         return self._case_dict(row)
 
-    def update_status(self, case_id: str, status: str, actor: str) -> dict[str, Any]:
+    def update_status(self, case_id: str, status: str, actor: str, comment: str = "") -> dict[str, Any]:
         if status not in {"Approved", "Changes requested"}:
             raise ValueError("Status must be Approved or Changes requested")
         reviewed = utc_now()
         with self._connect() as connection:
-            cursor = connection.execute("UPDATE verification_cases SET status = ?, reviewed_at = ? WHERE id = ?", (status, reviewed, case_id))
-            if cursor.rowcount == 0:
+            existing = connection.execute("SELECT status FROM verification_cases WHERE id = ?", (case_id,)).fetchone()
+            if existing is None:
                 raise KeyError(case_id)
-            self._audit(connection, case_id, status.lower().replace(" ", "_"), actor, {})
+            if existing["status"] != "Pending review":
+                raise ValueError("This verification case already has a final decision.")
+            connection.execute("UPDATE verification_cases SET status = ?, reviewed_at = ?, reviewer_comment = ? WHERE id = ?", (status, reviewed, comment, case_id))
+            self._audit(connection, case_id, status.lower().replace(" ", "_"), actor, {"comment": comment})
         return self.get_case(case_id)
 
     def history(self, case_id: str) -> list[dict[str, Any]]:
@@ -158,5 +164,6 @@ class VerificationStore:
             "createdAt": created,
             "reviewedAt": row["reviewed_at"],
             "reportFilename": row["report_filename"],
+            "reviewerComment": row["reviewer_comment"] if "reviewer_comment" in row.keys() else None,
             "details": details,
         }

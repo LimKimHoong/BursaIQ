@@ -70,7 +70,10 @@ class MissionStore:
                     result_json TEXT,
                     report_filename TEXT,
                     verification_case_id TEXT,
-                    error TEXT
+                    error TEXT,
+                    root_mission_id TEXT,
+                    version INTEGER NOT NULL DEFAULT 1,
+                    supersedes_mission_id TEXT
                 );
                 CREATE TABLE IF NOT EXISTS mission_events (
                     event_id TEXT PRIMARY KEY,
@@ -86,18 +89,38 @@ class MissionStore:
                 );
                 CREATE INDEX IF NOT EXISTS mission_events_by_mission
                     ON mission_events(mission_id, occurred_at);
+                CREATE TABLE IF NOT EXISTS intelligence_assets (
+                    id TEXT PRIMARY KEY,
+                    source_mission_id TEXT NOT NULL UNIQUE,
+                    title TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    owner TEXT NOT NULL,
+                    published_by TEXT NOT NULL,
+                    published_at TEXT NOT NULL,
+                    asset_json TEXT NOT NULL,
+                    reuse_count INTEGER NOT NULL DEFAULT 0,
+                    FOREIGN KEY(source_mission_id) REFERENCES missions(id)
+                );
                 """
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(missions)").fetchall()}
+            if "root_mission_id" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN root_mission_id TEXT")
+            if "version" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN version INTEGER NOT NULL DEFAULT 1")
+            if "supersedes_mission_id" not in columns:
+                connection.execute("ALTER TABLE missions ADD COLUMN supersedes_mission_id TEXT")
+            connection.execute("UPDATE missions SET root_mission_id = id WHERE root_mission_id IS NULL")
 
-    def create(self, payload: dict[str, Any]) -> dict[str, Any]:
+    def create(self, payload: dict[str, Any], *, root_mission_id: str | None = None, version: int = 1, supersedes_mission_id: str | None = None) -> dict[str, Any]:
         mission_id = f"MIS-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
         created = utc_now()
         with self._lock, self._connect() as connection:
             connection.execute(
                 """INSERT INTO missions
                    (id, title, objective, requested_by, date_start, date_end, boards_json,
-                    status, current_worker, progress, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, 'PLANNED', 'mission-manager', 0, ?, ?)""",
+                    status, current_worker, progress, created_at, updated_at, root_mission_id, version, supersedes_mission_id)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'PLANNED', 'mission-manager', 0, ?, ?, ?, ?, ?)""",
                 (
                     mission_id,
                     payload["title"],
@@ -108,6 +131,9 @@ class MissionStore:
                     json.dumps(payload["boards"], sort_keys=True),
                     created,
                     created,
+                    root_mission_id or mission_id,
+                    version,
+                    supersedes_mission_id,
                 ),
             )
             self._event(connection, mission_id, "mission-manager", "Mission Manager", "PLANNED", "Mission request persisted with an adjustable reporting window.", payload={"dateStart": payload["dateStart"], "dateEnd": payload["dateEnd"], "boards": payload["boards"], "objective": payload["objective"]})
@@ -166,6 +192,93 @@ class MissionStore:
             row = connection.execute("SELECT * FROM missions WHERE verification_case_id = ?", (case_id,)).fetchone()
         return self._mission_dict(row, include_events=False) if row else None
 
+    def create_revision(self, mission_id: str, requested_by: str) -> dict[str, Any]:
+        prior = self.get(mission_id)
+        if prior["status"] != "REVISION REQUESTED":
+            raise ValueError("Only a mission with requested changes can be revised.")
+        root_id = prior.get("rootMissionId") or prior["id"]
+        with self._connect() as connection:
+            latest = connection.execute("SELECT MAX(version) AS version FROM missions WHERE root_mission_id = ?", (root_id,)).fetchone()["version"] or prior.get("version", 1)
+        revised = self.create({
+            "title": prior["title"], "objective": prior["objective"], "requestedBy": requested_by,
+            "dateStart": prior["dateStart"], "dateEnd": prior["dateEnd"], "boards": prior["boards"],
+        }, root_mission_id=root_id, version=int(latest) + 1, supersedes_mission_id=prior["id"])
+        self.event(revised["id"], "mission-manager", "REVISION", "New mission version created from reviewer-requested changes.", {"previousMissionId": prior["id"], "version": revised["version"]})
+        self.event(prior["id"], "mission-manager", "SUPERSEDED", "A new revision was created while this version remains immutable.", {"revisionMissionId": revised["id"], "version": revised["version"]})
+        return self.get(revised["id"])
+
+    def version_history(self, mission_id: str) -> list[dict[str, Any]]:
+        mission = self.get(mission_id)
+        root_id = mission.get("rootMissionId") or mission["id"]
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM missions WHERE root_mission_id = ? ORDER BY version", (root_id,)).fetchall()
+        return [self._mission_dict(row, include_events=False) for row in rows]
+
+    def publish_asset(self, mission_id: str, published_by: str, approval: dict[str, Any]) -> dict[str, Any]:
+        mission = self.get(mission_id)
+        if mission["status"] != "APPROVED" or not mission.get("result"):
+            raise ValueError("Only an approved mission result can be published.")
+        with self._lock, self._connect() as connection:
+            existing = connection.execute("SELECT * FROM intelligence_assets WHERE source_mission_id = ?", (mission_id,)).fetchone()
+            if existing:
+                return self._asset_dict(existing)
+            version = connection.execute("SELECT COUNT(*) + 1 AS version FROM intelligence_assets WHERE title = ?", (mission["title"],)).fetchone()["version"]
+            asset_id = f"ASSET-{datetime.now().strftime('%y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
+            published_at = utc_now()
+            asset = {
+                "id": asset_id,
+                "type": "Reusable Mission",
+                "title": mission["title"],
+                "version": f"v{version}.0",
+                "owner": mission["requestedBy"],
+                "publishedBy": published_by,
+                "publishedAt": published_at,
+                "sourceMissionId": mission_id,
+                "report": {"filename": mission.get("reportFilename"), "downloadUrl": mission.get("downloadUrl")},
+                "evidence": mission["result"].get("sources", []),
+                "parameters": {"objective": mission["objective"], "dateStart": mission["dateStart"], "dateEnd": mission["dateEnd"], "boards": mission["boards"]},
+                "approvalRecord": approval,
+                "resultSummary": {"metrics": mission["result"].get("metrics", {}), "findings": mission["result"].get("findings", []), "classification": mission["result"].get("classification", "")},
+                "reuseCount": 0,
+            }
+            connection.execute(
+                "INSERT INTO intelligence_assets VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0)",
+                (asset_id, mission_id, mission["title"], version, mission["requestedBy"], published_by, published_at, json.dumps(asset, ensure_ascii=True, sort_keys=True)),
+            )
+        self.event(mission_id, "mission-manager", "PUBLISHED", "Approved mission published to the Intelligence Exchange.", {"assetId": asset_id, "version": asset["version"], "publishedBy": published_by})
+        return asset
+
+    def list_assets(self) -> list[dict[str, Any]]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM intelligence_assets ORDER BY published_at DESC").fetchall()
+        return [self._asset_dict(row) for row in rows]
+
+    def get_asset(self, asset_id: str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM intelligence_assets WHERE id = ?", (asset_id,)).fetchone()
+        if row is None:
+            raise KeyError(asset_id)
+        return self._asset_dict(row)
+
+    def asset_for_mission(self, mission_id: str) -> dict[str, Any] | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM intelligence_assets WHERE source_mission_id = ?", (mission_id,)).fetchone()
+        return self._asset_dict(row) if row else None
+
+    def record_reuse(self, asset_id: str) -> dict[str, Any]:
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute("UPDATE intelligence_assets SET reuse_count = reuse_count + 1 WHERE id = ?", (asset_id,))
+            if cursor.rowcount == 0:
+                raise KeyError(asset_id)
+            row = connection.execute("SELECT * FROM intelligence_assets WHERE id = ?", (asset_id,)).fetchone()
+        return self._asset_dict(row)
+
+    @staticmethod
+    def _asset_dict(row: sqlite3.Row) -> dict[str, Any]:
+        asset = json.loads(row["asset_json"])
+        asset["reuseCount"] = row["reuse_count"]
+        return asset
+
     @staticmethod
     def _mission_dict(row: sqlite3.Row, include_events: bool) -> dict[str, Any]:
         result = json.loads(row["result_json"]) if row["result_json"] else None
@@ -186,6 +299,9 @@ class MissionStore:
             "reportFilename": row["report_filename"],
             "downloadUrl": f"/api/reports/{row['report_filename']}" if row["report_filename"] else None,
             "verificationCaseId": row["verification_case_id"],
+            "rootMissionId": row["root_mission_id"] or row["id"],
+            "version": row["version"] if "version" in row.keys() else 1,
+            "supersedesMissionId": row["supersedes_mission_id"] if "supersedes_mission_id" in row.keys() else None,
             "error": row["error"],
         }
         if include_events:

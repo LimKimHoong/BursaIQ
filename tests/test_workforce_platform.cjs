@@ -44,7 +44,10 @@ test('mobile create control keeps an accessible name when its text is hidden', (
 test('AI Assistant is a governed question-and-answer workspace', () => {
   assert.match(js, /What would you like to <span>understand\?<\/span>/);
   assert.match(js, /Ask a question about Bursa, markets, policy, or approved knowledge/);
-  assert.match(js, /function assistantAnswer\(/);
+  assert.match(js, /function liveAssistantAnswer\(/);
+  assert.match(js, /apiJson\("\/api\/chat"/);
+  assert.match(js, /provider: state\.routingProvider/);
+  assert.match(js, /No static fallback used/);
   assert.doesNotMatch(js, /Delegate as mission<\/button>/);
 });
 
@@ -60,7 +63,7 @@ test('home commands use live semantic routing without a keyword fallback', () =>
 
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
-  const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function openReview('));
+  const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function createMissionRevision('));
   assert.doesNotMatch(workforcePageSource, /journey-wrap|mission-journey/);
   assert.doesNotMatch(missionPollingSource, /\brender\(\)/);
   assert.match(missionPollingSource, /refreshMissionRow\(mission\)/);
@@ -68,6 +71,15 @@ test('mission lifecycle appears only after opening a clickable mission', () => {
   assert.match(js, /function missionLifecycleMarkup\(mission\)/);
   assert.match(js, /missionLifecycleMarkup\(mission\) \+ failure/);
   assert.match(css, /\.experience-body\.is-live-refresh/);
+  assert.match(js, /data-mission-publish=/);
+  assert.match(js, /Publish to Exchange/);
+  assert.match(js, /data-asset-reuse=/);
+  assert.match(js, /Run reusable mission/);
+  assert.match(js, /\/api\/exchange\/assets/);
+  assert.match(js, /data-mission-revise=/);
+  assert.match(js, /Create revision/);
+  assert.match(js, /mission-review-comment/);
+  assert.match(js, /\/api\/missions\/" \+ encodeURIComponent\(id\) \+ "\/revise/);
 });
 
 test('a new login starts without fabricated work or notification counts', () => {
@@ -109,6 +121,9 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   assert.match(js, /HR, Group Technology, Regulations, or Market Operations/);
   assert.match(js, /Q&amp;A only/);
   assert.match(js, /function submitAskBursa\(/);
+  const askSubmission = js.slice(js.indexOf('function submitAskBursa('), js.indexOf('function scrollAskBursa('));
+  assert.match(askSubmission, /apiJson\("\/api\/chat"/);
+  assert.doesNotMatch(askSubmission, /askBursaAnswer\(/);
   assert.doesNotMatch(js, /class="bursa-scope"/);
   assert.doesNotMatch(css, /\.bursa-scope/);
   assert.match(css, /\.ask-bursa-thread, \.ask-bursa-composer-wrap \{ width: 100%; max-width: none;/);
@@ -117,6 +132,15 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
     assert.doesNotMatch(source, /Your role and permissions are applied/);
     assert.doesNotMatch(source, /Ask Bursa Permission Scope/);
   }
+});
+
+test('live backend state survives page refresh routes', () => {
+  assert.match(js, /apiJson\("\/api\/missions"/);
+  assert.match(js, /apiJson\("\/api\/verification\?role=securities"/);
+  assert.match(js, /apiJson\("\/api\/exchange\/assets"/);
+  assert.match(js, /window\.history\.replaceState\(null, "", "\?page="/);
+  assert.match(js, /requestedMissionId/);
+  assert.match(js, /homeMissionItem\(latestMission\)/);
 });
 
 test('Action workspace manages decision memory and email schedules', () => {
