@@ -546,7 +546,7 @@
   function missionRow(mission) {
     var worker = mission.currentWorker ? mission.currentWorker.replace(/-/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); }) : "Mission Manager";
     var updated = mission.updatedAt ? new Date(mission.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-    return '<tr><td><button class="mission-title mission-title-button" type="button" data-mission="' + escapeHtml(mission.id) + '" aria-label="Open mission ' + escapeHtml(mission.title) + '">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></button></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
+    return '<tr data-mission-row="' + escapeHtml(mission.id) + '"><td><button class="mission-title mission-title-button" type="button" data-mission="' + escapeHtml(mission.id) + '" aria-label="Open mission ' + escapeHtml(mission.title) + '">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></button></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
   }
 
   function exchangePage() {
@@ -856,7 +856,6 @@
         state.page = "workforce";
         state.selectedMissionId = mission.id;
         return loadMissions(true).then(function () {
-          render();
           startMissionPolling(mission.id, true);
           window.setTimeout(function () { openMission(mission.id); }, 220);
           toast("Mission started", "The five-worker ADV mission is running against the approved CSV files.");
@@ -983,10 +982,31 @@
 
   function refreshOpenMission(mission) {
     if (state.selectedMissionId !== mission.id || experienceOverlay.hidden) return;
+    var scrollTop = experienceBody.scrollTop;
+    experienceBody.classList.add("is-live-refresh");
     experienceTitle.textContent = mission.title;
     experienceSubtitle.textContent = "Live mission · " + missionDisplayStatus(mission.status) + " · " + mission.progress + "%";
     experienceBody.innerHTML = missionDetailMarkup(mission);
     experienceFoot.innerHTML = missionFooter(mission);
+    experienceBody.scrollTop = scrollTop;
+    window.requestAnimationFrame(function () { experienceBody.classList.remove("is-live-refresh"); });
+  }
+
+  function bindMissionOpenButtons(scope) {
+    (scope || root).querySelectorAll("[data-mission]").forEach(function (button) {
+      button.addEventListener("click", function () { openMission(button.dataset.mission); });
+    });
+  }
+
+  function refreshMissionRow(mission) {
+    if (state.page !== "workforce") return;
+    var currentRow = root.querySelector('[data-mission-row="' + window.CSS.escape(mission.id) + '"]');
+    if (!currentRow) return;
+    var holder = document.createElement("tbody");
+    holder.innerHTML = missionRow(mission);
+    var nextRow = holder.firstElementChild;
+    currentRow.replaceWith(nextRow);
+    bindMissionOpenButtons(nextRow);
   }
 
   function startMissionPolling(id, forceOpen) {
@@ -996,7 +1016,7 @@
         var existing = missionById(id);
         if (existing) Object.assign(existing, mission);
         else state.liveMissions.unshift(mission);
-        if (state.page === "workforce") render();
+        refreshMissionRow(mission);
         refreshOpenMission(mission);
         if (["RUNNING", "PLANNED"].indexOf(mission.status) === -1) {
           window.clearInterval(state.missionPoll);
@@ -1225,11 +1245,7 @@
       });
     });
 
-    root.querySelectorAll("[data-mission]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        openMission(button.dataset.mission);
-      });
-    });
+    bindMissionOpenButtons(root);
     var missionRefresh = root.querySelector("[data-mission-refresh]");
     if (missionRefresh) missionRefresh.addEventListener("click", function () { loadMissions(false); });
     root.querySelectorAll("[data-verification-mission]").forEach(function (button) {

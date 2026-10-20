@@ -137,6 +137,7 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .page { width: 100%; max-width: 1700px; margin: 0 auto; padding: 22px 20px 34px; }
 .page-enter { animation: page-in 420ms var(--ease) both; }
 @keyframes page-in { from { opacity: .01; filter: blur(5px); transform: translateY(8px); } to { opacity: 1; filter: none; transform: none; } }
+.experience-body.is-live-refresh *, .experience-body.is-live-refresh *::before, .experience-body.is-live-refresh *::after { animation: none !important; }
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; margin-bottom: 16px; }
 .page-head h1 { margin: 0; color: var(--ink); font-size: clamp(25px, 2.3vw, 35px); font-weight: 770; letter-spacing: -.035em; line-height: 1.06; }
 .page-head h1, .hero-title, .hero-subtitle, .assistant-welcome h2, .brand strong { font-family: var(--font-display); }

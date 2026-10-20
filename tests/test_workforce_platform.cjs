@@ -37,6 +37,8 @@ test('creation and detail work use an accessible synthetic-demo sheet', () => {
 
 test('mobile create control keeps an accessible name when its text is hidden', () => {
   assert.match(html, /id="create-button"[^>]*aria-label="Create"/);
+  const createMenu = html.slice(html.indexOf('id="create-menu"'), html.indexOf('</div>', html.indexOf('id="create-menu"')));
+  assert.doesNotMatch(createMenu, /New room|data-create="room"/);
 });
 
 test('AI Assistant is a governed question-and-answer workspace', () => {
@@ -58,10 +60,14 @@ test('home commands use live semantic routing without a keyword fallback', () =>
 
 test('mission lifecycle appears only after opening a clickable mission', () => {
   const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
+  const missionPollingSource = js.slice(js.indexOf('function startMissionPolling('), js.indexOf('function openReview('));
   assert.doesNotMatch(workforcePageSource, /journey-wrap|mission-journey/);
+  assert.doesNotMatch(missionPollingSource, /\brender\(\)/);
+  assert.match(missionPollingSource, /refreshMissionRow\(mission\)/);
   assert.match(js, /class="mission-title mission-title-button"[^>]*data-mission=/);
   assert.match(js, /function missionLifecycleMarkup\(mission\)/);
   assert.match(js, /missionLifecycleMarkup\(mission\) \+ failure/);
+  assert.match(css, /\.experience-body\.is-live-refresh/);
 });
 
 test('a new login starts without fabricated work or notification counts', () => {
