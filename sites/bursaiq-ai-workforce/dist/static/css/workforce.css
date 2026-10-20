@@ -303,7 +303,13 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .assistant-page { display: flex; height: calc(100vh - var(--topbar-h)); flex-direction: column; padding: 0; overflow: hidden; background: #f8fbff; }
 .ask-bursa-page { display: flex; height: calc(100vh - var(--topbar-h)); min-height: 0; flex-direction: column; overflow: hidden; background: #f8fbff; }
 .ask-bursa-main { display: flex; min-height: 0; flex: 1; flex-direction: column; }
-.ask-bursa-thread, .ask-bursa-composer-wrap { width: min(920px, 100%); margin-inline: auto; }
+.ask-bursa-thread, .ask-bursa-composer-wrap { width: 100%; max-width: none; margin-inline: 0; }
+.ask-bursa-thread { padding: 28px clamp(24px, 4vw, 72px); }
+.ask-bursa-composer-wrap { padding: 12px clamp(24px, 4vw, 72px) 18px; }
+.ask-bursa-composer-wrap .assistant-composer textarea { min-height: 82px; }
+.ask-bursa-thread .chat-message:not(.user) .chat-bubble { width: min(1100px, calc(100% - 50px)); max-width: none; }
+.ask-bursa-thread .chat-message.user .chat-bubble { max-width: min(760px, 75%); }
+.ask-bursa-welcome { width: 100%; }
 .ask-bursa-welcome { padding-top: 8vh; }
 .bursa-answer { position: relative; }
 .bursa-department { display: inline-flex; margin-bottom: 8px; border-radius: 999px; padding: 4px 7px; color: var(--blue); background: var(--blue-soft); font-size: 10px; font-weight: 750; }
@@ -1066,6 +1072,10 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
   .ask-bursa-page { height: auto; min-height: calc(100dvh - var(--topbar-h)); }
   .ask-bursa-main { min-height: 720px; }
   .ask-bursa-welcome { padding-top: 24px; }
+  .ask-bursa-thread { padding: 12px 14px; }
+  .ask-bursa-composer-wrap { padding: 8px 10px 12px; }
+  .ask-bursa-composer-wrap .assistant-composer textarea { min-height: 64px; }
+  .ask-bursa-thread .chat-message:not(.user) .chat-bubble { width: calc(100% - 42px); }
   .assistant-head { padding: 0 14px; }
   .assistant-thread { padding: 12px 14px; }
   .assistant-welcome { padding-top: 20px; }

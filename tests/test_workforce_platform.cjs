@@ -111,6 +111,8 @@ test('Ask Bursa is internal question-and-answer without a Decision Canvas', () =
   assert.match(js, /function submitAskBursa\(/);
   assert.doesNotMatch(js, /class="bursa-scope"/);
   assert.doesNotMatch(css, /\.bursa-scope/);
+  assert.match(css, /\.ask-bursa-thread, \.ask-bursa-composer-wrap \{ width: 100%; max-width: none;/);
+  assert.match(css, /\.ask-bursa-composer-wrap \.assistant-composer textarea \{ min-height: 82px;/);
   for (const source of [js, designDocs, designLibrary]) {
     assert.doesNotMatch(source, /Your role and permissions are applied/);
     assert.doesNotMatch(source, /Ask Bursa Permission Scope/);
