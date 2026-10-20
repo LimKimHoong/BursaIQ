@@ -1,0 +1,48 @@
+{
+  "classification": "SYNTHETIC_DEMO_ONLY",
+  "title": "Market Regulation Guide — Demo",
+  "owner": "Regulatory Policy & Advisory",
+  "topics": [
+    {
+      "id": "continuous-disclosure",
+      "title": "Continuous disclosure",
+      "summary": "An issuer should assess whether information is material and follow the approved disclosure process without avoidable delay. Confidentiality must be protected while the assessment is underway.",
+      "actions": [
+        "Escalate potentially material information to the authorised disclosure owner.",
+        "Document the materiality assessment and decision.",
+        "Use the approved announcement and review process before publication."
+      ]
+    },
+    {
+      "id": "unusual-market-activity",
+      "title": "Unusual market activity query",
+      "summary": "A designated issuer contact should coordinate a prompt fact check, confirm whether undisclosed material information exists and prepare a reviewed response through the approved channel.",
+      "actions": [
+        "Notify the company secretary or designated disclosure owner.",
+        "Check for undisclosed material developments with accountable business owners.",
+        "Preserve the review record and obtain approval before responding."
+      ]
+    },
+    {
+      "id": "market-misconduct",
+      "title": "Suspected market misconduct",
+      "summary": "Potential manipulation, insider dealing or other suspicious conduct should be escalated through the approved surveillance or compliance channel. Staff should preserve information and avoid conducting an unauthorised investigation.",
+      "actions": [
+        "Record the observation without altering source material.",
+        "Escalate to Market Surveillance or Compliance.",
+        "Restrict discussion to authorised personnel and follow the case owner's instructions."
+      ]
+    },
+    {
+      "id": "listing-obligations",
+      "title": "Continuing listing obligations",
+      "summary": "Listed issuers have ongoing obligations that may include announcements, periodic reporting, governance and transaction-related requirements. The current official rulebook and accountable regulatory owner remain authoritative.",
+      "actions": [
+        "Identify the relevant obligation and effective rule version.",
+        "Check current official guidance and any applicable practice note.",
+        "Escalate interpretation questions to Regulatory Policy & Advisory."
+      ]
+    }
+  ],
+  "disclaimer": "Synthetic competition guidance only. It is not legal advice or an official interpretation of Bursa Malaysia rules."
+}

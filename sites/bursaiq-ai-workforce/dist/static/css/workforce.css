@@ -232,6 +232,10 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .work-item small { margin-top: 2px; color: var(--muted); font-size: 10px; }
 .work-item > svg { width: 14px; color: #7c8ca6; }
 .progress-list { padding: 5px 14px 12px; }
+.clean-empty { display: grid; min-height: 150px; place-items: center; align-content: center; gap: 7px; padding: 22px; color: var(--muted); text-align: center; }
+.clean-empty.compact { min-height: 112px; padding: 16px; }
+.clean-empty strong { color: var(--ink); font-size: 11px; }
+.clean-empty p { max-width: 34ch; margin: 0; font-size: 10px; line-height: 1.5; }
 .progress-item { display: grid; min-height: 67px; grid-template-columns: 35px minmax(0, 1fr) auto; align-items: center; gap: 9px; border-bottom: 1px solid #edf1f6; }
 .progress-item:last-child { border-bottom: 0; }
 .progress-item strong, .progress-item small { display: block; }
@@ -478,6 +482,8 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .mission-table th { height: 34px; padding: 0 10px; color: var(--muted); background: #f8faff; font-size: 10px; font-weight: 650; text-align: left; text-transform: uppercase; letter-spacing: .035em; }
 .mission-table td { min-height: 55px; border-top: 1px solid #edf1f6; padding: 8px 10px; color: var(--ink-2); font-size: 10px; vertical-align: middle; }
 .mission-title { display: flex; align-items: center; gap: 8px; min-width: 210px; }
+.mission-title-button { width: 100%; color: inherit; background: transparent; cursor: pointer; text-align: left; }
+.mission-title-button:hover strong { color: var(--blue); text-decoration: underline; text-underline-offset: 2px; }
 .mission-title strong, .mission-title small { display: block; }
 .mission-title strong { color: var(--ink); font-size: 10.5px; }
 .mission-title small { color: var(--muted); font-size: 10px; }
@@ -660,6 +666,7 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .mission-detail-progress { border-radius: 12px; padding: 15px; background: #f6f9fd; }
 .mission-detail-progress > div { display: flex; align-items: center; justify-content: space-between; }
 .mission-detail-progress > div > span { color: var(--muted); font-weight: 700; }
+.mission-detail-lifecycle { margin-top: 16px; border: 1px solid var(--line); border-radius: 11px; background: #fbfdff; }
 .mission-detail-journey { position: relative; display: grid; gap: 8px; margin-top: 16px; }
 .mission-detail-journey::before { position: absolute; top: 25px; bottom: 25px; left: 22px; width: 2px; background: #dfe8f2; content: ""; }
 .mission-detail-journey article { position: relative; z-index: 1; display: grid; min-height: 62px; grid-template-columns: 44px 1fr auto; align-items: center; gap: 11px; border: 1px solid var(--line); border-radius: 11px; padding: 8px 12px 8px 8px; background: #fff; }

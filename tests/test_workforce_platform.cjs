@@ -56,6 +56,28 @@ test('home commands use live semantic routing without a keyword fallback', () =>
   assert.match(js, /bursaiq-routing-provider/);
 });
 
+test('mission lifecycle appears only after opening a clickable mission', () => {
+  const workforcePageSource = js.slice(js.indexOf('function workforcePage()'), js.indexOf('function metric('));
+  assert.doesNotMatch(workforcePageSource, /journey-wrap|mission-journey/);
+  assert.match(js, /class="mission-title mission-title-button"[^>]*data-mission=/);
+  assert.match(js, /function missionLifecycleMarkup\(mission\)/);
+  assert.match(js, /missionLifecycleMarkup\(mission\) \+ failure/);
+});
+
+test('a new login starts without fabricated work or notification counts', () => {
+  assert.match(js, /savedDecisions: \[\]/);
+  assert.match(js, /emailAutomations: \[\]/);
+  assert.match(js, /notificationCount: 0/);
+  assert.match(js, /var missions = \[\]/);
+  assert.match(js, /var assets = \[\]/);
+  assert.match(js, /var rooms = \[\]/);
+  assert.match(js, /Nothing needs your attention/);
+  assert.match(js, /No work in progress/);
+  assert.match(js, /No connectors configured/);
+  assert.doesNotMatch(html, /class="top-icon has-badge"/);
+  assert.doesNotMatch(html, /data-page="(?:workforce|verification)"[^>]*>[\s\S]{0,160}<b>[1-9]/);
+});
+
 test('Decision Canvas exposes plot, analysis, source, and action views', () => {
   assert.match(js, /var tabs = \["plot", "analysis", "source", "action"\]/);
   assert.match(js, /data-assistant-canvas-tab/);

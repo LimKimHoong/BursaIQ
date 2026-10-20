@@ -33,12 +33,8 @@
     assistantMessages: [],
     assistantCanvasTab: "plot",
     askBursaMessages: [],
-    savedDecisions: [
-      { id: "DEC-1014", answerKey: "answer-oimse", title: "July market activity strengthened", question: "How did July market activity compare with June?", owner: "Lim Kim Hoong", created: "14 Oct 2026", status: "Recorded" }
-    ],
-    emailAutomations: [
-      { id: "MAIL-07", answerKey: "seed-weekly-market", title: "Weekly Market Activity Brief", question: "Summarise the latest market activity", schedule: "Every Monday · 8:00 AM", recipient: "Market Strategy", status: "Active" }
-    ],
+    savedDecisions: [],
+    emailAutomations: [],
     selectedNode: "trigger",
     selectedRoom: "product",
     missionProgress: 67,
@@ -48,7 +44,7 @@
     briefFilter: "for-you",
     workspaceView: "projects",
     verificationFilter: "pending",
-    notificationCount: 3,
+    notificationCount: 0,
     reducedUpdates: false,
     liveMissions: [],
     missionLoading: true,
@@ -83,13 +79,7 @@
     { name: "Knowledge Agent", initials: "KA", tone: "blue", job: "Organisational knowledge and learning", state: "Active" }
   ];
 
-  var missions = [
-    { title: "Product Launch Readiness Analysis", subtitle: "New market data service", agents: ["RA", "DA", "VA"], progress: 67, stage: "Verify findings", due: "Today", status: "On track" },
-    { title: "Monthly Board Pack Preparation", subtitle: "Q3 2026 executive pack", agents: ["RA", "DA", "RP"], progress: 82, stage: "Draft output", due: "14 Oct", status: "On track" },
-    { title: "ESG Reporting Draft", subtitle: "FY2026 sustainability report", agents: ["RP", "VA", "KA"], progress: 44, stage: "Retrieve sources", due: "18 Oct", status: "At risk" },
-    { title: "Access Request Automation", subtitle: "Cross-system onboarding", agents: ["WA", "VA"], progress: 58, stage: "Build workflow", due: "21 Oct", status: "On track" },
-    { title: "Cross-Department Meeting Prep", subtitle: "Market strategy working group", agents: ["RA", "KA", "RP"], progress: 91, stage: "Await approval", due: "Today", status: "Waiting review" }
-  ];
+  var missions = [];
 
   var missionAgents = [
     { name: "Mission Manager", initials: "MM", tone: "violet", job: "Validates scope, dependencies and review gates", state: "Ready" },
@@ -99,25 +89,9 @@
     { name: "Report Agent", initials: "RA", tone: "blue", job: "Builds and validates the executive PDF", state: "Ready" }
   ];
 
-  var assets = [
-    { title: "Policy Review Agent", type: "AI Agent", icon: "i-spark", tone: "blue", description: "Analyses policies and regulatory updates with cited recommendations.", owner: "Legal & Compliance", uses: "428 uses", verified: true },
-    { title: "Board Pack Generator", type: "Workflow", icon: "i-automation", tone: "violet", description: "Creates board-ready materials from approved sources and structured inputs.", owner: "Corporate Secretariat", uses: "312 uses", verified: true },
-    { title: "ESG Reporting Template", type: "Template", icon: "i-document", tone: "teal", description: "Standardised, evidence-led framework for sustainability reporting.", owner: "Sustainability", uses: "276 uses", verified: true },
-    { title: "Market Regulation Knowledge Pack", type: "Knowledge", icon: "i-book", tone: "amber", description: "Curated guidance for listing, conduct and regulatory updates.", owner: "Market Regulation", uses: "198 uses", verified: true },
-    { title: "HR Onboarding Workflow", type: "Workflow", icon: "i-flow", tone: "violet", description: "End-to-end onboarding process with role-aware approvals.", owner: "People & Culture", uses: "206 uses", verified: true },
-    { title: "Data Analysis Template", type: "Template", icon: "i-document", tone: "teal", description: "Reusable structure for governed data analysis and insight reporting.", owner: "Strategy & Transformation", uses: "165 uses", verified: true },
-    { title: "Budget Justification Skill", type: "AI Skill", icon: "i-cube", tone: "amber", description: "Builds traceable budget rationales with benchmarks and assumptions.", owner: "Finance", uses: "128 uses", verified: true },
-    { title: "New Joiner Knowledge Pack", type: "Knowledge", icon: "i-book", tone: "blue", description: "Essential Bursa information and approved learning paths.", owner: "People & Culture", uses: "96 uses", verified: true }
-  ];
+  var assets = [];
 
-  var rooms = [
-    { id: "product", title: "Product Development Room", tag: "Strategic", members: 8, agents: 4, description: "Drive new product initiatives and market readiness across Bursa." },
-    { id: "esg", title: "ESG Working Group", tag: "Cross-dept", members: 6, agents: 3, description: "Develop the ESG reporting framework and implementation roadmap." },
-    { id: "adoption", title: "AI Adoption Taskforce", tag: "Technology", members: 10, agents: 5, description: "Accelerate responsible AI adoption across Bursa Malaysia." },
-    { id: "hr", title: "HR Excellence Room", tag: "People", members: 7, agents: 3, description: "Shape HR transformation and employee experience initiatives." },
-    { id: "board", title: "Board Pack Preparation", tag: "Executive", members: 3, agents: 3, description: "Prepare verified materials for the upcoming board meeting." },
-    { id: "reg", title: "Regulatory Research Room", tag: "Research", members: 5, agents: 3, description: "Analyse regulatory developments with cited evidence." }
-  ];
+  var rooms = [];
 
   function svg(id) {
     return '<svg aria-hidden="true"><use href="#' + id + '"></use></svg>';
@@ -252,38 +226,19 @@
         return '<button class="quick-action" type="button" data-page-jump="' + item[4] + '">' + miniIcon(item[0], item[1]) + '<span><strong>' + item[2] + '</strong><small>' + item[3] + "</small></span></button>";
       }).join("") + "</div>",
       '<div class="brief-continuation">',
-      '<section class="panel">' + panelHead("My Work Brief", "i-spark", "brief") + '<div class="work-list">' +
-      workItem("i-document", "amber", "Review Marketing Campaign Brief", "Submitted 1 hour ago", "Approval needed", "amber") +
-      workItem("i-brief", "blue", "Updated Flexible Working Policy", "New version available", "New information", "blue") +
-      workItem("i-folder", "teal", "Monthly Board Pack Preparation", "Scheduled mission · Due tomorrow", "On track", "green") +
-      workItem("i-exchange", "violet", "3 relevant solutions found", "Based on recent activity", "View now", "violet") +
-      "</div></section>",
-      '<section class="panel">' + panelHead("Continue Your Work", "i-brief", "workforce") + '<div class="progress-list">' +
-      progressItem("i-research", "blue", "Product Launch Readiness Analysis", "Research Agent · 4 of 6 steps", 67, "Running") +
-      progressItem("i-automation", "teal", "Automate Access Request Process", "Workflow Agent · 2 of 4 steps", 50, "Running") +
-      progressItem("i-document", "amber", "ESG Reporting Draft", "Review by Verifier · Due today", 74, "Waiting review") +
-      "</div></section></div>",
+      '<section class="panel">' + panelHead("My Work Brief", "i-spark", "brief") + '<div class="clean-empty">' + miniIcon("i-brief", "blue") + '<strong>Your brief is clear</strong><p>Priorities and approvals will appear here as you start working.</p></div></section>',
+      '<section class="panel">' + panelHead("Continue Your Work", "i-brief", "workforce") + '<div class="clean-empty">' + miniIcon("i-flow", "teal") + '<strong>No work in progress</strong><p>Start a mission or ask BursaIQ a question to begin.</p></div></section></div>',
       '<section class="panel exchange-strip">' + panelHead("Explore the Intelligence Exchange", "i-exchange", "exchange") +
       '<div class="strip-tabs">' + ["Featured", "AI Agent", "Workflow", "Template", "Knowledge"].map(function (label) {
         var display = label === "AI Agent" ? "Agents" : label === "Workflow" ? "Workflows" : label === "Template" ? "Templates" : label;
         return '<button class="' + (state.homeAssetCategory === label || (label === "Featured" && state.homeAssetCategory === "Featured") ? "is-active" : "") + '" type="button" data-home-asset-type="' + label + '">' + display + '</button>';
       }).join("") + '</div>',
-      '<div class="asset-row">' + assetSlice.map(homeAssetCard).join("") + "</div></section>",
+      '<div class="asset-row">' + (assetSlice.length ? assetSlice.map(homeAssetCard).join("") : '<div class="clean-empty"><strong>No saved intelligence yet</strong><p>Verified assets will appear after they are published to the Exchange.</p></div>') + "</div></section>",
       "</div>",
       '<aside class="home-rail">',
-      '<section class="panel rail-panel">' + panelHead("Active AI Workforce", "i-agents", "workforce") + '<ul class="agent-feed">' + agents.slice(0, 5).map(function (agent) {
-        return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + agent.job + '</small></span><i class="agent-state" aria-label="Working"></i></li>';
-      }).join("") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Pending Approvals", "i-shield", "verification") + '<ul class="rail-list">' +
-      railItem("i-document", "amber", "ESG Report Draft", "Requested by Report Agent", "Review") +
-      railItem("i-automation", "teal", "Access Request Workflow", "New workflow configuration", "Approve") +
-      railItem("i-book", "blue", "HR Policy Updates", "Summarised changes", "Review") +
-      "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "exchange") + '<ul class="rail-list">' +
-      railItem("i-room", "violet", "Meeting Assistant Agent", "Schedule, recap and follow up", "Use") +
-      railItem("i-automation", "amber", "HR Onboarding Workflow", "End-to-end onboarding", "Use") +
-      railItem("i-document", "blue", "Data Analysis Template", "Pre-built analysis structure", "Use") +
-      "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Active AI Workforce", "i-agents", "workforce") + '<div class="clean-empty compact"><strong>No agents working yet</strong><p>Agents will appear here when a mission starts.</p></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Pending Approvals", "i-shield", "verification") + '<div class="clean-empty compact"><strong>No pending approvals</strong><p>Items sent for review will appear here.</p></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "exchange") + '<div class="clean-empty compact"><strong>No recommendations yet</strong><p>Recommendations will improve as you use BursaIQ.</p></div></section>',
       "</aside></div></section>"
     ].join("");
   }
@@ -572,8 +527,7 @@
       '<section class="mission-launch panel"><div class="mission-launch-copy"><h2>Malaysia Equity Market ADV Intelligence Report</h2><p>Deterministic mission · two approved synthetic CSV files · human review required.</p><form class="mission-inline-intake" id="mission-inline-form" data-creation-type="mission"><input type="hidden" name="title" value="Malaysia Equity Market ADV Intelligence Report"><label><small>Objective</small><input name="description" maxlength="1000" value="Explain Malaysia equity-market ADV and key shifts" required></label><label><small>Start date</small><input type="date" name="dateStart" min="2026-01-01" max="2026-09-30" value="2026-01-01" required></label><label><small>End date</small><input type="date" name="dateEnd" min="2026-01-01" max="2026-09-30" value="2026-09-30" required></label><label><small>Source scope</small><select name="scope"><option value="all">2 CSVs · all boards</option><option value="MAIN MARKET">Main Market only</option><option value="ACE MARKET">ACE Market only</option></select></label><label><small>Report output</small><select name="output"><option>Dashboard + chart + verified PDF</option></select></label></form></div><div class="mission-launch-action"><strong>Ready to run locally</strong><small>Edit the mission contract here, then start the persisted five-worker run.</small><p class="form-error" hidden></p><button class="primary-button" type="submit" form="mission-inline-form">Run mission</button></div></section>',
       '<div class="page-with-rail"><div class="page-primary">',
       '<div class="mission-status-ledger" aria-label="Mission status summary"><span><b>' + active.length + '</b> active</span><span><b>' + awaiting.length + '</b> awaiting review</span><span><b>5</b> controlled workers</span><span><b>' + completed.length + '</b> completed</span><em>Persisted locally · same dashboard and PDF payload</em></div>',
-      '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div>",
-      '<div class="journey-wrap"><div class="mission-journey"><div class="journey-step is-done" data-step="1"><strong>Research</strong>Validate approved CSVs</div><div class="journey-step is-done" data-step="2"><strong>Synthesis</strong>Calculate and explain</div><div class="journey-step is-active" data-step="3"><strong>Verification</strong>Review dashboard and PDF</div><div class="journey-step" data-step="4"><strong>Exchange</strong>Approve for reuse</div></div></div></section>',
+      '<section class="panel">' + panelHead("Mission Control", "i-flow") + '<div class="table-wrap"><table class="mission-table live-mission-table"><thead><tr><th>Mission</th><th>Reporting window</th><th>Progress</th><th>Current worker</th><th>Updated</th><th>Status</th><th>Action</th></tr></thead><tbody>' + missionRows + "</tbody></table></div></section>",
       "</div><aside class=\"page-rail\">",
       '<section class="panel rail-panel">' + panelHead("Mission team", "i-agents") + '<ul class="agent-feed mission-agent-feed">' + missionAgents.map(function (agent) { return '<li>' + miniIcon("i-spark", agent.tone) + '<span><strong>' + agent.name + '</strong><small>' + agent.job + '</small></span><span class="worker-ready">Ready</span></li>'; }).join("") + "</ul></section>",
       '<section class="panel rail-panel mission-rulebook"><div class="panel-head"><h2>' + svg("i-shield") + 'Calculation contract</h2></div><dl><div><dt>Formula</dt><dd>Total eligible traded value ÷ distinct eligible trading days</dd></div><div><dt>Duplicates</dt><dd>Exact duplicate rows excluded</dd></div><div><dt>Interpretation</dt><dd>No unsupported causal claims</dd></div><div><dt>Classification</dt><dd>Synthetic demonstration data</dd></div></dl></section>',
@@ -592,7 +546,7 @@
   function missionRow(mission) {
     var worker = mission.currentWorker ? mission.currentWorker.replace(/-/g, " ").replace(/\b\w/g, function (letter) { return letter.toUpperCase(); }) : "Mission Manager";
     var updated = mission.updatedAt ? new Date(mission.updatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
-    return '<tr><td><span class="mission-title">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></span></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
+    return '<tr><td><button class="mission-title mission-title-button" type="button" data-mission="' + escapeHtml(mission.id) + '" aria-label="Open mission ' + escapeHtml(mission.title) + '">' + miniIcon("i-document", mission.status === "FAILED" ? "red" : "blue") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + '</small></span></button></td><td><span class="mission-window">' + escapeHtml(mission.dateStart) + '<b>→</b>' + escapeHtml(mission.dateEnd) + '</span></td><td><span class="table-progress"><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span><span>' + Number(mission.progress || 0) + '%</span></span></td><td>' + escapeHtml(worker) + '</td><td>' + escapeHtml(updated) + '</td><td>' + missionStatus(mission.status) + '</td><td><button class="table-action" type="button" data-mission="' + escapeHtml(mission.id) + '">' + (mission.status === "DRAFT READY" ? "Inspect draft" : mission.status === "AWAITING REVIEW" ? "Track review" : "Open") + '</button></td></tr>';
   }
 
   function exchangePage() {
@@ -602,17 +556,17 @@
       '<section class="page page-enter">',
       pageHead("Intelligence Exchange", "Discover, adapt and share verified intelligence across Bursa.", "Publish asset", "skill"),
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' + metric("i-exchange", "blue", "1,248", "Verified assets", "↑ 12% this month") + metric("i-document", "violet", "86", "Published this month", "↑ 28% this month") + metric("i-flow", "blue", "3,952", "Active reuses", "↑ 34% this month") + metric("i-agents", "teal", "18", "Departments contributing", "2 more this month") + "</div>",
+      '<div class="metric-row">' + metric("i-exchange", "blue", "0", "Verified assets", "Nothing published yet") + metric("i-document", "violet", "0", "Published this month", "New workspace") + metric("i-flow", "blue", "0", "Active reuses", "No reuse yet") + metric("i-agents", "teal", "0", "Departments contributing", "No contributors yet") + "</div>",
       '<section class="panel exchange-search"><div class="exchange-search-box"><label class="large-search">' + svg("i-search") + '<input id="exchange-search-input" type="search" placeholder="Search agents, workflows, templates or knowledge…"></label><select class="select-field" id="exchange-category-select" aria-label="Exchange category"><option value="featured">All categories</option><option value="agent">AI agents</option><option value="workflow">Workflows</option><option value="template">Templates</option><option value="knowledge">Knowledge</option></select></div>',
       '<div class="category-row">' +
       category("featured", "i-spark", "Featured") + category("agent", "i-agents", "Agents") + category("workflow", "i-flow", "Workflows") + category("template", "i-document", "Templates") + category("knowledge", "i-book", "Knowledge") + category("department", "i-grid", "By department") +
       "</div></section>",
-      '<section class="panel">' + panelHead(state.exchangeCategory === "featured" ? "Featured Intelligence Assets" : "Recommended " + (categoryMap[state.exchangeCategory] || "Intelligence"), "i-spark", "featured") + '<div class="featured-assets">' + visibleAssets.slice(0, 4).map(featuredCard).join("") + "</div></section>",
-      '<section class="panel">' + panelHead("Explore the Exchange", "i-exchange", "all-assets") + '<div class="asset-market-grid" id="asset-market-grid">' + visibleAssets.map(marketAsset).join("") + '<div class="empty-state" id="exchange-empty" hidden>' + miniIcon("i-search", "blue") + '<h3>No intelligence found</h3><p>Try a broader search or switch to all categories.</p></div></div></section>',
+      '<section class="panel">' + panelHead(state.exchangeCategory === "featured" ? "Featured Intelligence Assets" : "Recommended " + (categoryMap[state.exchangeCategory] || "Intelligence"), "i-spark", "featured") + '<div class="clean-empty"><strong>No intelligence assets yet</strong><p>Published and verified assets will appear here.</p></div></section>',
+      '<section class="panel">' + panelHead("Explore the Exchange", "i-exchange", "all-assets") + '<div class="clean-empty"><strong>The Exchange is empty</strong><p>Teach or publish a verified capability to add the first asset.</p></div></section>',
       '</div><aside class="page-rail">',
-      '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "recommendations") + '<ul class="rail-list">' + railItem("i-spark", "violet", "ESG Disclosure Assistant", "AI agent · 824 uses", "Use") + railItem("i-book", "amber", "Regulatory Update Brief", "Knowledge · 287 uses", "Use") + railItem("i-document", "teal", "People Analytics Dashboard", "Template · 196 uses", "View") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Top Contributors", "i-agents", "contributors") + '<ul class="rail-list">' + contributor("1", "Sustainability", "186 assets") + contributor("2", "Legal & Compliance", "162 assets") + contributor("3", "People & Culture", "148 assets") + contributor("4", "Product Development", "126 assets") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("My Saved Assets", "i-book", "saved") + '<ul class="rail-list">' + railItem("i-spark", "blue", "Board Meeting Insights Agent", "Saved 2 days ago", "Use") + railItem("i-document", "teal", "FY2026 Budget Template", "Saved 3 days ago", "View") + "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Recommended for You", "i-spark", "recommendations") + '<div class="clean-empty compact"><strong>No recommendations yet</strong><p>Use BursaIQ to build your recommendations.</p></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Top Contributors", "i-agents", "contributors") + '<div class="clean-empty compact"><strong>No contributors yet</strong></div></section>',
+      '<section class="panel rail-panel">' + panelHead("My Saved Assets", "i-book", "saved") + '<div class="clean-empty compact"><strong>No saved assets</strong></div></section>',
       "</aside></div></section>"
     ].join("");
   }
@@ -647,36 +601,20 @@
       '<section class="page page-enter">',
       pageHead("Automation Studio", "Build, run and monitor intelligent workflows across Bursa.", "Create workflow", "workflow"),
       '<div class="page-with-rail"><div class="page-primary">',
-      '<div class="metric-row">' + metric("i-automation", "blue", "24", "Active workflows", "↑ 26% this month") + metric("i-shield", "violet", "9", "Pending approvals", "3 need attention") + metric("i-flow", "blue", "132", "Runs this week", "↑ 42% this week") + metric("i-check", "teal", "97.8%", "Success rate", "↑ 2.4% this month") + "</div>",
+      '<div class="metric-row">' + metric("i-automation", "blue", "0", "Active workflows", "No workflows yet") + metric("i-shield", "violet", "0", "Pending approvals", "Nothing awaiting review") + metric("i-flow", "blue", "0", "Runs this week", "No runs yet") + metric("i-check", "teal", "—", "Success rate", "Available after first run") + "</div>",
       '<section class="panel tabs-toolbar"><button class="tab-button ' + (state.automationTab === "workflows" ? "is-active" : "") + '" type="button" data-automation-tab="workflows">' + svg("i-automation") + 'My workflows</button><button class="tab-button ' + (state.automationTab === "templates" ? "is-active" : "") + '" type="button" data-automation-tab="templates">' + svg("i-book") + 'Templates</button><button class="tab-button ' + (state.automationTab === "runs" ? "is-active" : "") + '" type="button" data-automation-tab="runs">' + svg("i-clock") + 'Runs</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="automation-search" type="search" placeholder="Search ' + state.automationTab + '…"></label></section>',
       automationTabContent(node, keys),
       '</div><aside class="page-rail">',
-      '<section class="panel rail-panel">' + panelHead("Upcoming Runs", "i-clock", "runs") + '<ul class="rail-list">' + railItem("i-clock", "blue", "Board Pack Distribution", "Mon, 29 Apr · 8:00 AM", "Open") + railItem("i-clock", "violet", "Weekly Project Digest", "Tue, 30 Apr · 9:00 AM", "Open") + railItem("i-shield", "blue", "Policy Update Monitor", "Tue, 30 Apr · 2:00 PM", "Open") + "</ul></section>",
-      '<section class="panel rail-panel">' + panelHead("Pending Approval Steps", "i-shield", "approvals") + '<ul class="rail-list">' + railItem("i-document", "amber", "Board Pack Distribution", "Draft ready for review", "Review") + railItem("i-automation", "teal", "Access Request Automation", "New workflow configuration", "Review") + "</ul></section>",
+      '<section class="panel rail-panel">' + panelHead("Upcoming Runs", "i-clock", "runs") + '<div class="clean-empty compact"><strong>No upcoming runs</strong></div></section>',
+      '<section class="panel rail-panel">' + panelHead("Pending Approval Steps", "i-shield", "approvals") + '<div class="clean-empty compact"><strong>No pending approvals</strong></div></section>',
       "</aside></div></section>"
     ].join("");
   }
 
   function automationTabContent(node, keys) {
-    if (state.automationTab === "templates") {
-      return '<section class="panel content-view"><div class="content-view-head"><div><h2>Workflow templates</h2><p>Start from an approved pattern, then adapt its owners, inputs and approval boundaries.</p></div><button class="secondary-button" type="button" data-create="workflow">Create from scratch</button></div><div class="template-grid">' + [
-        ["Meeting follow-up", "Capture decisions and assign actions after approved meetings.", "i-room", "blue"],
-        ["Document review", "Route documents through evidence checks and accountable approval.", "i-document", "amber"],
-        ["New joiner onboarding", "Coordinate access, learning and team introductions.", "i-agents", "teal"],
-        ["Risk sign-off", "Assess, verify and record controlled business decisions.", "i-shield", "violet"]
-      ].map(function (item) { return '<article class="template-card" data-filter-text="' + item[0].toLowerCase() + '">' + miniIcon(item[2], item[3]) + '<h3>' + item[0] + '</h3><p>' + item[1] + '</p><button type="button" data-template-use="' + item[0] + '">Use template</button></article>'; }).join("") + '</div></section>';
-    }
-    if (state.automationTab === "runs") {
-      return '<section class="panel content-view"><div class="content-view-head"><div><h2>Execution history</h2><p>Every run retains its trigger, outcome, duration and approval trail.</p></div><button class="secondary-button" type="button" data-demo-action="export-log">Export log</button></div><div class="run-ledger">' + [
-        ["Board Pack Preparation", "Today · 08:02", "4m 18s", "Completed"],
-        ["Policy Update Monitor", "Yesterday · 14:30", "2m 41s", "Completed"],
-        ["Weekly Project Digest", "Yesterday · 09:00", "Awaiting approval", "Waiting review"],
-        ["Access Request Automation", "10 Oct · 11:45", "Retried once", "On track"]
-      ].map(function (item) { return '<button class="run-row" type="button" data-run-open="' + item[0] + '" data-filter-text="' + item[0].toLowerCase() + '"><span>' + miniIcon("i-automation", "violet") + '<span><strong>' + item[0] + '</strong><small>' + item[1] + '</small></span></span><span><small>' + item[2] + '</small>' + status(item[3]) + svg("i-chevron") + '</span></button>'; }).join("") + '</div></section>';
-    }
-    return '<section class="panel automation-canvas"><div class="workflow-area"><div class="workflow-title"><div><h2>Board Pack Distribution Workflow ' + status("Active") + '</h2><p>Automatically prepare, review and distribute board materials to authorised stakeholders.</p></div><button class="secondary-button" type="button" data-demo-action="test-run">Test run</button></div>' +
-      '<div class="node-flow">' + keys.map(function (key, index) { var item = node[key]; return (index ? '<span class="flow-link" aria-hidden="true"></span>' : "") + '<button class="flow-node ' + (state.selectedNode === key ? "is-active" : "") + '" type="button" data-node="' + key + '">' + miniIcon(item[2], item[3]) + '<strong>' + item[0] + '</strong><small>' + item[1] + "</small></button>"; }).join("") + '</div><p class="panel-subtitle">Select any step to inspect its governed inputs, approval boundary and output.</p></div><aside class="node-config" id="node-config">' + nodeConfig(state.selectedNode) + '</aside></section>' +
-      '<section class="panel workflow-library">' + panelHead("Workflow Library", "i-folder", "workflows") + '<div class="table-wrap"><table class="mission-table"><thead><tr><th>Name</th><th>Owner / team</th><th>Last run</th><th>Next run</th><th>Runs (30d)</th><th>Status</th><th>Action</th></tr></thead><tbody>' + workflowRow("Board Pack Preparation", "Executive Office", "26 Apr · 8:02", "29 Apr · 8:00", "12", "On track") + workflowRow("HR Onboarding Flow", "People & Culture", "25 Apr · 9:15", "1 May · 9:00", "8", "On track") + workflowRow("Policy Update Monitor", "Legal & Compliance", "26 Apr · 2:30", "30 Apr · 2:00", "15", "Active") + workflowRow("Weekly Project Digest", "PMO", "24 Apr · 6:10", "1 May · 9:00", "10", "Waiting review") + '</tbody></table></div></section>';
+    var heading = state.automationTab === "templates" ? "No templates available" : state.automationTab === "runs" ? "No execution history" : "No workflows yet";
+    var detail = state.automationTab === "templates" ? "Approved templates will appear here when published." : state.automationTab === "runs" ? "Completed and active runs will appear after a workflow starts." : "Create your first workflow to begin automating repeatable work.";
+    return '<section class="panel content-view"><div class="clean-empty">' + miniIcon("i-automation", "violet") + '<strong>' + heading + '</strong><p>' + detail + '</p><button class="primary-button" type="button" data-create="workflow">Create workflow</button></div></section>';
   }
 
   function nodeConfig(key) {
@@ -697,6 +635,9 @@
   }
 
   function roomsPage() {
+    if (!rooms.length) {
+      return '<section class="page page-enter">' + pageHead("Collaborative Rooms", "Work with colleagues and AI agents in shared mission spaces.", "Create room", "room") + '<div class="metric-row">' + metric("i-room", "blue", "0", "Active rooms", "No rooms yet") + metric("i-spark", "violet", "0", "Rooms with AI agents", "No agents assigned") + metric("i-document", "blue", "0", "Pending decisions", "Nothing pending") + metric("i-exchange", "teal", "0", "Cross-department projects", "No shared projects") + '</div><section class="panel"><div class="clean-empty">' + miniIcon("i-room", "violet") + '<strong>No collaborative rooms yet</strong><p>Create a room when you are ready to bring colleagues, evidence, and AI agents together.</p><button class="primary-button" type="button" data-create="room">Create room</button></div></section></section>';
+    }
     var current = rooms.filter(function (room) { return room.id === state.selectedRoom; })[0] || rooms[0];
     var visibleRooms = state.roomScope === "shared" ? rooms.slice(1, 5) : state.roomScope === "discover" ? rooms.slice(2) : rooms;
     return [
@@ -738,28 +679,21 @@
   }
 
   function workspacePage() {
-    var projectData = [
-      ["Board Governance", "5 missions · 12 files", "82%", "i-shield", "blue"],
-      ["People & Culture", "3 missions · 8 files", "64%", "i-agents", "violet"],
-      ["Digital Workplace", "4 missions · 15 files", "71%", "i-grid", "teal"],
-      ["Market Intelligence", "6 missions · 21 files", "91%", "i-research", "amber"]
-    ];
+    var projectData = [];
     return '<section class="page page-enter">' + pageHead("Projects & Workspace", "Files, governed context and decision memory for people and AI.", "New project", "project") +
-      '<div class="metric-row">' + metric("i-folder", "blue", "8", "Active projects", "2 updated today") + metric("i-document", "violet", "56", "Governed files", "9 verified this week") + metric("i-book", "teal", "24", "Saved decisions", "Fully traceable") + metric("i-agents", "amber", "11", "Contributors", "Across 5 departments") + '</div>' +
+      '<div class="metric-row">' + metric("i-folder", "blue", "0", "Active projects", "No projects yet") + metric("i-document", "violet", "0", "Governed files", "No files yet") + metric("i-book", "teal", "0", "Saved decisions", "No decisions yet") + metric("i-agents", "amber", "0", "Contributors", "No collaborators yet") + '</div>' +
       '<section class="panel tabs-toolbar"><button class="tab-button ' + (state.workspaceView === "projects" ? "is-active" : "") + '" type="button" data-workspace-view="projects">' + svg("i-folder") + 'Projects</button><button class="tab-button ' + (state.workspaceView === "files" ? "is-active" : "") + '" type="button" data-workspace-view="files">' + svg("i-document") + 'Recent files</button><button class="tab-button ' + (state.workspaceView === "decisions" ? "is-active" : "") + '" type="button" data-workspace-view="decisions">' + svg("i-shield") + 'Decision memory</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="workspace-search" type="search" placeholder="Search workspace…"></label></section>' +
-      '<div class="support-layout"><div class="support-main"><section class="panel content-view">' + workspaceContent(projectData) + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Workspace health", "i-shield", "workspace-health") + '<div class="health-score"><strong>94</strong><span><b>Well governed</b><small>43 of 46 files have a current owner and classification.</small></span></div><div class="health-bar"><i style="width:94%"></i></div></section><section class="panel rail-panel">' + panelHead("Recent collaborators", "i-agents", "participants") + '<ul class="rail-list">' + participant("SC", "Soon Cheng", "Strategy & Planning", "Online") + participant("TY", "Tan Yee", "Market Strategy", "Online") + participant("AM", "Aisyah Md Noor", "Legal & Compliance", "In a meeting") + '</ul></section></aside></div></section>';
+      '<div class="support-layout"><div class="support-main"><section class="panel content-view">' + workspaceContent(projectData) + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Workspace health", "i-shield", "workspace-health") + '<div class="clean-empty compact"><strong>No workspace data yet</strong><p>Governance health will appear after files are added.</p></div></section><section class="panel rail-panel">' + panelHead("Recent collaborators", "i-agents", "participants") + '<div class="clean-empty compact"><strong>No collaborators yet</strong></div></section></aside></div></section>';
   }
 
   function workspaceContent(projectData) {
-    if (state.workspaceView === "files") return '<div class="content-view-head"><div><h2>Recent files</h2><p>Documents retain owner, sensitivity and verification state.</p></div><button class="secondary-button" type="button" data-demo-action="upload">Upload files</button></div><div class="document-ledger">' + [["Product Requirements v2.0.pdf", "Product Development · 2.4 MB", "Verified"], ["FY2027 Market Plan.pptx", "Strategy · 8.1 MB", "Active"], ["Access Controls.xlsx", "Technology · 620 KB", "Restricted"], ["ESG Evidence Register.docx", "Sustainability · 1.2 MB", "Verified"]].map(function (item) { return '<button type="button" data-file-open="' + item[0] + '" data-filter-text="' + item[0].toLowerCase() + '">' + miniIcon("i-document", "blue") + '<span><strong>' + item[0] + '</strong><small>' + item[1] + '</small></span>' + status(item[2]) + svg("i-chevron") + '</button>'; }).join("") + '</div>';
-    if (state.workspaceView === "decisions") return '<div class="content-view-head"><div><h2>Decision memory</h2><p>The rationale, evidence and accountable owner behind important choices.</p></div><button class="secondary-button" type="button" data-demo-action="new-decision">Record decision</button></div><div class="decision-list">' + [["Proceed with controlled product pilot", "Approved by Product Steering Committee", "12 Oct"], ["Use verified market dataset as baseline", "Approved by Data Governance", "10 Oct"], ["Retain human approval before publication", "Policy requirement", "8 Oct"]].map(function (item) { return '<button type="button" data-decision-open="' + item[0] + '" data-filter-text="' + item[0].toLowerCase() + '"><span class="decision-mark">' + svg("i-check") + '</span><span><strong>' + item[0] + '</strong><small>' + item[1] + '</small></span><time>' + item[2] + '</time>' + svg("i-chevron") + '</button>'; }).join("") + '</div>';
-    return '<div class="content-view-head"><div><h2>Active projects</h2><p>Spaces that carry approved context into every mission.</p></div><button class="secondary-button" type="button" data-create="project">New project</button></div><div class="project-grid">' + projectData.map(function (item) { return '<button class="project-tile" type="button" data-project-open="' + item[0] + '" data-filter-text="' + item[0].toLowerCase() + '">' + miniIcon(item[3], item[4]) + '<span><strong>' + item[0] + '</strong><small>' + item[1] + '</small><span class="progress-track"><i style="width:' + item[2] + '"></i></span></span><b>' + item[2] + '</b>' + svg("i-chevron") + '</button>'; }).join("") + '</div>';
+    if (state.workspaceView === "files") return '<div class="content-view-head"><div><h2>Recent files</h2><p>Documents retain owner, sensitivity and verification state.</p></div><button class="secondary-button" type="button" data-demo-action="upload">Upload files</button></div><div class="clean-empty"><strong>No files yet</strong><p>Upload a governed file to add it to this workspace.</p></div>';
+    if (state.workspaceView === "decisions") return '<div class="content-view-head"><div><h2>Decision memory</h2><p>The rationale, evidence and accountable owner behind important choices.</p></div><button class="secondary-button" type="button" data-demo-action="new-decision">Record decision</button></div><div class="clean-empty"><strong>No decisions recorded</strong><p>Approved decisions and their evidence will appear here.</p></div>';
+    return '<div class="content-view-head"><div><h2>Active projects</h2><p>Spaces that carry approved context into every mission.</p></div><button class="secondary-button" type="button" data-create="project">New project</button></div><div class="clean-empty"><strong>No projects yet</strong><p>Create a project to organise missions, files and decisions.</p></div>';
   }
 
   function briefPage() {
-    var tasks = [["Review Marketing Campaign Brief", "Approval requested by Aisyah · 1h", "Approval needed", "amber"], ["Product launch readiness", "Research mission · 67% complete", "On track", "green"], ["Policy update: flexible work", "New verified information · 2h", "Read", "blue"], ["Board Pack Preparation", "Scheduled for tomorrow · 9:00 AM", "Upcoming", "violet"], ["Three Exchange matches", "Based on your active projects", "Explore", "blue"]];
-    var visible = state.briefFilter === "approvals" ? tasks.filter(function (item) { return item[2] === "Approval needed"; }) : state.briefFilter === "updates" ? tasks.slice(2) : tasks;
-    return '<section class="page page-enter">' + pageHead("Today\'s Brief", "Monday, 12 October · priorities, approvals and verified changes.", "Ask about today", "assistant") + '<section class="brief-hero"><div><h2>Good morning, Kim Hoong.</h2><p>Your AI workforce has prepared five items that need attention. The product-readiness mission remains on track.</p></div><div class="brief-orbit" aria-hidden="true"><i></i><i></i><i></i><span>' + svg("i-spark") + '</span></div></section><div class="support-layout"><div class="support-main"><section class="panel"><div class="filter-tabs"><button class="' + (state.briefFilter === "for-you" ? "is-active" : "") + '" type="button" data-brief-filter="for-you">For you <b>5</b></button><button class="' + (state.briefFilter === "approvals" ? "is-active" : "") + '" type="button" data-brief-filter="approvals">Approvals <b>1</b></button><button class="' + (state.briefFilter === "updates" ? "is-active" : "") + '" type="button" data-brief-filter="updates">Updates <b>3</b></button></div><div class="brief-list">' + visible.map(function (item, index) { return '<button type="button" data-brief-item="' + item[0] + '"><span class="brief-index">' + String(index + 1).padStart(2, "0") + '</span><span><strong>' + item[0] + '</strong><small>' + item[1] + '</small></span><span class="status ' + item[3] + '">' + item[2] + '</span>' + svg("i-chevron") + '</button>'; }).join("") + '</div></section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Mission pulse", "i-flow", "workforce") + '<div class="pulse-stat"><strong>4</strong><span>missions moving</span></div><div class="signal-bars"><i style="--h:62%"></i><i style="--h:88%"></i><i style="--h:74%"></i><i style="--h:94%"></i><i style="--h:72%"></i><i style="--h:85%"></i><i style="--h:98%"></i></div></section><section class="panel rail-panel">' + panelHead("Next on your calendar", "i-clock", "calendar") + '<ul class="rail-list">' + railItem("i-room", "blue", "Product review", "10:00–11:00 AM", "Open") + railItem("i-agents", "violet", "Market validation", "2:00–3:00 PM", "Open") + '</ul></section></aside></div></section>';
+    return '<section class="page page-enter">' + pageHead("Today\'s Brief", "Priorities, approvals and verified changes will appear here.", "Ask about today", "assistant") + '<section class="brief-hero"><div><h2>Good morning, Kim Hoong.</h2><p>You are all caught up. New priorities will appear as work begins.</p></div><div class="brief-orbit" aria-hidden="true"><i></i><i></i><i></i><span>' + svg("i-spark") + '</span></div></section><div class="support-layout"><div class="support-main"><section class="panel"><div class="filter-tabs"><button class="is-active" type="button" data-brief-filter="for-you">For you <b>0</b></button><button type="button" data-brief-filter="approvals">Approvals <b>0</b></button><button type="button" data-brief-filter="updates">Updates <b>0</b></button></div><div class="clean-empty"><strong>Nothing needs your attention</strong><p>Your tasks, approvals and updates will appear here.</p></div></section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Mission pulse", "i-flow", "workforce") + '<div class="clean-empty compact"><strong>0 missions moving</strong><p>Mission activity will appear here.</p></div></section><section class="panel rail-panel">' + panelHead("Next on your calendar", "i-clock", "calendar") + '<div class="clean-empty compact"><strong>No upcoming events</strong></div></section></aside></div></section>';
   }
 
   function verificationPage() {
@@ -768,12 +702,11 @@
     var selected = missionById(state.selectedVerificationMissionId) || pending[0] || reviewable[0];
     var queue = state.missionLoading ? '<div class="mission-empty"><strong>Loading review queue…</strong></div>' : reviewable.length ? reviewable.map(function (mission) { return '<button class="verification-item ' + (selected && selected.id === mission.id ? "is-selected" : "") + '" type="button" data-verification-mission="' + escapeHtml(mission.id) + '">' + miniIcon("i-document", mission.status === "AWAITING REVIEW" ? "amber" : "teal") + '<span><strong>' + escapeHtml(mission.title) + '</strong><small>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</small></span>' + missionStatus(mission.status) + svg("i-chevron") + '</button>'; }).join("") : '<div class="mission-empty"><strong>No mission packages awaiting review</strong><span>Complete an ADV mission and submit its draft from My Workforce.</span></div>';
     var preview = selected && selected.result ? '<div class="content-view-head"><div><h2>' + escapeHtml(selected.title) + '</h2><p>' + escapeHtml(selected.id) + ' · immutable mission draft</p></div>' + missionStatus(selected.status) + '</div><div class="evidence-score"><span><strong>100%</strong><small>Metric traceability</small></span><div><b>' + selected.result.quality.marketRowsEligible.toLocaleString() + ' market rows used</b><small>' + selected.result.metrics.tradingDays + ' trading days · two source files fingerprinted</small></div></div><div class="review-scope"><div><small>Period ADV</small><strong>RM' + Number(selected.result.metrics.periodAdvBn).toFixed(3) + 'bn</strong></div><div><small>Reporting window</small><strong>' + escapeHtml(selected.dateStart) + ' → ' + escapeHtml(selected.dateEnd) + '</strong></div><div><small>Quality checks</small><strong>' + (selected.result.quality.passed ? "Passed" : "Exceptions present") + '</strong></div></div><div class="claim-list">' + selected.result.findings.map(function (finding) { return '<article><span>' + svg("i-check") + '</span><div><strong>' + escapeHtml(finding) + '</strong><small>Linked to the persisted mission result and calculation trace.</small></div></article>'; }).join("") + '</div><p class="review-boundary">' + escapeHtml(selected.result.interpretationBoundary) + '</p><div class="evidence-actions">' + (selected.downloadUrl ? '<a class="secondary-button" href="' + escapeHtml(selected.downloadUrl) + '" target="_blank" rel="noopener">Open PDF</a>' : "") + (selected.status === "AWAITING REVIEW" ? '<button class="secondary-button" type="button" data-mission-review="Changes requested" data-mission-id="' + escapeHtml(selected.id) + '">Request changes</button><button class="primary-button" type="button" data-mission-review="Approved" data-mission-id="' + escapeHtml(selected.id) + '">Approve package</button>' : "") + '</div>' : '<div class="mission-empty"><strong>Select a mission package</strong><span>Its figures, sources and review actions will appear here.</span></div>';
-    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", "100%", "Metric traceability", "Same dashboard and PDF payload") + metric("i-clock", "violet", "2", "Source files", "Fingerprinted evidence") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
+    return '<section class="page page-enter">' + pageHead("Verification Centre", "Inspect the immutable ADV draft before it moves forward.") + '<div class="metric-row">' + metric("i-shield", "amber", String(pending.length), "Pending review", "Market Intelligence Lead") + metric("i-check", "teal", String(reviewable.filter(function (item) { return item.status === "APPROVED"; }).length), "Approved missions", "Audit event retained") + metric("i-document", "blue", reviewable.length ? "100%" : "—", "Metric traceability", reviewable.length ? "Same dashboard and PDF payload" : "Available after the first mission") + metric("i-clock", "violet", reviewable.length ? "2" : "0", "Source files", reviewable.length ? "Fingerprinted evidence" : "No evidence yet") + '</div><div class="verification-layout"><section class="panel verification-queue"><div class="filter-tabs"><button class="is-active" type="button">Mission reviews <b>' + reviewable.length + '</b></button><button type="button" data-page-jump="workforce">My Workforce</button></div>' + queue + '</section><section class="panel evidence-preview">' + preview + '</section></div><p class="verification-demo-note">Reviewer actions use the simulated Market Intelligence Lead identity and are persisted in the local audit store.</p></section>';
   }
 
   function connectorsPage() {
-    var connectorData = [["Microsoft 365", "Files, mail and calendars", "Connected", "i-grid", "blue"], ["SharePoint", "Approved team repositories", "Connected", "i-folder", "teal"], ["Microsoft Teams", "Rooms, meetings and messages", "Connected", "i-room", "violet"], ["Internal Knowledge Base", "Policies and procedural guidance", "Connected", "i-book", "amber"], ["Document Repository", "Records and published materials", "Available", "i-document", "blue"], ["Service Desk", "Requests and incident workflows", "Available", "i-automation", "teal"]];
-    return '<section class="page page-enter">' + pageHead("Connectors", "Approved systems and data sources, governed by your existing access.", "Request connector", "connector") + '<section class="connector-boundary">' + svg("i-shield") + '<div><strong>Your permissions travel with every request.</strong><p>BursaIQ never grants new source access. Actions against external systems remain visible and require the configured approval.</p></div><button type="button" data-demo-action="access-boundary">View access boundary</button></section><div class="connector-grid">' + connectorData.map(function (item) { var connected = item[2] === "Connected"; return '<article class="panel connector-card" data-filter-text="' + item[0].toLowerCase() + '"><div>' + miniIcon(item[3], item[4]) + '<span class="status ' + (connected ? "green" : "blue") + '">' + item[2] + '</span></div><h2>' + item[0] + '</h2><p>' + item[1] + '</p><dl><div><dt>Access</dt><dd>' + (connected ? "Role inherited" : "Admin approval") + '</dd></div><div><dt>Used by</dt><dd>' + (connected ? "8 workflows" : "Not connected") + '</dd></div></dl><button class="' + (connected ? "secondary-button" : "primary-button") + '" type="button" data-connector="' + item[0] + '" data-connected="' + String(connected) + '">' + (connected ? "Manage" : "Connect") + '</button></article>'; }).join("") + '</div></section>';
+    return '<section class="page page-enter">' + pageHead("Connectors", "Approved systems and data sources, governed by your existing access.", "Request connector", "connector") + '<section class="connector-boundary">' + svg("i-shield") + '<div><strong>Your permissions travel with every request.</strong><p>BursaIQ never grants new source access. Actions against external systems remain visible and require the configured approval.</p></div><button type="button" data-demo-action="access-boundary">View access boundary</button></section><section class="panel clean-empty"><strong>No connectors configured</strong><p>Request an approved system or data source to get started.</p><button class="primary-button" type="button" data-create="connector">Request connector</button></section></section>';
   }
 
   function actionPage() {
@@ -785,7 +718,7 @@
     }).join("");
     return '<section class="page page-enter action-page">' + pageHead("Action", "Decision records and scheduled follow-ups created from governed answers.") +
       '<section class="action-summary"><div>' + miniIcon("i-check", "teal") + '<span><strong>From answer to accountable follow-up</strong><p>Actions preserve the original question and evidence trail. Email schedules remain reviewable and reversible.</p></span></div><button class="primary-button" type="button" data-page-jump="assistant">Ask a new question</button></section>' +
-      '<div class="metric-row action-metrics">' + metric("i-brief", "blue", String(state.savedDecisions.length), "Decision memories", "Recorded with evidence") + metric("i-send", "violet", String(state.emailAutomations.length), "Email automations", "Reviewable schedules") + metric("i-shield", "teal", "100%", "Governed actions", "Source context retained") + metric("i-clock", "amber", "0", "External sends", "Synthetic demo only") + '</div>' +
+      '<div class="metric-row action-metrics">' + metric("i-brief", "blue", String(state.savedDecisions.length), "Decision memories", "Recorded with evidence") + metric("i-send", "violet", String(state.emailAutomations.length), "Email automations", "Reviewable schedules") + metric("i-shield", "teal", state.savedDecisions.length || state.emailAutomations.length ? "100%" : "—", "Governed actions", state.savedDecisions.length || state.emailAutomations.length ? "Source context retained" : "Available after the first action") + metric("i-clock", "amber", "0", "External sends", "Synthetic demo only") + '</div>' +
       '<div class="action-workspace"><section class="panel action-panel"><div class="content-view-head"><div><h2>Decision Memory</h2><p>Answers saved with their question, owner, and evidence context.</p></div><button class="secondary-button" type="button" data-page-jump="assistant">Add from AI Assistant</button></div><div class="action-list">' + (decisionRows || '<div class="action-empty"><strong>No saved decisions yet</strong><p>Save a governed answer from the AI Assistant Decision Canvas.</p></div>') + '</div></section>' +
       '<section class="panel action-panel"><div class="content-view-head"><div><h2>Email automations</h2><p>Questions refreshed on a schedule with a current source snapshot.</p></div><span class="status blue">Local demo</span></div><div class="action-list">' + (emailRows || '<div class="action-empty"><strong>No email automations yet</strong><p>Choose Automate by Email from an AI Assistant answer.</p></div>') + '</div></section></div>' +
       '<p class="action-disclosure">This front-end demo stores actions in the current browser session. It does not send external email or change Bursa systems.</p></section>';
@@ -989,6 +922,24 @@
     return '<div class="mission-result-chart"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Monthly Average Daily Trading Value in RM billions"><title>Monthly ADV</title><g class="mission-chart-grid"><path d="M28 42H492M28 90H492M28 138H492"></path></g><polyline points="' + points + '"></polyline><g class="mission-chart-points">' + values.map(function (value, index) { var x = 34 + index * ((width - 68) / Math.max(1, values.length - 1)); var y = 138 - ((value - minimum) / range) * 96; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle><text x="' + x.toFixed(1) + '" y="' + (y - 10).toFixed(1) + '" text-anchor="middle">' + value.toFixed(2) + '</text><text x="' + x.toFixed(1) + '" y="166" text-anchor="middle">' + escapeHtml(monthly[index].label.split(" ")[0]) + '</text>'; }).join("") + '</g></svg></div>';
   }
 
+  function missionLifecycleMarkup(mission) {
+    var progress = Number(mission.progress || 0);
+    var statusValue = mission.status || "PLANNED";
+    var healthy = statusValue !== "FAILED";
+    var verificationActive = ["DRAFT READY", "AWAITING REVIEW", "REVISION REQUESTED"].indexOf(statusValue) !== -1;
+    var approved = statusValue === "APPROVED";
+    var stages = [
+      ["Research", "Validate approved CSVs", healthy && (progress >= 50 || verificationActive || approved), healthy && progress < 50],
+      ["Synthesis", "Calculate and explain", healthy && progress >= 100, healthy && progress >= 50 && progress < 100],
+      ["Verification", "Review dashboard and PDF", approved, verificationActive],
+      ["Exchange", "Approve for reuse", approved, false]
+    ];
+    return '<div class="journey-wrap mission-detail-lifecycle" aria-label="Mission lifecycle"><div class="mission-journey">' + stages.map(function (stage, index) {
+      var itemClass = stage[2] ? "is-done" : stage[3] ? "is-active" : "";
+      return '<div class="journey-step ' + itemClass + '" data-step="' + (index + 1) + '"><strong>' + stage[0] + '</strong>' + stage[1] + '</div>';
+    }).join("") + '</div></div>';
+  }
+
   function missionDetailMarkup(mission) {
     var events = mission.events || [];
     var latestByWorker = {};
@@ -1007,7 +958,7 @@
       resultMarkup = '<section class="mission-results"><div class="mission-result-head"><div><h3>Verified mission output</h3><p>' + escapeHtml(result.classification) + '</p></div>' + missionStatus(mission.status) + '</div><div class="mission-kpis"><article><small>Period ADV</small><strong>RM' + Number(result.metrics.periodAdvBn).toFixed(3) + 'bn</strong><span>' + result.metrics.tradingDays + ' trading days</span></article><article><small>Total traded value</small><strong>' + formatMoneyBn(result.metrics.totalTradedValueMyr) + '</strong><span>Selected scope</span></article><article><small>First → last month</small><strong>' + (result.metrics.firstToLastChangePct >= 0 ? "+" : "") + Number(result.metrics.firstToLastChangePct).toFixed(2) + '%</strong><span>Monthly ADV change</span></article></div>' + missionChart(result.monthly) + '<div class="mission-findings"><h3>Management read</h3>' + result.findings.map(function (finding) { return '<p>' + svg("i-check") + '<span>' + escapeHtml(finding) + '</span></p>'; }).join("") + '<small>' + escapeHtml(result.interpretationBoundary) + '</small></div><div class="mission-method"><strong>Calculation trace</strong><code>' + escapeHtml(result.formula) + '</code><span>' + escapeHtml(result.scope.tradingDayRule) + ' · ' + result.quality.marketRowsEligible.toLocaleString() + ' eligible market rows</span></div></section>';
     }
     var failure = mission.error ? '<div class="mission-failure">' + svg("i-help") + '<span><strong>Mission failed</strong><small>' + escapeHtml(mission.error) + ' Correct the inputs and run again.</small></span></div>' : "";
-    return '<div class="mission-detail-progress"><div><span>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + failure + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
+    return '<div class="mission-detail-progress"><div><span>' + escapeHtml(mission.id) + ' · ' + escapeHtml(mission.dateStart) + ' → ' + escapeHtml(mission.dateEnd) + '</span>' + missionStatus(mission.status) + '</div><span class="progress-track"><i style="width:' + Number(mission.progress || 0) + '%"></i></span></div>' + missionLifecycleMarkup(mission) + failure + '<div class="mission-detail-journey live-worker-journey">' + workerMarkup + '</div>' + resultMarkup;
   }
 
   function missionFooter(mission) {
@@ -1072,7 +1023,7 @@
 
   function openInfoPanel(action, context) {
     if (action === "notifications") {
-      openExperience({ title: "Notifications", subtitle: "Three updates need your attention", body: '<div class="notification-list"><button type="button" data-page-target="verification">' + miniIcon("i-shield", "amber") + '<span><strong>ESG draft needs review</strong><small>Verifier Agent · 8 min ago</small></span><i></i></button><button type="button" data-page-target="workforce">' + miniIcon("i-agents", "blue") + '<span><strong>Mission reached verification</strong><small>Product readiness · 23 min ago</small></span><i></i></button><button type="button" data-page-target="rooms">' + miniIcon("i-room", "violet") + '<span><strong>You were mentioned in a room</strong><small>Market strategy · 1 hour ago</small></span><i></i></button></div>', footer: '<button class="secondary-button" type="button" data-dialog-action="mark-read">Mark all read</button><button class="primary-button" type="button" data-page-target="brief">Open Today\'s Brief</button>' });
+      openExperience({ title: "Notifications", subtitle: "You are all caught up", body: '<div class="clean-empty"><strong>No notifications</strong><p>Approvals, mentions and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
       return;
     }
     if (action === "apps") { navigate("connectors"); return; }
