@@ -846,39 +846,25 @@
   }
 
   function assistantBarChart(answer, values) {
-    var width = 620;
-    var labelWidth = 202;
-    var plotStart = 220;
-    var plotEnd = 520;
-    var valueX = 604;
-    var rowHeight = 42;
-    var top = 54;
-    var bottom = 64;
-    var height = top + values.length * rowHeight + bottom;
     var maximum = Math.max.apply(Math, values.concat([0]));
     var minimum = Math.min.apply(Math, values.concat([0]));
     var ticks = chartTicks(minimum, maximum, 4);
     var axisMin = Math.min.apply(Math, ticks);
     var axisMax = Math.max.apply(Math, ticks);
     var span = axisMax - axisMin || 1;
-    var scale = function (value) { return plotStart + ((value - axisMin) / span) * (plotEnd - plotStart); };
-    var zero = scale(0);
     var categoryAxis = /sector/i.test(answer.plotTitle) ? "Sector" : /investor/i.test(answer.plotTitle) ? "Investor group" : "Category";
-    var valueAxis = (answer.plotSeriesName || "Value") + (answer.plotUnit ? " (" + answer.plotUnit + ")" : "");
-    var grid = ticks.map(function (tick) {
-      var xx = scale(tick);
-      return '<line x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + (top - 8) + '" y2="' + (height - bottom + 4) + '"></line><text x="' + xx.toFixed(1) + '" y="' + (height - 38) + '" text-anchor="middle">' + escapeHtml(chartNumber(tick)) + '</text>';
-    }).join("");
+    var valueAxis = answer.plotUnit === "%" ? "Share of total trading value" : answer.plotSeriesName || "Measured value";
     var rows = values.map(function (value, index) {
-      var y = top + index * rowHeight;
-      var end = scale(value);
-      var barX = Math.min(zero, end);
-      var barWidth = Math.max(2, Math.abs(end - zero));
+      var zero = (0 - axisMin) / span * 100;
+      var end = (value - axisMin) / span * 100;
+      var barLeft = Math.min(zero, end);
+      var barWidth = Math.max(.7, Math.abs(end - zero));
       var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
       var exact = chartValue(value, answer.plotUnit);
-      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><text class="chart-category" x="' + labelWidth + '" y="' + (y + 18) + '" text-anchor="end">' + escapeHtml(label) + '</text><rect class="chart-track" x="' + plotStart + '" y="' + (y + 5) + '" width="' + (plotEnd - plotStart) + '" height="17" rx="4"></rect><rect class="chart-bar ' + (value < 0 ? "is-negative" : "") + '" x="' + barX.toFixed(1) + '" y="' + (y + 5) + '" width="' + barWidth.toFixed(1) + '" height="17" rx="4"></rect><text class="chart-exact" x="' + valueX + '" y="' + (y + 18) + '" text-anchor="end">' + escapeHtml(exact) + '</text></g>';
+      return '<div class="chart-datum chart-table-row" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><span class="chart-category">' + escapeHtml(label) + '</span><span class="chart-track"><i class="chart-bar ' + (value < 0 ? "is-negative" : "") + '" style="--bar-left:' + barLeft.toFixed(3) + '%;--bar-width:' + barWidth.toFixed(3) + '%"></i></span><span class="chart-exact">' + escapeHtml(exact) + '</span></div>';
     }).join("");
-    return '<div class="assistant-chart is-bar"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Horizontal bars compare ' + escapeHtml(valueAxis) + ' by ' + escapeHtml(categoryAxis) + '.</desc><text class="chart-axis-title chart-y-title" x="' + labelWidth + '" y="22" text-anchor="end">' + escapeHtml(categoryAxis) + '</text><text class="chart-axis-title" x="' + ((plotStart + plotEnd) / 2) + '" y="' + (height - 12) + '" text-anchor="middle">' + escapeHtml(valueAxis) + '</text><g class="chart-grid">' + grid + '</g><line class="chart-zero" x1="' + zero.toFixed(1) + '" x2="' + zero.toFixed(1) + '" y1="' + (top - 8) + '" y2="' + (height - bottom + 4) + '"></line>' + rows + '</svg></div>';
+    var scale = ticks.map(function (tick) { return '<i style="left:' + ((tick - axisMin) / span * 100).toFixed(3) + '%"><span>' + escapeHtml(chartNumber(tick)) + '</span></i>'; }).join("");
+    return '<div class="assistant-chart is-bar" role="img" aria-label="' + escapeHtml(answer.plotTitle + ". " + valueAxis + " by " + categoryAxis + ".") + '"><div class="chart-table"><div class="chart-table-head"><span>' + escapeHtml(categoryAxis) + '</span><span>' + escapeHtml(valueAxis) + (answer.plotUnit ? ' (' + escapeHtml(answer.plotUnit) + ')' : '') + '</span><span>Exact value</span></div>' + rows + '<div class="chart-scale-row"><span></span><span class="chart-scale">' + scale + '</span><span></span></div></div></div>';
   }
 
   function assistantLineChart(answer, values) {
