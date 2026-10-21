@@ -34,6 +34,21 @@ class KnowledgeRagTests(unittest.TestCase):
         self.assertEqual(result["errors"], [])
         self.assertEqual(self.index.status()["documents"], 0)
 
+    def test_administration_lists_uploaded_sources_that_failed_ingestion(self) -> None:
+        source = self.knowledge_root / "human_resources" / "empty-policy.txt"
+        source.write_text("   ", encoding="utf-8")
+        source.with_name(source.name + ".metadata.json").write_text(json.dumps({"allowed_roles": ["hr"]}), encoding="utf-8")
+        run = self.index.ingest()
+        catalogue = self.index.administration()
+
+        self.assertEqual(len(run["errors"]), 1)
+        self.assertEqual(catalogue["documents"], 0)
+        self.assertEqual(catalogue["sourceFiles"], 1)
+        self.assertEqual(catalogue["documentsList"][0]["lifecycle"], "INGESTION_FAILED")
+        self.assertIn("No readable text", catalogue["documentsList"][0]["ingestionError"])
+        self.index.remove_source("human_resources/empty-policy.txt")
+        self.assertFalse(source.exists())
+
     def test_text_document_is_chunked_indexed_and_cited_with_metadata(self) -> None:
         source = self.knowledge_root / "group_technology" / "security-guide.txt"
         source.write_text("Report every suspected phishing email through the security incident portal. Include the sender and message headers.", encoding="utf-8")

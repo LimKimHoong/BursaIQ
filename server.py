@@ -1388,6 +1388,14 @@ def remove_knowledge_document(document_id: str):
         return jsonify({"error": "Knowledge document not found."}), 404
 
 
+@app.delete("/api/knowledge-admin/sources/<path:relative_path>")
+def remove_unindexed_knowledge_source(relative_path: str):
+    try:
+        return jsonify({"ingestion": knowledge.remove_source(relative_path), "administration": knowledge.administration()})
+    except KeyError:
+        return jsonify({"error": "Knowledge source not found."}), 404
+
+
 @app.patch("/api/knowledge-admin/suggestions/<suggestion_id>")
 def update_knowledge_suggestion(suggestion_id: str):
     payload = body_json()
