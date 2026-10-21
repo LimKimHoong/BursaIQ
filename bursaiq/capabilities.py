@@ -35,7 +35,7 @@ ADV_CAPABILITY = {
 TRADING_CAPABILITY = {
     "id": "market-liquidity-analysis",
     "name": "Market Liquidity and Turnover Analysis",
-    "description": "Analyse security-level liquidity, turnover velocity and trading participation.",
+    "description": "Analyse security-level liquidity, traded-value-to-market-cap turnover, price ranges and trading participation.",
     "requiredInputs": ["daily_security_trading"],
     "requiredAgentCapabilities": ["mission-orchestration", "data-quality", "market-liquidity-analysis", "evidence-synthesis", "report-generation"],
     "inputSchema": "daily-security-trading-v1",

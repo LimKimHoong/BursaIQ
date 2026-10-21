@@ -420,7 +420,7 @@ def interactive_analytics_route(question: str, provider: str) -> tuple[dict[str,
             ],
             "market-liquidity-analysis": [
                 {"id": "monthly-value", "answers": "monthly traded value"},
-                {"id": "sector-turnover", "answers": "sector turnover velocity"},
+                {"id": "sector-turnover", "answers": "sector traded-value-to-market-cap turnover"},
             ],
         }.get(status["id"], [])
         capabilities.append({"id": status["id"], "name": status["name"], "description": status["description"], "coverage": {"start": coverage[0], "end": coverage[1]}, "charts": chart_catalog})

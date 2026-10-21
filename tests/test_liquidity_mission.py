@@ -18,12 +18,12 @@ class MarketLiquidityMissionTests(unittest.TestCase):
         self.database = root / "registry.sqlite3"
         self.source = root / "daily_security_trading_demo.csv"
         with self.source.open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=["trade_date", "security_code", "security_name", "board", "sector", "volume_traded", "value_traded_myr", "number_of_trades", "shares_outstanding"])
+            writer = csv.DictWriter(handle, fieldnames=["trade_date", "security_code", "security_name", "board", "sector", "opening_price", "highest_price", "lowest_price", "closing_price", "market_cap_myr", "traded_value_myr", "traded_volume", "number_of_trades"])
             writer.writeheader()
             writer.writerows([
-                {"trade_date": "2026-01-02", "security_code": "AAA", "security_name": "Alpha", "board": "MAIN", "sector": "Technology", "volume_traded": 1000, "value_traded_myr": 2500, "number_of_trades": 10, "shares_outstanding": 100000},
-                {"trade_date": "2026-01-03", "security_code": "AAA", "security_name": "Alpha", "board": "MAIN", "sector": "Technology", "volume_traded": 1500, "value_traded_myr": 3750, "number_of_trades": 15, "shares_outstanding": 100000},
-                {"trade_date": "2026-01-02", "security_code": "BBB", "security_name": "Beta", "board": "ACE", "sector": "Industrial", "volume_traded": 500, "value_traded_myr": 750, "number_of_trades": 5, "shares_outstanding": 50000},
+                {"trade_date": "2026-01-02", "security_code": "AAA", "security_name": "Alpha", "board": "MAIN", "sector": "Technology", "opening_price": 2.40, "highest_price": 2.60, "lowest_price": 2.30, "closing_price": 2.50, "market_cap_myr": 100000, "traded_value_myr": 2500, "traded_volume": 1000, "number_of_trades": 10},
+                {"trade_date": "2026-01-03", "security_code": "AAA", "security_name": "Alpha", "board": "MAIN", "sector": "Technology", "opening_price": 2.50, "highest_price": 2.65, "lowest_price": 2.45, "closing_price": 2.55, "market_cap_myr": 120000, "traded_value_myr": 3750, "traded_volume": 1500, "number_of_trades": 15},
+                {"trade_date": "2026-01-02", "security_code": "BBB", "security_name": "Beta", "board": "ACE", "sector": "Industrial", "opening_price": 1.45, "highest_price": 1.55, "lowest_price": 1.40, "closing_price": 1.50, "market_cap_myr": 50000, "traded_value_myr": 750, "traded_volume": 500, "number_of_trades": 5},
             ])
 
     def tearDown(self) -> None:
@@ -50,6 +50,8 @@ class MarketLiquidityMissionTests(unittest.TestCase):
         self.assertEqual(result["metrics"]["activeSecurities"], 2)
         self.assertEqual(result["metrics"]["tradingDays"], 2)
         self.assertEqual(result["metrics"]["totalTradedValueMyr"], 7000)
+        self.assertEqual(result["metrics"]["medianTurnoverPct"], 2.5)
+        self.assertGreater(result["metrics"]["medianDailyRangePct"], 0)
         self.assertEqual(result["securities"][0]["securityCode"], "AAA")
         self.assertEqual([event[0] for event in events], ["data", "analysis", "insight"])
 

@@ -14,7 +14,8 @@ from typing import Any, Callable
 class MarketLiquidityAnalyser:
     REQUIRED_COLUMNS = {
         "trade_date", "security_code", "security_name", "board", "sector",
-        "volume_traded", "value_traded_myr", "number_of_trades", "shares_outstanding",
+        "opening_price", "highest_price", "lowest_price", "closing_price",
+        "market_cap_myr", "traded_value_myr", "traded_volume", "number_of_trades",
     }
 
     def __init__(self, source_path: Path) -> None:
@@ -56,11 +57,17 @@ class MarketLiquidityAnalyser:
                 rows_read += 1
                 try:
                     row_date = self._date(row["trade_date"])
-                    volume = float(row["volume_traded"])
-                    traded_value = float(row["value_traded_myr"])
+                    opening_price = float(row["opening_price"])
+                    highest_price = float(row["highest_price"])
+                    lowest_price = float(row["lowest_price"])
+                    closing_price = float(row["closing_price"])
+                    market_cap = float(row["market_cap_myr"])
+                    volume = float(row["traded_volume"])
+                    traded_value = float(row["traded_value_myr"])
                     trades = float(row["number_of_trades"])
-                    shares = float(row["shares_outstanding"])
-                    if min(volume, traded_value, trades) < 0 or shares <= 0:
+                    if min(volume, traded_value, trades) < 0 or min(opening_price, highest_price, lowest_price, closing_price, market_cap) <= 0:
+                        raise ValueError
+                    if highest_price < lowest_price or not lowest_price <= opening_price <= highest_price or not lowest_price <= closing_price <= highest_price:
                         raise ValueError
                 except (TypeError, ValueError):
                     invalid_rows += 1
@@ -77,10 +84,10 @@ class MarketLiquidityAnalyser:
                 eligible_rows += 1
                 day, month = row_date.isoformat(), row_date.isoformat()[:7]
                 trading_days.add(day)
-                turnover = volume / shares * 100
-                average_trade = traded_value / trades if trades else 0.0
-                security = securities.setdefault(row["security_code"].strip(), {"securityCode": row["security_code"].strip(), "securityName": row["security_name"].strip(), "board": board, "sector": row["sector"].strip(), "value": 0.0, "volume": 0.0, "trades": 0.0, "turnovers": [], "days": set()})
-                security["value"] += traded_value; security["volume"] += volume; security["trades"] += trades; security["turnovers"].append(turnover); security["days"].add(day)
+                turnover = traded_value / market_cap * 100
+                daily_range = (highest_price - lowest_price) / opening_price * 100
+                security = securities.setdefault(row["security_code"].strip(), {"securityCode": row["security_code"].strip(), "securityName": row["security_name"].strip(), "board": board, "sector": row["sector"].strip(), "value": 0.0, "volume": 0.0, "trades": 0.0, "turnovers": [], "dailyRanges": [], "closingPrices": [], "marketCaps": [], "days": set()})
+                security["value"] += traded_value; security["volume"] += volume; security["trades"] += trades; security["turnovers"].append(turnover); security["dailyRanges"].append(daily_range); security["closingPrices"].append(closing_price); security["marketCaps"].append(market_cap); security["days"].add(day)
                 monthly[month]["value"] += traded_value; monthly[month]["volume"] += volume; monthly[month]["trades"] += trades
                 sector = sector_totals[row["sector"].strip()]
                 sector["value"] += traded_value; sector["volume"] += volume; sector["trades"] += trades; sector["turnoverSum"] += turnover; sector["observations"] += 1
@@ -90,16 +97,17 @@ class MarketLiquidityAnalyser:
         security_rows = []
         for item in securities.values():
             days = len(item["days"])
-            security_rows.append({"securityCode": item["securityCode"], "securityName": item["securityName"], "board": item["board"], "sector": item["sector"], "totalValueMyr": round(item["value"], 2), "averageDailyValueMyr": round(item["value"] / days, 2), "averageTurnoverPct": round(statistics.mean(item["turnovers"]), 4), "averageTradeSizeMyr": round(item["value"] / item["trades"], 2) if item["trades"] else 0.0, "tradingDays": days})
+            security_rows.append({"securityCode": item["securityCode"], "securityName": item["securityName"], "board": item["board"], "sector": item["sector"], "totalValueMyr": round(item["value"], 2), "averageDailyValueMyr": round(item["value"] / days, 2), "averageTurnoverPct": round(statistics.mean(item["turnovers"]), 4), "averageTradeSizeMyr": round(item["value"] / item["trades"], 2) if item["trades"] else 0.0, "averageDailyRangePct": round(statistics.mean(item["dailyRanges"]), 4), "latestClosingPrice": round(item["closingPrices"][-1], 4), "averageMarketCapMyr": round(statistics.mean(item["marketCaps"]), 2), "tradingDays": days})
         security_rows.sort(key=lambda item: item["averageDailyValueMyr"], reverse=True)
         total_value = sum(item["value"] for item in securities.values())
         turnover_values = [value for item in securities.values() for value in item["turnovers"]]
+        daily_range_values = [value for item in securities.values() for value in item["dailyRanges"]]
         avg_trade_sizes = [item["value"] / item["trades"] for item in securities.values() if item["trades"]]
         low_liquidity_threshold = statistics.median(item["averageDailyValueMyr"] for item in security_rows)
         low_liquidity = [item for item in security_rows if item["averageDailyValueMyr"] < low_liquidity_threshold]
         monthly_rows = [{"month": month, "label": datetime.strptime(month, "%Y-%m").strftime("%b %Y"), "tradedValueMyr": round(values["value"], 2), "volumeTraded": round(values["volume"], 2), "numberOfTrades": round(values["trades"])} for month, values in sorted(monthly.items())]
         sector_rows = [{"sector": name, "tradedValueMyr": round(values["value"], 2), "sharePct": round(values["value"] / total_value * 100, 2), "averageTurnoverPct": round(values["turnoverSum"] / values["observations"], 4), "averageTradeSizeMyr": round(values["value"] / values["trades"], 2) if values["trades"] else 0.0} for name, values in sorted(sector_totals.items(), key=lambda pair: pair[1]["value"], reverse=True)]
-        progress("analysis", "Liquidity, turnover velocity, average trade size and participation metrics computed.", {"securities": len(security_rows), "tradingDays": len(trading_days), "totalValueMyr": round(total_value, 2)})
+        progress("analysis", "Liquidity, market-cap turnover, price range, average trade size and participation metrics computed.", {"securities": len(security_rows), "tradingDays": len(trading_days), "totalValueMyr": round(total_value, 2)})
         leader = security_rows[0]
         findings = [
             f"{len(security_rows):,} securities generated RM{total_value / 1_000_000_000:.2f}bn across {len(trading_days)} trading days.",
@@ -112,24 +120,25 @@ class MarketLiquidityAnalyser:
         return {
             "classification": "SYNTHETIC DEMONSTRATION DATA — NOT FOR MARKET DECISIONS",
             "scope": {"dateStart": start.isoformat(), "dateEnd": end.isoformat(), "boards": sorted(selected_boards) if selected_boards else sorted(available_boards), "unit": "MYR", "tradingDayRule": "Distinct eligible trade dates", "duplicateRule": "Duplicate security-code and trade-date rows are excluded."},
-            "metrics": {"totalTradedValueMyr": round(total_value, 2), "tradingDays": len(trading_days), "activeSecurities": len(security_rows), "medianTurnoverPct": round(statistics.median(turnover_values), 4), "medianAverageTradeSizeMyr": round(statistics.median(avg_trade_sizes), 2) if avg_trade_sizes else 0.0, "lowLiquiditySecurities": len(low_liquidity)},
+            "metrics": {"totalTradedValueMyr": round(total_value, 2), "tradingDays": len(trading_days), "activeSecurities": len(security_rows), "medianTurnoverPct": round(statistics.median(turnover_values), 4), "medianDailyRangePct": round(statistics.median(daily_range_values), 4), "medianAverageTradeSizeMyr": round(statistics.median(avg_trade_sizes), 2) if avg_trade_sizes else 0.0, "lowLiquiditySecurities": len(low_liquidity)},
             "monthly": monthly_rows, "securities": security_rows, "sectors": sector_rows, "findings": findings,
-            "formula": "Turnover velocity = volume traded / shares outstanding; average trade size = traded value / number of trades.",
+            "formula": "Market-cap turnover = traded value / market capitalisation; average trade size = traded value / number of trades; intraday price range = (highest price - lowest price) / opening price.",
             "sources": [source], "interpretationBoundary": interpretation,
             "summaryMetrics": [
                 {"id": "total-value", "label": "Total trading value", "value": round(total_value / 1_000_000_000, 3), "valueType": "currency", "unit": "RM bn", "decimals": 3},
-                {"id": "median-turnover", "label": "Median turnover velocity", "value": round(statistics.median(turnover_values), 4), "valueType": "percentage", "unit": "%", "decimals": 4},
+                {"id": "median-turnover", "label": "Median market-cap turnover", "value": round(statistics.median(turnover_values), 4), "valueType": "percentage", "unit": "%", "decimals": 4},
+                {"id": "median-range", "label": "Median intraday price range", "value": round(statistics.median(daily_range_values), 4), "valueType": "percentage", "unit": "%", "decimals": 4},
                 {"id": "average-trade", "label": "Median average trade size", "value": round(statistics.median(avg_trade_sizes), 2) if avg_trade_sizes else 0.0, "valueType": "currency", "unit": "MYR", "decimals": 2},
                 {"id": "active-securities", "label": "Active securities", "value": len(security_rows), "valueType": "number", "unit": "securities", "decimals": 0},
                 {"id": "low-liquidity", "label": "Below-median liquidity", "value": len(low_liquidity), "valueType": "number", "unit": "securities", "decimals": 0},
             ],
             "tables": [
-                {"id": "security-liquidity", "title": "Security liquidity ranking", "columns": [{"key": "securityCode", "label": "Code"}, {"key": "securityName", "label": "Security"}, {"key": "averageDailyValueMyr", "label": "Average daily value", "valueType": "currency", "unit": "MYR"}, {"key": "averageTurnoverPct", "label": "Average turnover", "valueType": "percentage", "unit": "%"}, {"key": "averageTradeSizeMyr", "label": "Average trade size", "valueType": "currency", "unit": "MYR"}], "rows": security_rows[:20]},
-                {"id": "sector-liquidity", "title": "Liquidity by sector", "columns": [{"key": "sector", "label": "Sector"}, {"key": "sharePct", "label": "Trading-value share", "valueType": "percentage", "unit": "%"}, {"key": "averageTurnoverPct", "label": "Average turnover", "valueType": "percentage", "unit": "%"}], "rows": sector_rows},
+                {"id": "security-liquidity", "title": "Security liquidity ranking", "columns": [{"key": "securityCode", "label": "Code"}, {"key": "securityName", "label": "Security"}, {"key": "averageDailyValueMyr", "label": "Average daily value", "valueType": "currency", "unit": "MYR"}, {"key": "averageTurnoverPct", "label": "Market-cap turnover", "valueType": "percentage", "unit": "%"}, {"key": "averageTradeSizeMyr", "label": "Average trade size", "valueType": "currency", "unit": "MYR"}, {"key": "averageDailyRangePct", "label": "Intraday range", "valueType": "percentage", "unit": "%"}], "rows": security_rows[:20]},
+                {"id": "sector-liquidity", "title": "Liquidity by sector", "columns": [{"key": "sector", "label": "Sector"}, {"key": "sharePct", "label": "Trading-value share", "valueType": "percentage", "unit": "%"}, {"key": "averageTurnoverPct", "label": "Market-cap turnover", "valueType": "percentage", "unit": "%"}], "rows": sector_rows},
             ],
             "charts": [
                 {"id": "monthly-value", "title": "Monthly trading value", "type": "line", "categories": [item["label"] for item in monthly_rows], "series": [{"name": "Trading value", "values": [round(item["tradedValueMyr"] / 1_000_000_000, 3) for item in monthly_rows], "unit": "RM bn"}]},
-                {"id": "sector-turnover", "title": "Average turnover velocity by sector", "type": "bar", "categories": [item["sector"] for item in sector_rows], "series": [{"name": "Turnover velocity", "values": [item["averageTurnoverPct"] for item in sector_rows], "unit": "%"}]},
+                {"id": "sector-turnover", "title": "Average market-cap turnover by sector", "type": "bar", "categories": [item["sector"] for item in sector_rows], "series": [{"name": "Market-cap turnover", "values": [item["averageTurnoverPct"] for item in sector_rows], "unit": "%"}]},
             ],
             "evidence": [{"title": source["filename"], "reference": source["sha256"], "detail": source["role"], "metadata": {"rowsRead": rows_read, "eligibleRows": eligible_rows, "coveredDates": source["coveredDates"]}}],
             "qualityChecks": [
