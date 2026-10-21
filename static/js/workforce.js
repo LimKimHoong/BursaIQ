@@ -721,6 +721,7 @@
         method: result.formula || "Calculated by the registered deterministic analytics executor.",
         plotTitle: selectedChart ? selectedChart.title : "Calculated result",
         plotType: selectedChart ? selectedChart.type : "bar",
+        plotSeriesName: series.name || "Calculated values",
         plotValues: series.values || [],
         plotLabels: selectedChart ? selectedChart.categories || [] : [],
         plotUnit: series.unit || "",
@@ -738,6 +739,7 @@
       analysis: payload.answer,
       method: "Generated live through the Flask /api/chat integration. Route: " + (payload.routedBy || "selected workspace") + ".",
       plotTitle: "Live response provenance",
+      plotSeriesName: "Request progress",
       plotValues: [100, 100, 100],
       plotLabels: ["Request", "Model", "Response"],
       observation: "This response came from " + provider + " for the current question.",
@@ -809,34 +811,78 @@
         return '<article class="canvas-source"><span class="source-index">' + (index + 1) + '</span><div><h3>' + escapeHtml(source.title) + '</h3><small>' + escapeHtml(source.meta) + '</small><p>' + escapeHtml(source.detail) + '</p><span class="source-tag">' + svg("i-check") + 'Verified · ' + escapeHtml(source.coverage) + '</span></div><button type="button" data-demo-action="detail" data-action-context="' + escapeHtml(source.title) + '" aria-label="Inspect ' + escapeHtml(source.title) + '">' + svg("i-chevron") + '</button></article>';
       }).join("") + '</section>';
     }
-    return '<section class="canvas-plot"><div class="plot-heading"><div><span class="canvas-kicker">' + escapeHtml(answer.plotTitle) + '</span><h3>' + escapeHtml(answer.stats[0][0]) + '</h3><small>' + escapeHtml(answer.stats[0][1]) + '</small></div><span class="plot-delta">' + escapeHtml(answer.stats[1][0]) + '</span></div>' + assistantChart(answer) + '<div class="plot-note"><span>' + svg("i-spark") + '</span><div><strong>Latest observation</strong><p>' + escapeHtml(answer.observation) + '</p></div></div><div class="plot-guide"><strong>How to read</strong><p>Values are normalised for the visual. Hover or inspect the analysis for the governed figures and calculation method.</p></div></section>';
+    return '<section class="canvas-plot"><div class="plot-heading"><div><span class="canvas-kicker">Interactive analysis</span><h3>' + escapeHtml(answer.plotTitle) + '</h3><small>' + escapeHtml((answer.plotSeriesName || "Calculated values") + (answer.plotUnit ? " · " + answer.plotUnit : "")) + '</small></div><span class="plot-count">' + answer.plotValues.length + ' data points</span></div>' + assistantChart(answer) + '<div class="plot-note"><span>' + svg("i-spark") + '</span><div><small>Key finding</small><p>' + escapeHtml(answer.observation) + '</p></div></div><div class="plot-guide"><p>Hover or use Tab to inspect exact values. Open Analysis for the calculation method and interpretation limits.</p></div></section>';
+  }
+
+  function chartNumber(value) {
+    var absolute = Math.abs(Number(value));
+    return Number(value).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: absolute < 10 ? 2 : 1 });
+  }
+
+  function chartValue(value, unit) {
+    return chartNumber(value) + (unit ? " " + unit : "");
   }
 
   function assistantChart(answer) {
-    var values = answer.plotValues;
+    var values = answer.plotValues.map(Number);
     if (!values.length) return '<div class="clean-empty"><strong>No plottable values</strong><p>The calculation returned no chart series for this scope.</p></div>';
+    if (answer.plotType !== "line") return assistantBarChart(answer, values);
+    return assistantLineChart(answer, values);
+  }
+
+  function assistantBarChart(answer, values) {
+    var width = 520;
+    var labelWidth = 176;
+    var plotStart = 190;
+    var plotEnd = 430;
+    var valueX = 504;
+    var rowHeight = 38;
+    var top = 40;
+    var height = top + values.length * rowHeight + 28;
     var maximum = Math.max.apply(Math, values.concat([0]));
     var minimum = Math.min.apply(Math, values.concat([0]));
     var span = maximum - minimum || 1;
-    var baseline = 142 - ((0 - minimum) / span) * 104;
-    var spacing = values.length > 1 ? 270 / (values.length - 1) : 0;
-    var points = values.map(function (value, index) {
-      var x = values.length > 1 ? 25 + index * spacing : 160;
-      var y = 142 - ((Number(value) - minimum) / span) * 104;
-      return x + ',' + y.toFixed(1);
-    }).join(' ');
-    var areas = values.map(function (value, index) {
-      var centre = values.length > 1 ? 25 + index * spacing : 160;
-      var width = Math.max(12, Math.min(30, 220 / values.length));
-      var valueY = 142 - ((Number(value) - minimum) / span) * 104;
-      var y = Math.min(valueY, baseline);
-      var height = Math.max(2, Math.abs(baseline - valueY));
+    var scale = function (value) { return plotStart + ((value - minimum) / span) * (plotEnd - plotStart); };
+    var zero = scale(0);
+    var rows = values.map(function (value, index) {
+      var y = top + index * rowHeight;
+      var end = scale(value);
+      var barX = Math.min(zero, end);
+      var barWidth = Math.max(2, Math.abs(end - zero));
       var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
-      if (label.length > 10) label = label.slice(0, 9) + "…";
-      return '<rect x="' + (centre - width / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + width.toFixed(1) + '" height="' + height.toFixed(1) + '" rx="4"></rect><text x="' + centre.toFixed(1) + '" y="164" text-anchor="middle">' + escapeHtml(label) + '</text>';
+      var exact = chartValue(value, answer.plotUnit);
+      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><text class="chart-category" x="' + labelWidth + '" y="' + (y + 17) + '" text-anchor="end">' + escapeHtml(label) + '</text><rect class="chart-track" x="' + plotStart + '" y="' + (y + 5) + '" width="' + (plotEnd - plotStart) + '" height="15" rx="4"></rect><rect class="chart-bar ' + (value < 0 ? "is-negative" : "") + '" x="' + barX.toFixed(1) + '" y="' + (y + 5) + '" width="' + barWidth.toFixed(1) + '" height="15" rx="4"></rect><text class="chart-exact" x="' + valueX + '" y="' + (y + 17) + '" text-anchor="end">' + escapeHtml(exact) + '</text></g>';
     }).join("");
-    var line = answer.plotType === "line" ? '<polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + values.map(function (value, index) { var x = values.length > 1 ? 25 + index * spacing : 160; var y = 142 - ((Number(value) - minimum) / span) * 104; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle>'; }).join("") + '</g>' : '';
-    return '<div class="assistant-chart"><svg viewBox="0 0 320 178" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '. Exact figures are stated in the answer and analysis.</desc><g class="chart-grid"><path d="M10 38H310M10 90H310M10 142H310"></path><path d="M10 ' + baseline.toFixed(1) + 'H310"></path></g><g class="chart-bars">' + areas + '</g>' + line + '</svg></div>';
+    return '<div class="assistant-chart is-bar"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Horizontal bars show exact calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '.</desc><line class="chart-zero" x1="' + zero.toFixed(1) + '" x2="' + zero.toFixed(1) + '" y1="12" y2="' + (height - 20) + '"></line>' + rows + '</svg></div>';
+  }
+
+  function assistantLineChart(answer, values) {
+    var width = 520;
+    var height = 250;
+    var left = 54;
+    var right = 18;
+    var top = 40;
+    var bottom = 44;
+    var maximum = Math.max.apply(Math, values);
+    var minimum = Math.min.apply(Math, values);
+    var padding = (maximum - minimum || Math.abs(maximum) || 1) * 0.12;
+    var yMax = maximum + padding;
+    var yMin = Math.min(0, minimum - padding);
+    var ySpan = yMax - yMin || 1;
+    var x = function (index) { return left + index * (width - left - right) / Math.max(1, values.length - 1); };
+    var y = function (value) { return top + (yMax - value) / ySpan * (height - top - bottom); };
+    var ticks = [0, 1, 2, 3, 4].map(function (index) { return yMin + (yMax - yMin) * index / 4; });
+    var grid = ticks.map(function (tick) { var yy = y(tick); return '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"></line><text x="' + (left - 10) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end">' + escapeHtml(chartNumber(tick)) + '</text>'; }).join("");
+    var points = values.map(function (value, index) { return x(index).toFixed(1) + ',' + y(value).toFixed(1); }).join(" ");
+    var area = points + ' ' + x(values.length - 1).toFixed(1) + ',' + (height - bottom) + ' ' + x(0).toFixed(1) + ',' + (height - bottom);
+    var labelStep = Math.max(1, Math.ceil(values.length / 5));
+    var labels = answer.plotLabels.map(function (label, index) { if (index % labelStep && index !== answer.plotLabels.length - 1) return ""; return '<text class="chart-axis-label" x="' + x(index).toFixed(1) + '" y="' + (height - 17) + '" text-anchor="middle">' + escapeHtml(label) + '</text>'; }).join("");
+    var dots = values.map(function (value, index) {
+      var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
+      var exact = chartValue(value, answer.plotUnit);
+      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><circle cx="' + x(index).toFixed(1) + '" cy="' + y(value).toFixed(1) + '" r="5"></circle><g class="chart-point-label" transform="translate(' + x(index).toFixed(1) + ' ' + (y(value) - 12).toFixed(1) + ')"><rect x="-39" y="-20" width="78" height="20" rx="5"></rect><text y="-6" text-anchor="middle">' + escapeHtml(exact) + '</text></g></g>';
+    }).join("");
+    return '<div class="assistant-chart is-line"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Line chart of exact calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '.</desc><g class="chart-grid">' + grid + '</g><polygon class="chart-area" points="' + area + '"></polygon><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + dots + '</g>' + labels + '</svg></div>';
   }
 
   function workforcePage() {

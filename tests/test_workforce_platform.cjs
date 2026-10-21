@@ -52,6 +52,12 @@ test('AI Assistant is a governed question-and-answer workspace', () => {
   assert.match(js, /payload\.analytics && payload\.analytics\.result/);
   assert.match(js, /selectedChartId/);
   assert.match(js, /plotType/);
+  assert.match(js, /function assistantBarChart\(/);
+  assert.match(js, /function assistantLineChart\(/);
+  assert.match(js, /tabindex="0" role="img"/);
+  assert.doesNotMatch(js, /Values are normalised for the visual/);
+  assert.match(css, /@keyframes assistant-bar-in/);
+  assert.match(css, /\.chart-datum:hover/);
 });
 
 test('home commands use live semantic routing without a keyword fallback', () => {

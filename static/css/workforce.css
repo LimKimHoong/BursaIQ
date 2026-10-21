@@ -407,23 +407,42 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .canvas-foot strong, .canvas-foot small { display: block; }
 .canvas-foot strong { color: var(--ink); font-size: 10px; }
 .canvas-foot small { margin-top: 2px; color: var(--muted); font-size: 10px; }
-.plot-heading { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-.plot-heading h3 { margin: 0; color: var(--ink); font-size: 24px; letter-spacing: -.04em; }
-.plot-heading small { color: var(--muted); font-size: 10px; }
-.plot-delta { border-radius: 999px; padding: 5px 8px; color: #087956; background: #e8f8f1; font-size: 10px; font-weight: 750; }
-.assistant-chart { border: 1px solid #e2eaf4; border-radius: 13px; padding: 8px; background: #fff; }
-.assistant-chart svg { display: block; width: 100%; height: auto; overflow: visible; }
-.chart-grid path { fill: none; stroke: #e4ebf4; stroke-width: 1; }
-.chart-bars rect { fill: #dbeaff; }
-.chart-bars text { fill: #6d7f9a; font-size: 10px; }
-.chart-line { fill: none; stroke: #1769f5; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.5; }
-.chart-points circle { fill: #fff; stroke: #1769f5; stroke-width: 2.5; }
+.plot-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+.plot-heading h3 { margin: 0; color: var(--ink); font-size: 16px; font-weight: 650; letter-spacing: -.015em; line-height: 1.25; }
+.plot-heading small { display: block; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 450; }
+.plot-count { flex: none; padding-bottom: 2px; color: var(--muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+.assistant-chart { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 8px 6px; background: #fff; scrollbar-width: thin; }
+.assistant-chart svg { display: block; width: 100%; min-width: 440px; height: auto; overflow: visible; font-family: var(--font-body); }
+.chart-grid line { stroke: #e9eef5; stroke-width: 1; shape-rendering: crispEdges; }
+.chart-grid text, .chart-axis-label { fill: #718096; font-size: 10px; font-weight: 450; font-variant-numeric: tabular-nums; }
+.chart-zero { stroke: #a7b4c6; stroke-width: 1; shape-rendering: crispEdges; }
+.chart-track { fill: #f2f5f9; }
+.chart-bar { fill: var(--blue); opacity: .82; transform-box: fill-box; transform-origin: left center; animation: assistant-bar-in 620ms cubic-bezier(.2,.8,.2,1) both; }
+.chart-bar.is-negative { fill: #8292a8; transform-origin: right center; }
+.chart-category { fill: #33445e; font-size: 10px; font-weight: 450; }
+.chart-exact { fill: #17243a; font-size: 10px; font-weight: 560; font-variant-numeric: tabular-nums; }
+.chart-datum { outline: none; cursor: default; }
+.chart-datum:hover .chart-bar, .chart-datum:focus .chart-bar { opacity: 1; filter: saturate(1.18); }
+.chart-datum:hover .chart-category, .chart-datum:focus .chart-category { fill: var(--blue-dark); }
+.chart-line { fill: none; stroke: var(--blue); stroke-linecap: round; stroke-linejoin: round; stroke-width: 2.5; stroke-dasharray: 900; animation: assistant-line-in 900ms cubic-bezier(.2,.8,.2,1) both; }
+.chart-area { fill: #1769f5; opacity: .055; }
+.chart-points circle { fill: #fff; stroke: var(--blue); stroke-width: 2.5; transition: r 140ms ease, fill 140ms ease; }
+.chart-point-label { visibility: hidden; opacity: 0; transition: opacity 120ms ease; }
+.chart-point-label rect { fill: #10213b; }
+.chart-point-label text { fill: #fff; font-size: 9px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.chart-datum:hover circle, .chart-datum:focus circle { r: 7px; fill: var(--blue-soft); }
+.chart-datum:hover .chart-point-label, .chart-datum:focus .chart-point-label { visibility: visible; opacity: 1; }
+@keyframes assistant-bar-in { from { transform: scaleX(0); opacity: .2; } }
+@keyframes assistant-line-in { from { stroke-dashoffset: 900; } to { stroke-dashoffset: 0; } }
 .plot-note, .analysis-method { display: grid; grid-template-columns: 34px 1fr; gap: 10px; margin-top: 12px; border: 1px solid #d9e7fa; border-radius: 11px; padding: 11px; background: #edf5ff; }
+.plot-note { grid-template-columns: 20px 1fr; border: 0; border-top: 1px solid var(--line); border-radius: 0; padding: 12px 2px 0; background: transparent; }
 .plot-note > span, .analysis-method > span { display: grid; width: 32px; height: 32px; place-items: center; border-radius: 9px; color: var(--blue); background: #fff; }
+.plot-note > span { width: 20px; height: 20px; background: transparent; }
 .plot-note svg, .analysis-method svg { width: 16px; height: 16px; }
+.plot-note small { color: var(--muted); font-size: 9px; font-weight: 500; }
 .plot-note strong, .analysis-method strong { font-size: 10.5px; }
 .plot-note p, .analysis-method p, .plot-guide p, .canvas-analysis > p, .canvas-source p { margin: 4px 0 0; color: var(--muted); font-size: 10px; line-height: 1.55; }
-.plot-guide { margin-top: 12px; padding: 0 3px; }
+.plot-guide { margin-top: 10px; padding: 0 3px; }
 .plot-guide strong { font-size: 10px; }
 .canvas-analysis h3 { margin: 0 0 8px; font-size: 17px; line-height: 1.25; }
 .canvas-analysis > p { color: var(--ink-2); font-size: 10.5px; }
