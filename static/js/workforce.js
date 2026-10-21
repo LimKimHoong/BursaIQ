@@ -825,6 +825,19 @@
     return chartNumber(value) + (unit ? " " + unit : "");
   }
 
+  function chartTicks(minimum, maximum, count) {
+    var span = maximum - minimum || Math.abs(maximum) || 1;
+    var raw = span / count;
+    var magnitude = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var residual = raw / magnitude;
+    var step = (residual <= 1 ? 1 : residual <= 2 ? 2 : residual <= 2.5 ? 2.5 : residual <= 5 ? 5 : 10) * magnitude;
+    var start = Math.floor(minimum / step) * step;
+    var end = Math.ceil(maximum / step) * step;
+    var ticks = [];
+    for (var value = start; value <= end + step / 2; value += step) ticks.push(Number(value.toFixed(10)));
+    return ticks;
+  }
+
   function assistantChart(answer) {
     var values = answer.plotValues.map(Number);
     if (!values.length) return '<div class="clean-empty"><strong>No plottable values</strong><p>The calculation returned no chart series for this scope.</p></div>';
@@ -833,19 +846,29 @@
   }
 
   function assistantBarChart(answer, values) {
-    var width = 520;
-    var labelWidth = 176;
-    var plotStart = 190;
-    var plotEnd = 430;
-    var valueX = 504;
-    var rowHeight = 38;
-    var top = 40;
-    var height = top + values.length * rowHeight + 28;
+    var width = 620;
+    var labelWidth = 202;
+    var plotStart = 220;
+    var plotEnd = 520;
+    var valueX = 604;
+    var rowHeight = 42;
+    var top = 54;
+    var bottom = 64;
+    var height = top + values.length * rowHeight + bottom;
     var maximum = Math.max.apply(Math, values.concat([0]));
     var minimum = Math.min.apply(Math, values.concat([0]));
-    var span = maximum - minimum || 1;
-    var scale = function (value) { return plotStart + ((value - minimum) / span) * (plotEnd - plotStart); };
+    var ticks = chartTicks(minimum, maximum, 4);
+    var axisMin = Math.min.apply(Math, ticks);
+    var axisMax = Math.max.apply(Math, ticks);
+    var span = axisMax - axisMin || 1;
+    var scale = function (value) { return plotStart + ((value - axisMin) / span) * (plotEnd - plotStart); };
     var zero = scale(0);
+    var categoryAxis = /sector/i.test(answer.plotTitle) ? "Sector" : /investor/i.test(answer.plotTitle) ? "Investor group" : "Category";
+    var valueAxis = (answer.plotSeriesName || "Value") + (answer.plotUnit ? " (" + answer.plotUnit + ")" : "");
+    var grid = ticks.map(function (tick) {
+      var xx = scale(tick);
+      return '<line x1="' + xx.toFixed(1) + '" x2="' + xx.toFixed(1) + '" y1="' + (top - 8) + '" y2="' + (height - bottom + 4) + '"></line><text x="' + xx.toFixed(1) + '" y="' + (height - 38) + '" text-anchor="middle">' + escapeHtml(chartNumber(tick)) + '</text>';
+    }).join("");
     var rows = values.map(function (value, index) {
       var y = top + index * rowHeight;
       var end = scale(value);
@@ -853,18 +876,18 @@
       var barWidth = Math.max(2, Math.abs(end - zero));
       var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
       var exact = chartValue(value, answer.plotUnit);
-      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><text class="chart-category" x="' + labelWidth + '" y="' + (y + 17) + '" text-anchor="end">' + escapeHtml(label) + '</text><rect class="chart-track" x="' + plotStart + '" y="' + (y + 5) + '" width="' + (plotEnd - plotStart) + '" height="15" rx="4"></rect><rect class="chart-bar ' + (value < 0 ? "is-negative" : "") + '" x="' + barX.toFixed(1) + '" y="' + (y + 5) + '" width="' + barWidth.toFixed(1) + '" height="15" rx="4"></rect><text class="chart-exact" x="' + valueX + '" y="' + (y + 17) + '" text-anchor="end">' + escapeHtml(exact) + '</text></g>';
+      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><text class="chart-category" x="' + labelWidth + '" y="' + (y + 18) + '" text-anchor="end">' + escapeHtml(label) + '</text><rect class="chart-track" x="' + plotStart + '" y="' + (y + 5) + '" width="' + (plotEnd - plotStart) + '" height="17" rx="4"></rect><rect class="chart-bar ' + (value < 0 ? "is-negative" : "") + '" x="' + barX.toFixed(1) + '" y="' + (y + 5) + '" width="' + barWidth.toFixed(1) + '" height="17" rx="4"></rect><text class="chart-exact" x="' + valueX + '" y="' + (y + 18) + '" text-anchor="end">' + escapeHtml(exact) + '</text></g>';
     }).join("");
-    return '<div class="assistant-chart is-bar"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Horizontal bars show exact calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '.</desc><line class="chart-zero" x1="' + zero.toFixed(1) + '" x2="' + zero.toFixed(1) + '" y1="12" y2="' + (height - 20) + '"></line>' + rows + '</svg></div>';
+    return '<div class="assistant-chart is-bar"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Horizontal bars compare ' + escapeHtml(valueAxis) + ' by ' + escapeHtml(categoryAxis) + '.</desc><text class="chart-axis-title chart-y-title" x="' + labelWidth + '" y="22" text-anchor="end">' + escapeHtml(categoryAxis) + '</text><text class="chart-axis-title" x="' + ((plotStart + plotEnd) / 2) + '" y="' + (height - 12) + '" text-anchor="middle">' + escapeHtml(valueAxis) + '</text><g class="chart-grid">' + grid + '</g><line class="chart-zero" x1="' + zero.toFixed(1) + '" x2="' + zero.toFixed(1) + '" y1="' + (top - 8) + '" y2="' + (height - bottom + 4) + '"></line>' + rows + '</svg></div>';
   }
 
   function assistantLineChart(answer, values) {
     var width = 520;
-    var height = 250;
-    var left = 54;
+    var height = 280;
+    var left = 70;
     var right = 18;
-    var top = 40;
-    var bottom = 44;
+    var top = 48;
+    var bottom = 62;
     var maximum = Math.max.apply(Math, values);
     var minimum = Math.min.apply(Math, values);
     var padding = (maximum - minimum || Math.abs(maximum) || 1) * 0.12;
@@ -884,7 +907,8 @@
       var exact = chartValue(value, answer.plotUnit);
       return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><circle cx="' + x(index).toFixed(1) + '" cy="' + y(value).toFixed(1) + '" r="5"></circle><g class="chart-point-label" transform="translate(' + x(index).toFixed(1) + ' ' + (y(value) - 12).toFixed(1) + ')"><rect x="-39" y="-20" width="78" height="20" rx="5"></rect><text y="-6" text-anchor="middle">' + escapeHtml(exact) + '</text></g></g>';
     }).join("");
-    return '<div class="assistant-chart is-line"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Line chart of exact calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '.</desc><g class="chart-grid">' + grid + '</g><polygon class="chart-area" points="' + area + '"></polygon><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + dots + '</g>' + labels + '</svg></div>';
+    var valueAxis = (answer.plotSeriesName || "Value") + (answer.plotUnit ? " (" + answer.plotUnit + ")" : "");
+    return '<div class="assistant-chart is-line"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Line chart of ' + escapeHtml(valueAxis) + ' by period.</desc><text class="chart-axis-title chart-y-title" x="' + left + '" y="20">' + escapeHtml(valueAxis) + '</text><text class="chart-axis-title" x="' + ((left + width - right) / 2) + '" y="' + (height - 5) + '" text-anchor="middle">Period</text><g class="chart-grid">' + grid + '</g><polygon class="chart-area" points="' + area + '"></polygon><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + dots + '</g>' + labels + '</svg></div>';
   }
 
   function workforcePage() {

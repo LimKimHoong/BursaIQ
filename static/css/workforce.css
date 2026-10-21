@@ -415,13 +415,15 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .assistant-chart { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px 8px 6px; background: #fff; scrollbar-width: thin; }
 .assistant-chart svg { display: block; width: 100%; min-width: 440px; height: auto; overflow: visible; font-family: var(--font-body); }
 .chart-grid line { stroke: #e9eef5; stroke-width: 1; shape-rendering: crispEdges; }
-.chart-grid text, .chart-axis-label { fill: #718096; font-size: 10px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.chart-grid text, .chart-axis-label { fill: #586981; font-size: 11px; font-weight: 400 !important; font-variant-numeric: tabular-nums; }
+.chart-axis-title { fill: #33445e; font-size: 12px; font-weight: 400 !important; }
+.chart-y-title { fill: #52637c; }
 .chart-zero { stroke: #a7b4c6; stroke-width: 1; shape-rendering: crispEdges; }
 .chart-track { fill: #f2f5f9; }
 .chart-bar { fill: var(--blue); opacity: .82; transform-box: fill-box; transform-origin: left center; animation: assistant-bar-in 620ms cubic-bezier(.2,.8,.2,1) both; }
 .chart-bar.is-negative { fill: #8292a8; transform-origin: right center; }
-.chart-category { fill: #33445e; font-size: 10px; font-weight: 400; }
-.chart-exact { fill: #17243a; font-size: 10px; font-weight: 400; font-variant-numeric: tabular-nums; }
+.chart-category { fill: #263750; font-size: 11px; font-weight: 400 !important; }
+.chart-exact { fill: #17243a; font-size: 11px; font-weight: 400 !important; font-variant-numeric: tabular-nums; }
 .chart-datum { outline: none; cursor: default; }
 .chart-datum:hover .chart-bar, .chart-datum:focus .chart-bar { opacity: 1; filter: saturate(1.18); }
 .chart-datum:hover .chart-category, .chart-datum:focus .chart-category { fill: var(--blue-dark); }
