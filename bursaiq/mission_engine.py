@@ -534,7 +534,11 @@ class AdvMissionAnalyser:
                 {"id": "sector-contribution", "title": "Sector contribution", "columns": [{"key": "sector", "label": "Sector"}, {"key": "sharePct", "label": "Share", "valueType": "percentage", "unit": "%"}], "rows": sectors},
                 {"id": "investor-participation", "title": "Investor participation", "columns": [{"key": "group", "label": "Investor group"}, {"key": "netMyr", "label": "Net value", "valueType": "currency", "unit": "MYR"}, {"key": "grossSharePct", "label": "Gross share", "valueType": "percentage", "unit": "%"}], "rows": investors},
             ],
-            "charts": [{"id": "monthly-trend", "title": "Monthly average daily trading value", "type": "line", "categories": [item["label"] for item in monthly], "series": [{"name": "ADV", "values": [item["advBn"] for item in monthly], "unit": "RM bn"}]}],
+            "charts": [
+                {"id": "monthly-trend", "title": "Monthly average daily trading value", "type": "line", "categories": [item["label"] for item in monthly], "series": [{"name": "ADV", "values": [item["advBn"] for item in monthly], "unit": "RM bn"}]},
+                {"id": "sector-contribution", "title": "Trading value contribution by sector", "type": "bar", "categories": [item["sector"].title() for item in sectors], "series": [{"name": "Trading value share", "values": [item["sharePct"] for item in sectors], "unit": "%"}]},
+                {"id": "investor-net-flow", "title": "Net trading value by investor group", "type": "bar", "categories": [item["group"] for item in investors], "series": [{"name": "Net trading value", "values": [round(item["netMyr"] / 1_000_000, 2) for item in investors], "unit": "RM m"}]},
+            ],
             "evidence": [{"title": item["filename"], "reference": item["sha256"], "detail": item["role"], "metadata": {"rowsRead": item["rowsRead"], "eligibleRows": item["eligibleRows"], "coveredDates": item["coveredDates"]}} for item in source_register],
             "qualityChecks": [
                 {"id": "market-validity", "label": "Market record validation", "status": "PASSED" if invalid_rows == 0 else "EXCEPTION", "detail": f"{eligible_rows:,} eligible rows; {invalid_rows:,} invalid rows; {exact_duplicates:,} exact duplicates excluded."},

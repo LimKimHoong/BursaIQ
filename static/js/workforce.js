@@ -700,6 +700,36 @@
 
   function liveAssistantAnswer(payload, question) {
     var provider = payload.provider === "copilot" ? "Microsoft Copilot Studio" : "Local Ollama model";
+    if (payload.analytics && payload.analytics.result) {
+      var result = payload.analytics.result;
+      var metrics = result.summaryMetrics || [];
+      var selectedChart = (result.charts || []).filter(function (chart) { return chart.id === payload.analytics.selectedChartId; })[0] || (result.charts || [])[0];
+      var series = selectedChart && selectedChart.series && selectedChart.series[0] || { values: [], unit: "" };
+      var metricText = function (metric) {
+        var decimals = Number.isInteger(metric.decimals) ? metric.decimals : 2;
+        var value = typeof metric.value === "number" ? metric.value.toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : String(metric.value == null ? "—" : metric.value);
+        return metric.unit ? value + " " + metric.unit : value;
+      };
+      var stats = metrics.slice(0, 3).map(function (metric) { return [metricText(metric), metric.label]; });
+      while (stats.length < 3) stats.push([payload.analytics.capabilityName, "Governed calculation"]);
+      return {
+        title: payload.analytics.capabilityName,
+        summary: payload.answer,
+        stats: stats,
+        takeaway: (result.findings || []).join(" ") || payload.answer,
+        analysis: payload.answer + ((result.interpretationBoundaries || []).length ? " " + result.interpretationBoundaries.join(" ") : ""),
+        method: result.formula || "Calculated by the registered deterministic analytics executor.",
+        plotTitle: selectedChart ? selectedChart.title : "Calculated result",
+        plotType: selectedChart ? selectedChart.type : "bar",
+        plotValues: series.values || [],
+        plotLabels: selectedChart ? selectedChart.categories || [] : [],
+        plotUnit: series.unit || "",
+        observation: (result.findings || [payload.answer])[0],
+        sources: (result.evidence || []).map(function (source) { return { title: source.title, meta: source.reference || "Governed input", detail: source.detail, coverage: source.metadata && source.metadata.coveredDates || "Validated" }; }),
+        suggestedActions: payload.suggestedActions || [],
+        analytics: true
+      };
+    }
     return {
       title: "BursaIQ live response",
       summary: payload.answer,
@@ -784,19 +814,29 @@
 
   function assistantChart(answer) {
     var values = answer.plotValues;
-    var maximum = Math.max.apply(Math, values);
+    if (!values.length) return '<div class="clean-empty"><strong>No plottable values</strong><p>The calculation returned no chart series for this scope.</p></div>';
+    var maximum = Math.max.apply(Math, values.concat([0]));
+    var minimum = Math.min.apply(Math, values.concat([0]));
+    var span = maximum - minimum || 1;
+    var baseline = 142 - ((0 - minimum) / span) * 104;
+    var spacing = values.length > 1 ? 270 / (values.length - 1) : 0;
     var points = values.map(function (value, index) {
-      var x = 28 + index * 67;
-      var y = 142 - (Number(value) / maximum) * 104;
+      var x = values.length > 1 ? 25 + index * spacing : 160;
+      var y = 142 - ((Number(value) - minimum) / span) * 104;
       return x + ',' + y.toFixed(1);
     }).join(' ');
     var areas = values.map(function (value, index) {
-      var x = 13 + index * 67;
-      var height = Math.max(14, (Number(value) / maximum) * 104);
-      var y = 142 - height;
-      return '<rect x="' + x + '" y="' + y.toFixed(1) + '" width="30" height="' + height.toFixed(1) + '" rx="6"></rect><text x="' + (x + 15) + '" y="164" text-anchor="middle">' + escapeHtml(answer.plotLabels[index]) + '</text>';
+      var centre = values.length > 1 ? 25 + index * spacing : 160;
+      var width = Math.max(12, Math.min(30, 220 / values.length));
+      var valueY = 142 - ((Number(value) - minimum) / span) * 104;
+      var y = Math.min(valueY, baseline);
+      var height = Math.max(2, Math.abs(baseline - valueY));
+      var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
+      if (label.length > 10) label = label.slice(0, 9) + "…";
+      return '<rect x="' + (centre - width / 2).toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + width.toFixed(1) + '" height="' + height.toFixed(1) + '" rx="4"></rect><text x="' + centre.toFixed(1) + '" y="164" text-anchor="middle">' + escapeHtml(label) + '</text>';
     }).join("");
-    return '<div class="assistant-chart"><svg viewBox="0 0 320 178" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Five-point visual summary. Exact figures are stated in the answer and analysis.</desc><g class="chart-grid"><path d="M10 38H310M10 90H310M10 142H310"></path></g><g class="chart-bars">' + areas + '</g><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + values.map(function (value, index) { var x = 28 + index * 67; var y = 142 - (Number(value) / maximum) * 104; return '<circle cx="' + x + '" cy="' + y.toFixed(1) + '" r="4"></circle>'; }).join("") + '</g></svg></div>';
+    var line = answer.plotType === "line" ? '<polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + values.map(function (value, index) { var x = values.length > 1 ? 25 + index * spacing : 160; var y = 142 - ((Number(value) - minimum) / span) * 104; return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4"></circle>'; }).join("") + '</g>' : '';
+    return '<div class="assistant-chart"><svg viewBox="0 0 320 178" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Calculated values in ' + escapeHtml(answer.plotUnit || "the stated unit") + '. Exact figures are stated in the answer and analysis.</desc><g class="chart-grid"><path d="M10 38H310M10 90H310M10 142H310"></path><path d="M10 ' + baseline.toFixed(1) + 'H310"></path></g><g class="chart-bars">' + areas + '</g>' + line + '</svg></div>';
   }
 
   function workforcePage() {

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import csv
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -346,6 +347,137 @@ def available_mission_inputs() -> set[str]:
 
 def executable_capability(capability_id: str) -> dict[str, Any]:
     return capability_registry.validate_for_execution(capability_id, set(MISSION_EXECUTORS), available_mission_inputs())
+
+
+def _analytics_date_coverage(executor_id: str) -> tuple[str, str]:
+    """Return the governed source bounds exposed to the semantic analytics router."""
+    runner = MISSION_EXECUTORS[executor_id]
+    paths = getattr(runner.analyser, "source_paths", None) or [getattr(runner.analyser, "market_path", None)]
+    dates: list[str] = []
+    for path in paths:
+        if not path or not Path(path).is_file():
+            continue
+        with Path(path).open(encoding="utf-8-sig", newline="") as handle:
+            reader = csv.DictReader(handle)
+            date_column = "trading_date" if "trading_date" in (reader.fieldnames or []) else "trade_date"
+            for row in reader:
+                value = str(row.get(date_column) or "")[:10]
+                if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+                    dates.append(value)
+    if not dates:
+        raise ValueError("The capability source does not contain a usable date range.")
+    return min(dates), max(dates)
+
+
+def parse_interactive_analytics_route(text: str, allowed_capabilities: set[str]) -> dict[str, Any]:
+    """Validate model-selected interactive analytics without using keyword rules."""
+    candidate = text.strip()
+    fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", candidate, re.IGNORECASE | re.DOTALL)
+    if fenced:
+        candidate = fenced.group(1)
+    else:
+        start, end = candidate.find("{"), candidate.rfind("}")
+        if start >= 0 and end > start:
+            candidate = candidate[start:end + 1]
+    try:
+        route = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        raise ModelRequestError("The selected model returned an invalid interactive analytics route.") from exc
+    if not isinstance(route, dict) or route.get("route") not in {"chat", "analytics"}:
+        raise ModelRequestError("The selected model returned an unsupported interactive analytics route.")
+    if route["route"] == "chat":
+        return {"route": "chat"}
+    capability_id = str(route.get("capabilityId") or "").strip()
+    if capability_id not in allowed_capabilities:
+        return {"route": "chat"}
+    date_start, date_end = str(route.get("dateStart") or "")[:10], str(route.get("dateEnd") or "")[:10]
+    try:
+        start = datetime.strptime(date_start, "%Y-%m-%d").date()
+        end = datetime.strptime(date_end, "%Y-%m-%d").date()
+    except ValueError as exc:
+        raise ModelRequestError("The selected model returned an invalid analytics date range.") from exc
+    if end < start:
+        raise ModelRequestError("The selected model returned an inverted analytics date range.")
+    boards = route.get("boards") or []
+    if not isinstance(boards, list) or not all(isinstance(item, str) for item in boards):
+        raise ModelRequestError("The selected model returned an invalid board scope.")
+    return {"route": "analytics", "capabilityId": capability_id, "dateStart": date_start, "dateEnd": date_end, "boards": boards[:10], "chartId": str(route.get("chartId") or "").strip()[:100]}
+
+
+def interactive_analytics_route(question: str, provider: str) -> tuple[dict[str, Any], str]:
+    """Ask the selected live model whether a registered executor can answer directly."""
+    capabilities = []
+    for item in capability_registry.list():
+        status = capability_registry.execution_status(item, set(MISSION_EXECUTORS), available_mission_inputs())
+        if not status["executable"]:
+            continue
+        coverage = _analytics_date_coverage(status["executor"])
+        chart_catalog = {
+            "adv-analysis": [
+                {"id": "monthly-trend", "answers": "ADV level and trend over time"},
+                {"id": "sector-contribution", "answers": "sector trading-value contribution and concentration"},
+                {"id": "investor-net-flow", "answers": "investor-group net buying and selling"},
+            ],
+            "market-liquidity-analysis": [
+                {"id": "monthly-value", "answers": "monthly traded value"},
+                {"id": "sector-turnover", "answers": "sector turnover velocity"},
+            ],
+        }.get(status["id"], [])
+        capabilities.append({"id": status["id"], "name": status["name"], "description": status["description"], "coverage": {"start": coverage[0], "end": coverage[1]}, "charts": chart_catalog})
+    prompt = f"""You route BursaIQ questions to direct governed analytics by meaning, never by keyword matching.
+
+Executable analytics:
+{json.dumps(capabilities, ensure_ascii=False)}
+
+Choose analytics only when one capability can calculate the requested answer from its described data. Otherwise choose chat. Resolve relative periods against the selected capability's latest coverage date and keep dates within coverage. Select the chart that best answers the question. Use an empty boards list unless the user explicitly gives a board scope. Never invent a capability or chart.
+
+Return JSON only:
+{{"route":"chat"}}
+or
+{{"route":"analytics","capabilityId":"exact id","dateStart":"YYYY-MM-DD","dateEnd":"YYYY-MM-DD","boards":[],"chartId":"exact chart id"}}
+
+Question:
+{json.dumps(question, ensure_ascii=False)}"""
+    if provider == "ollama":
+        reply = ollama.ask(prompt)
+        return parse_interactive_analytics_route(reply.text, {item["id"] for item in capabilities}), reply.request_id
+    reply = copilot.ask(prompt)
+    return parse_interactive_analytics_route(reply.text, {item["id"] for item in capabilities}), reply.conversation_id
+
+
+def execute_interactive_analytics(route: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Run an allowlisted analyser synchronously without creating or approving a mission."""
+    capability = executable_capability(route["capabilityId"])
+    runner = MISSION_EXECUTORS[capability["executor"]]
+    result = runner.analyser.analyse(route["dateStart"], route["dateEnd"], route["boards"], lambda *_: None)
+    capability_registry.validate_result(capability, result)
+    chart_ids = {chart.get("id") for chart in result.get("charts", [])}
+    if route["chartId"] not in chart_ids:
+        route["chartId"] = result["charts"][0]["id"] if result.get("charts") else ""
+    return capability, result
+
+
+def interactive_analytics_narrative(question: str, capability: dict[str, Any], result: dict[str, Any], provider: str) -> tuple[str, str, list[str], dict[str, Any], str]:
+    """Generate an evidence-bounded explanation after deterministic calculation."""
+    evidence = {
+        "scope": result.get("scope"),
+        "summaryMetrics": result.get("summaryMetrics"),
+        "findings": result.get("findings"),
+        "tables": result.get("tables"),
+        "qualityChecks": result.get("qualityChecks"),
+        "interpretationBoundaries": result.get("interpretationBoundaries"),
+    }
+    prompt = f"""You are BursaIQ's governed analytics narrator. Answer the employee's question directly using only the deterministic result below. State the most relevant figures, reporting period, and material limitation. Do not claim causation, recommendation, approval, or facts absent from the result. Keep the response concise.
+
+Capability: {capability['name']}
+Question: {question}
+Calculated result:
+{json.dumps(evidence, ensure_ascii=False)}"""
+    if provider == "ollama":
+        reply = ollama.ask(prompt, json_format=False)
+        return reply.text, reply.request_id, [], ollama.status(check_connection=False), "ollama-governed-analytics"
+    reply = copilot.ask(prompt)
+    return reply.text, reply.conversation_id, reply.suggestions, copilot.status(), "copilot-governed-analytics"
 
 
 def execute_mission(mission_id: str) -> dict[str, Any]:
@@ -1551,6 +1683,33 @@ def chat():
             "routedBy": routed_by,
             "agent": copilot.status(),
         }), 403
+
+    if requested_workspace == "assistant":
+        try:
+            analytics_route, _routing_request_id = interactive_analytics_route(question, provider)
+        except ModelRequestError:
+            analytics_route = {"route": "chat"}
+        if analytics_route["route"] == "analytics":
+            capability, result = execute_interactive_analytics(analytics_route)
+            answer_text, active_conversation_id, suggestions, agent_status, narrative_mode = interactive_analytics_narrative(question, capability, result, provider)
+            return jsonify({
+                "answer": answer_text,
+                "conversationId": active_conversation_id,
+                "suggestedActions": suggestions,
+                "workspace": workspace,
+                "routedBy": "live-model-governed-analytics",
+                "narrativeMode": narrative_mode,
+                "provider": provider,
+                "agent": agent_status,
+                "classification": result.get("classification", "CONTROLLED"),
+                "analytics": {
+                    "capabilityId": capability["id"],
+                    "capabilityName": capability["name"],
+                    "outputSchema": capability["outputSchema"],
+                    "selectedChartId": analytics_route["chartId"],
+                    "result": result,
+                },
+            })
 
     if provider == "ollama":
         prompt = (
