@@ -1480,7 +1480,7 @@ def delete_platform_item(item_type: str, item_id: str):
 @app.patch("/api/settings")
 def save_user_settings():
     payload = body_json()
-    allowed = {"defaultWorkspace", "startWithBrief", "compactDensity", "reducedUpdates"}
+    allowed = {"defaultWorkspace", "compactDensity", "reducedUpdates"}
     values = {key: value for key, value in payload.items() if key in allowed and isinstance(value, (str, bool))}
     if not values:
         return jsonify({"error": "No supported settings were provided."}), 400
