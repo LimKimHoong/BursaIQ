@@ -223,6 +223,12 @@ test('Knowledge Administration manages the persisted Ask Bursa document lifecycl
   assert.match(js, /allowedRoles/);
   assert.match(js, /replacesDocumentId/);
   assert.match(css, /\.knowledge-admin-page/);
+  assert.match(js, /function openMetricPanel/);
+  assert.match(js, /context === "Uploaded sources"/);
+  assert.match(js, /context === "Searchable passages"/);
+  assert.match(js, /context === "Generated topics"/);
+  assert.match(js, /context === "Needs attention"/);
+  assert.doesNotMatch(js, /No detailed operation is available/);
 });
 
 test('live backend state survives page refresh routes', () => {
