@@ -1065,6 +1065,8 @@ kbd { border: 1px solid #dbe4f0; border-bottom-color: #c3d1e3; border-radius: 5p
 .knowledge-document-summary small { margin-top: 3px; color: var(--muted); font-size: 10px; }
 .knowledge-document-card details { border-top: 1px solid var(--line); }
 .knowledge-document-card summary { padding: 11px 14px; color: var(--blue); cursor: pointer; font-size: 11px; font-weight: 750; }
+.knowledge-document-card.has-ingestion-error { border-color: #f1c9a8; background: #fffaf5; }
+.unindexed-source-actions { display: flex; justify-content: flex-end; gap: 8px; border-top: 1px solid var(--line); padding: 10px 14px; }
 .knowledge-metadata-form { display: grid; gap: 12px; padding: 4px 14px 14px; }
 .knowledge-suggestion-row { display: grid; grid-template-columns: minmax(150px, .75fr) minmax(220px, 1.5fr) minmax(180px, 1fr) 100px auto; align-items: end; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
 .knowledge-suggestion-row strong, .knowledge-suggestion-row small { display: block; }

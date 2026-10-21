@@ -217,6 +217,8 @@ test('Knowledge Administration manages the persisted Ask Bursa document lifecycl
   assert.match(js, /data-knowledge-ingest/);
   assert.match(js, /data-knowledge-reindex/);
   assert.match(js, /data-knowledge-remove/);
+  assert.match(js, /data-knowledge-source-remove/);
+  assert.match(js, /uploaded source · not indexed/);
   assert.match(js, /knowledge-suggestion-row/);
   assert.match(js, /allowedRoles/);
   assert.match(js, /replacesDocumentId/);

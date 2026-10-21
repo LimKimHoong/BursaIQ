@@ -183,7 +183,9 @@ class KnowledgeIndex:
             ).fetchall()
         replaced_ids = self._replaced_document_ids()
         documents = []
+        indexed_paths = set()
         for row in rows:
+            indexed_paths.add(row["relative_path"])
             lifecycle = "REPLACED" if row["id"] in replaced_ids else "EXPIRED" if self._is_expired(row["expiry_date"]) else "ACTIVE"
             documents.append({
                 "id": row["id"], "filename": row["filename"], "relativePath": row["relative_path"],
@@ -194,8 +196,34 @@ class KnowledgeIndex:
                 "indexedAt": row["indexed_at"], "chunks": row["chunk_count"], "suggestions": row["suggestion_count"],
                 "lifecycle": lifecycle,
             })
+        recent_errors: dict[str, str] = {}
+        for run in runs:
+            for error in json.loads(run["errors_json"]):
+                recent_errors.setdefault(error.get("path", ""), error.get("error", "Unknown ingestion failure."))
+        for path in self._source_files():
+            relative = path.relative_to(self.knowledge_root).as_posix()
+            if relative in indexed_paths:
+                continue
+            try:
+                metadata = self._metadata(path)
+                metadata_error = None
+            except Exception as exc:
+                metadata = {"department": relative.split("/", 1)[0], "classification": "Unknown", "allowed_roles": [], "owner": "Unassigned", "effective_date": None, "expiry_date": None, "version": "—", "replaces_document_id": None}
+                metadata_error = str(exc)
+            ingestion_error = recent_errors.get(relative) or metadata_error
+            documents.append({
+                "id": None, "filename": path.name, "relativePath": relative,
+                "department": metadata["department"], "departmentLabel": display_department(metadata["department"]),
+                "classification": metadata["classification"], "allowedRoles": metadata["allowed_roles"],
+                "owner": metadata["owner"], "effectiveDate": metadata["effective_date"], "expiryDate": metadata["expiry_date"],
+                "version": metadata["version"], "replacesDocumentId": metadata["replaces_document_id"],
+                "indexedAt": None, "chunks": 0, "suggestions": 0,
+                "lifecycle": "INGESTION_FAILED" if ingestion_error else "PENDING_INGESTION",
+                "ingestionError": ingestion_error,
+            })
+        documents.sort(key=lambda item: (item["lifecycle"] not in {"INGESTION_FAILED", "PENDING_INGESTION"}, item["filename"].lower()))
         return {
-            **self.status(), "documentsList": documents,
+            **self.status(), "sourceFiles": len(documents), "documentsList": documents,
             "ingestionRuns": [self._run_dict(row) for row in runs],
             "suggestionsList": [{
                 "id": row["id"], "documentId": row["document_id"], "sourceDocument": row["filename"],
@@ -252,6 +280,16 @@ class KnowledgeIndex:
 
     def remove_document(self, document_id: str) -> dict[str, Any]:
         path = self._indexed_path(document_id)
+        path.unlink()
+        metadata_path = path.with_name(path.name + ".metadata.json")
+        if metadata_path.exists():
+            metadata_path.unlink()
+        return self.ingest()
+
+    def remove_source(self, relative_path: str) -> dict[str, Any]:
+        path = (self.knowledge_root / relative_path).resolve()
+        if self.knowledge_root not in path.parents or not path.is_file() or path.suffix.lower() not in SUPPORTED_EXTENSIONS:
+            raise KeyError(relative_path)
         path.unlink()
         metadata_path = path.with_name(path.name + ".metadata.json")
         if metadata_path.exists():
