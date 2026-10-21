@@ -1,0 +1,14 @@
+{
+  "allowed_roles": [
+    "gcmc",
+    "hr",
+    "securities",
+    "finance"
+  ],
+  "classification": "Internal",
+  "document_owner": "HR",
+  "effective_date": "",
+  "expiry_date": "",
+  "replaces_document_id": "",
+  "version": "1.0"
+}

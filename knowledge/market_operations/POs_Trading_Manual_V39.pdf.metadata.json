@@ -1,0 +1,7 @@
+{
+  "classification": "Internal",
+  "allowed_roles": ["employee"],
+  "document_owner": "Market Operations",
+  "effective_date": "2026-01-01",
+  "version": "1.0"
+}
