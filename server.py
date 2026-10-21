@@ -28,6 +28,7 @@ from bursaiq.copilot_studio import (
 )
 from bursaiq.data_loader import IngestionError, LocalDataRepository, ROLE_WORKSPACES
 from bursaiq.local_analysis import LocalAnalysisError, LocalAnalysisService, MAX_FILE_BYTES
+from bursaiq.liquidity_analysis import MarketLiquidityAnalyser
 from bursaiq.knowledge_rag import KnowledgeIndex
 from bursaiq.metrics import MetricEngine
 from bursaiq.mission_engine import AdvMissionAnalyser, MissionRunner, MissionStore
@@ -69,7 +70,28 @@ mission_runner = MissionRunner(
     AdvMissionAnalyser(BASE_DIR / "input" / "market_trades_demo.csv", BASE_DIR / "input" / "investor_participation_demo.csv"),
     reports.generate_mission,
 )
-MISSION_EXECUTORS = {"adv_analysis": mission_runner}
+
+
+def generate_liquidity_report(payload: dict[str, Any]) -> dict[str, Any]:
+    mission, result = payload["mission"], payload["result"]
+    return reports.generate({
+        "title": mission["title"], "requestedBy": mission["requestedBy"], "workspace": "My Workforce",
+        "verification": "Draft ready — human review required", "question": mission["objective"],
+        "answer": {
+            "summary": " ".join(result["findings"]),
+            "context": {"Reporting window": f"{result['scope']['dateStart']} to {result['scope']['dateEnd']}", "Board scope": ", ".join(result["scope"]["boards"]), "Classification": result["classification"]},
+            "formula": result["formula"],
+            "sources": [{"title": item["filename"], "filename": item["filename"], "owner": "Market Data", "detail": item["role"]} for item in result["sources"]],
+        },
+    })
+
+
+liquidity_mission_runner = MissionRunner(
+    missions,
+    MarketLiquidityAnalyser(BASE_DIR / "input" / "daily_security_trading_demo.csv"),
+    generate_liquidity_report,
+)
+MISSION_EXECUTORS = {"adv_analysis": mission_runner, "market_liquidity_analysis": liquidity_mission_runner}
 _mission_fallback_cache: dict[str, Any] | None = None
 
 
@@ -317,6 +339,8 @@ def available_mission_inputs() -> set[str]:
         inputs.add("market_trades")
     if (BASE_DIR / "input" / "investor_participation_demo.csv").is_file():
         inputs.add("investor_participation")
+    if (BASE_DIR / "input" / "daily_security_trading_demo.csv").is_file():
+        inputs.add("daily_security_trading")
     return inputs
 
 

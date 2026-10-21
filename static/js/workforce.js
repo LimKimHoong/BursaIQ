@@ -1171,14 +1171,14 @@
     if (type === "mission") {
       var executableCapabilities = state.missionCapabilities.filter(function (item) { return item.executable; });
       var capabilityOptions = executableCapabilities.map(function (item) { return '<option value="' + escapeHtml(item.id) + '">' + escapeHtml(item.name + " · v" + item.version) + '</option>'; }).join("");
-      var defaultCapabilityId = executableCapabilities.length ? executableCapabilities[0].id : "";
-      var teamOptions = state.missionTeams.filter(function (team) { return team.status === "ACTIVE" && (!defaultCapabilityId || team.capability === defaultCapabilityId); }).map(function (team) { return '<option value="' + escapeHtml(team.id) + '">' + escapeHtml(team.name + " · v" + team.version + " · " + team.stages.length + " stages") + '</option>'; }).join("");
+      var teamOptions = state.missionTeams.filter(function (team) { return team.status === "ACTIVE"; }).map(function (team) { return '<option value="' + escapeHtml(team.id) + '" data-capability="' + escapeHtml(team.capability) + '">' + escapeHtml(team.name + " · v" + team.version + " · " + team.stages.length + " stages") + '</option>'; }).join("");
       openExperience({
         title: "Create AI mission",
         subtitle: "Describe the outcome. Your selected AI model will identify the supported mission capability and prepare the governed run.",
         body: '<form class="creation-form mission-form" id="creation-form" data-creation-type="mission"><label class="form-field">Mission name<input name="title" maxlength="140" required placeholder="e.g. Review operational incidents and prepare a management brief"></label><label class="form-field">What should the AI workforce accomplish?<textarea name="description" maxlength="1000" required placeholder="Describe the question, business outcome, evidence to use, and decisions this mission should support."></textarea></label><label class="form-field">Executable capability<select name="capabilityId" required>' + capabilityOptions + '</select><small>The live model confirms this selection from the executable registry.</small></label><label class="form-field">Mission team<select name="teamId" required>' + teamOptions + '</select><small>The backend validates agent status, capability coverage, and dependencies before creating the mission.</small></label><div class="form-split"><label class="form-field">Analysis period from <small>Optional</small><input type="date" name="dateStart"></label><label class="form-field">Analysis period to <small>Optional</small><input type="date" name="dateEnd"></label></div><div class="form-split"><label class="form-field">Preferred output<select name="output"><option>Interactive analysis and report</option><option>Executive briefing</option><option>Evidence review package</option><option>Reusable intelligence asset</option></select></label><label class="form-field">Governance<select name="governance"><option>Human review before publishing</option><option>High-impact approval</option><option>Draft for internal review</option></select></label></div><div class="detail-callout">' + svg("i-spark") + '<span><strong>AI-planned, capability-governed</strong><small>The live model interprets the request. BursaIQ starts work only when an executable mission capability, active team, and required data are available.</small></span></div><p class="form-error" id="mission-form-error" hidden></p></form>',
         footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">Plan and run mission</button>'
       });
+      syncMissionTeamOptions(document.getElementById("creation-form"));
       return;
     }
     openExperience({
@@ -1187,6 +1187,15 @@
       body: '<form class="creation-form" id="creation-form" data-creation-type="' + type + '"><label class="form-field">' + config[2] + '<input name="title" maxlength="90" required placeholder="' + config[3] + '"></label><label class="form-field">' + config[4] + '<textarea name="description" maxlength="420" required placeholder="' + config[5] + '"></textarea></label><div class="form-split"><label class="form-field">Accountable owner<select name="owner"><option>Lim Kim Hoong</option><option>Product Development</option><option>Assign later</option></select></label><label class="form-field">Governance<select name="governance"><option>Standard approval</option><option>High-impact review</option><option>Read-only research</option></select></label></div><p class="form-hint">Synthetic demo only. No external system will be changed.</p></form>',
       footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="creation-form">' + config[6] + '</button>'
     });
+  }
+
+  function syncMissionTeamOptions(form) {
+    if (!form || form.dataset.creationType !== "mission") return;
+    var capability = form.elements.capabilityId.value;
+    var team = form.elements.teamId;
+    var first = null;
+    Array.prototype.forEach.call(team.options, function (option) { var matches = option.dataset.capability === capability; option.hidden = !matches; option.disabled = !matches; if (matches && !first) first = option; });
+    if (!team.selectedOptions.length || team.selectedOptions[0].disabled) team.value = first ? first.value : "";
   }
 
   function openPlatformCreate(kind, roomId) {
@@ -1221,6 +1230,7 @@
           form.elements.title.value = decision.title;
           form.elements.description.value = decision.objective;
           if (form.elements.capabilityId) form.elements.capabilityId.value = decision.missionType;
+          syncMissionTeamOptions(form);
           form.dataset.routed = "true";
           form.dataset.missionType = decision.missionType;
         }
@@ -1256,7 +1266,8 @@
       routing.then(function (decision) {
         if (decision.route !== "mission") throw new Error(decision.reason || "No executable mission capability currently supports this request. Add the required dataset and mission implementation before running it.");
         submit.textContent = "Creating mission…";
-        return apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: decision.title || title, objective: decision.objective || objective, requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart") || "2026-01-01", dateEnd: data.get("dateEnd") || "2026-09-30", boards: boards, capabilityId: decision.missionType || String(data.get("capabilityId") || ""), teamId: String(data.get("teamId") || "team-adv-governed") }) });
+        var capabilityId = decision.missionType || String(data.get("capabilityId") || "");
+        return apiJson("/api/missions", { method: "POST", body: JSON.stringify({ title: decision.title || title, objective: decision.objective || objective, requestedBy: "Lim Kim Hoong", dateStart: data.get("dateStart") || "2026-01-01", dateEnd: data.get("dateEnd") || "2026-09-30", boards: capabilityId === "adv-analysis" ? boards : [], capabilityId: capabilityId, teamId: String(data.get("teamId") || "") }) });
       }).then(function (mission) {
         return apiJson("/api/missions/" + encodeURIComponent(mission.id) + "/run", { method: "POST", body: "{}" }).then(function () { return mission; });
       }).then(function (mission) {
@@ -2439,6 +2450,9 @@
   document.getElementById("experience-close").addEventListener("click", closeExperience);
   experienceOverlay.addEventListener("click", function (event) {
     if (event.target === experienceOverlay || event.target.closest("[data-experience-close]")) closeExperience();
+  });
+  experienceOverlay.addEventListener("change", function (event) {
+    if (event.target.name === "capabilityId") syncMissionTeamOptions(event.target.form);
   });
   experienceOverlay.addEventListener("submit", function (event) {
     event.preventDefault();

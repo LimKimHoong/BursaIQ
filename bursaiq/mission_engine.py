@@ -549,7 +549,7 @@ class AdvMissionAnalyser:
 class MissionRunner:
     """Runs one mission at a time per ID and keeps every stage inspectable."""
 
-    def __init__(self, store: MissionStore, analyser: AdvMissionAnalyser, report_factory: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+    def __init__(self, store: MissionStore, analyser: Any, report_factory: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
         self.store = store
         self.analyser = analyser
         self.report_factory = report_factory
@@ -598,7 +598,8 @@ class MissionRunner:
                     date.fromisoformat(mission["dateStart"]); date.fromisoformat(mission["dateEnd"])
                     self._complete_stage(mission_id, worker_id, started, "Mission plan and configurable team accepted.", {"stages": len(stages), "output": "dashboard + charts + PDF + review package"})
                 elif stage_type == "data":
-                    started = self._stage(mission_id, worker_id, progress, "Reading and validating approved mission sources.", {"sources": [self.analyser.market_path.name, self.analyser.investor_path.name]})
+                    source_paths = getattr(self.analyser, "source_paths", None) or [self.analyser.market_path, self.analyser.investor_path]
+                    started = self._stage(mission_id, worker_id, progress, "Reading and validating approved mission sources.", {"sources": [path.name for path in source_paths]})
                     result = self.analyser.analyse(mission["dateStart"], mission["dateEnd"], mission["boards"], capture)
                     info = stage_payloads.get("data", {})
                     self._complete_stage(mission_id, worker_id, started, info.get("message", "Sources validated."), info.get("payload"))

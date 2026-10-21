@@ -30,6 +30,14 @@ DEFAULT_STAGES = [
     {"id": "stage-report", "name": "Generate deliverable", "stageType": "report", "agentId": "report-agent", "responsibility": "Assemble the governed report and review package.", "dependencies": ["stage-insight"]},
 ]
 
+LIQUIDITY_STAGES = [
+    {"id": "stage-manager", "name": "Scope and plan", "stageType": "mission-manager", "agentId": "mission-manager", "responsibility": "Validate liquidity scope, dates, dependencies, and review requirements.", "dependencies": []},
+    {"id": "stage-data", "name": "Validate security trading data", "stageType": "data", "agentId": "data-agent", "responsibility": "Validate the daily security trading schema and record quality.", "dependencies": ["stage-manager"]},
+    {"id": "stage-analysis", "name": "Analyse liquidity and turnover", "stageType": "analysis", "agentId": "liquidity-analysis-agent", "responsibility": "Calculate deterministic liquidity, turnover, participation, and concentration measures.", "dependencies": ["stage-data"]},
+    {"id": "stage-insight", "name": "Develop bounded findings", "stageType": "insight", "agentId": "insight-agent", "responsibility": "Explain verified liquidity patterns without unsupported causal claims.", "dependencies": ["stage-analysis"]},
+    {"id": "stage-report", "name": "Generate deliverable", "stageType": "report", "agentId": "report-agent", "responsibility": "Assemble the governed liquidity report and review package.", "dependencies": ["stage-insight"]},
+]
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="microseconds")
@@ -75,6 +83,13 @@ class MissionTeamStore:
                    'Default reusable team for the supported governed market-analysis capability.',
                    'BursaIQ', 'adv-analysis', 1, 'ACTIVE', ?, 1, ?, ?)""",
                 (json.dumps(DEFAULT_STAGES), now, now),
+            )
+            connection.execute(
+                """INSERT OR IGNORE INTO mission_teams
+                   VALUES ('team-market-liquidity', 'Market Liquidity Analysis Team',
+                   'Reusable governed team for security-level liquidity and turnover analysis.',
+                   'BursaIQ', 'market-liquidity-analysis', 1, 'ACTIVE', ?, 1, ?, ?)""",
+                (json.dumps(LIQUIDITY_STAGES), now, now),
             )
 
     def validate(self, payload: dict[str, Any], current: dict[str, Any] | None = None) -> dict[str, Any]:

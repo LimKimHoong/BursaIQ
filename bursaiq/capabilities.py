@@ -32,6 +32,24 @@ ADV_CAPABILITY = {
     },
 }
 
+TRADING_CAPABILITY = {
+    "id": "market-liquidity-analysis",
+    "name": "Market Liquidity and Turnover Analysis",
+    "description": "Analyse security-level liquidity, turnover velocity and trading participation.",
+    "requiredInputs": ["daily_security_trading"],
+    "requiredAgentCapabilities": ["mission-orchestration", "data-quality", "market-liquidity-analysis", "evidence-synthesis", "report-generation"],
+    "inputSchema": "daily-security-trading-v1",
+    "outputSchema": "market-liquidity-v1",
+    "approvalPolicy": "market-intelligence-review",
+    "executor": "market_liquidity_analysis",
+    "resultSchema": {
+        "id": "market-liquidity-result-v1",
+        "requiredSections": ["summaryMetrics", "tables", "charts", "findings", "evidence", "qualityChecks", "interpretationBoundaries", "downloadableOutputs"],
+        "metricValueTypes": ["number", "text", "percentage", "currency"],
+        "chartTypes": ["line", "bar"],
+    },
+}
+
 
 class MissionCapabilityRegistry:
     """Stores discoverable contracts; only executor IDs installed by Python may run."""
@@ -66,31 +84,31 @@ class MissionCapabilityRegistry:
             columns = {row["name"] for row in connection.execute("PRAGMA table_info(mission_capabilities)").fetchall()}
             if "result_schema_json" not in columns:
                 connection.execute("ALTER TABLE mission_capabilities ADD COLUMN result_schema_json TEXT NOT NULL DEFAULT '{}'")
-        self._seed_default()
+        self._seed_defaults()
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.database_path, timeout=30)
         connection.row_factory = sqlite3.Row
         return connection
 
-    def _seed_default(self) -> None:
+    def _seed_defaults(self) -> None:
         now = utc_now()
-        value = ADV_CAPABILITY
         with self._connect() as connection:
-            connection.execute(
-                """INSERT OR IGNORE INTO mission_capabilities
-                   (id, name, description, version, status, required_inputs_json,
-                    required_agent_capabilities_json, input_schema, output_schema,
-                    approval_policy, executor, built_in, created_at, updated_at, result_schema_json)
-                   VALUES (?, ?, ?, 1, 'ACTIVE', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)""",
-                (value["id"], value["name"], value["description"], json.dumps(value["requiredInputs"]),
-                 json.dumps(value["requiredAgentCapabilities"]), value["inputSchema"], value["outputSchema"],
-                 value["approvalPolicy"], value["executor"], now, now, json.dumps(value["resultSchema"])),
-            )
-            connection.execute(
-                "UPDATE mission_capabilities SET result_schema_json=? WHERE id=? AND result_schema_json='{}'",
-                (json.dumps(value["resultSchema"]), value["id"]),
-            )
+            for value in (ADV_CAPABILITY, TRADING_CAPABILITY):
+                connection.execute(
+                    """INSERT OR IGNORE INTO mission_capabilities
+                       (id, name, description, version, status, required_inputs_json,
+                        required_agent_capabilities_json, input_schema, output_schema,
+                        approval_policy, executor, built_in, created_at, updated_at, result_schema_json)
+                       VALUES (?, ?, ?, 1, 'ACTIVE', ?, ?, ?, ?, ?, ?, 1, ?, ?, ?)""",
+                    (value["id"], value["name"], value["description"], json.dumps(value["requiredInputs"]),
+                     json.dumps(value["requiredAgentCapabilities"]), value["inputSchema"], value["outputSchema"],
+                     value["approvalPolicy"], value["executor"], now, now, json.dumps(value["resultSchema"])),
+                )
+                connection.execute(
+                    "UPDATE mission_capabilities SET result_schema_json=? WHERE id=? AND result_schema_json='{}'",
+                    (json.dumps(value["resultSchema"]), value["id"]),
+                )
 
     @staticmethod
     def _identifier(value: Any, label: str) -> str:
