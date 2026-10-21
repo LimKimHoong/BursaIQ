@@ -59,22 +59,9 @@ Mission teams reference real registry agents. Users can assign agents to stages,
 
 A capability record declares required inputs, agent capabilities, schemas, approval policy, and a symbolic executor. Registration alone does not make arbitrary Python executable: the backend dispatches only executor IDs present in the explicit `MISSION_EXECUTORS` allowlist.
 
-The repository registers two built-in capabilities:
-
-| Capability | Executor | Required input files | Availability |
-|---|---|---|---|
-| Average Daily Trading Value Analysis (`adv-analysis`) | `adv_analysis` | `input/market_trades_demo.csv`, `input/investor_participation_demo.csv` | Available with the committed demo files |
-| Market Liquidity and Turnover Analysis (`market-liquidity-analysis`) | `market_liquidity_analysis` | `input/daily_security_trading_demo.csv` | Available when that file is supplied |
 
 Every executor returns the same capability-neutral result sections: summary metrics, tables, charts, findings, evidence, quality checks, interpretation boundaries, and downloadable outputs. My Workforce, AI Assistant, and Verification Centre render these sections dynamically.
 
-The liquidity CSV requires these columns:
-
-```text
-trade_date, security_code, security_name, board, sector,
-opening_price, highest_price, lowest_price, closing_price,
-market_cap_myr, traded_value_myr, traded_volume, number_of_trades
-```
 
 ### Workflow Builder
 
