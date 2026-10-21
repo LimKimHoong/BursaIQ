@@ -1,56 +1,164 @@
-# BursaIQ — Stage 02 Demo
+# BursaIQ
 
-BursaIQ is a decision-intelligence prototype for the Bursa Prompt-a-thon final. Its conversational front end is connected to a Microsoft Copilot Studio agent through a small Python gateway, alongside governed metric calculations, visible evidence, simulated departmental access, human verification, and downloadable PDF briefings.
+BursaIQ is a local, end-to-end AI workforce prototype for governed analysis, internal knowledge retrieval, reusable agents, configurable mission teams, workflow automation, human verification, and intelligence reuse.
 
-Every included figure and document is synthetic. Nothing in this repository is official Bursa Malaysia information.
+The current application is a Flask service with a responsive JavaScript frontend and SQLite persistence. It supports a local Ollama model and Microsoft Copilot Studio as interchangeable language-model providers. Deterministic Python executors remain responsible for registered analytical missions, validation, evidence, and report generation.
 
-Email Automation is a browser-local demo: no email delivery, scheduler, live refresh or model instruction execution is connected. Email previews read the current prepared dataset and show source dates. Optional Dashboard and Report sections are inline evidence and calculation summaries, not real attachments. Use demo recipient addresses; browser storage is not a secure mailbox or account database.
+> All included data, identities, operational states, and generated examples are synthetic demonstration material. They are not official Bursa Malaysia data or guidance and must not be used for market decisions.
 
-## What is implemented
+## Current platform
 
-- **BursaIQ Assistant:** the main conversation handles market questions directly, backed by governed market performance, 30-day ADV, market capitalisation, trading velocity, sector/constituent drivers, investor participation and selected international comparisons.
-- **Evidence beside the answer:** source, owner, location, calculation and interpretation boundary remain visible.
-- **Today’s Intelligence Brief:** a role-aware opening brief prioritises changed signals, active alerts, pending decisions and next actions.
-- **Watchlist & Alerts:** demo identities can monitor signals, see the rule behind each alert and reopen the related evidence trail. Watchlists persist locally per identity.
-- **Automation:** the first Workflow page plans recurring intelligence emails with daily or selected-day schedules, Malaysia/UTC time, up to ten recipients, instructions, and optional Link, Dashboard and Report sections. “Automate by email” in Decision Canvas seeds the originating question. Schedules can be edited, paused and resumed, and persist per demo identity on this browser.
-- **Research:** a dedicated research agent turns a broad question into a structured dossier with an executive finding, evidence-led findings, counterpoints, open questions and a role-filtered source trail. It uses Copilot Studio when available and a transparent governed fallback otherwise.
-- **Local Analysis:** users can upload PDF, XLSX, CSV, JSON, TXT or Markdown documents into an in-memory workspace, ask interactive questions, inspect exact evidence extracts and explicitly opt in to Copilot-assisted synthesis.
-- **Actions in the Decision Canvas:** an answer can move directly into monitoring, email Automation, Decision Memory, human verification or a deeper Research thread.
-- **Decision Memory:** every identity can inspect the decision records permitted to them, including the question, rationale, owner, evidence context and status; new records persist locally per identity.
-- **Learn Bursa:** guided learning pathways and plain-language explanations grounded in the local market primer, product overview and new-joiner conduct guide.
-- **Ask Reg:** a permissioned regulatory-guidance workspace for the Securities Market demo identity, grounded in a controlled synthetic guide with explicit authority boundaries.
-- **Copilot Studio conversations:** the Flask gateway obtains short-lived Direct Line tokens and keeps tokens and Copilot conversation IDs server-side; no credential is exposed to browser JavaScript.
-- **Resilient showcase mode:** the pinned demo questions use predefined, source-grounded local answers when Copilot Studio is unavailable, and label the response clearly as a demo fallback.
-- **Local preferences:** Settings shows the Copilot connection, automatic analysis, chart motion and the default workspace. A Panel access section lets identities request Ask Reg through a reason-capture dialog without granting access automatically.
-- **Optional plugins:** Settings provides locally persisted controls for Web Search, PDF Tools and Spreadsheet Tools, with external connections clearly marked as unconfigured demo capabilities.
-- **People-data boundary:** employee, candidate, recruitment and application-status questions are declined before invoking the hosted agent.
-- **Real local ingestion:** structured data is loaded from Excel and document text is extracted from PDF files under `Input/`.
-- **Human verification:** every identity can track the status of requests they submitted, while reviewer identities receive a separate assigned queue for inspecting, approving or returning outstanding cases. The Stage 02 demo persists decisions in a local SQLite audit queue.
-- **Expanded Source Health:** every identity can inspect freshness, quality, usage, accountable updater, next review date and overall health for sources permitted to their workspaces.
-- **Real PDF export:** ReportLab generates a two-page executive briefing; pypdf verifies that it opens and contains the title, evidence register and synthetic-data label.
-- **Executable AI Workforce mission:** My Workforce runs the supplied January–September 2026 equity ADV mission against `input/market_trades_demo.csv` and `input/investor_participation_demo.csv`. The backend persists every run, executes five visible worker stages, records timings and source fingerprints, supports adjustable date and board scope, and routes the exact dashboard result into a verified PDF and human approval queue.
-- **Interchangeable semantic router:** the Home composer can use either a local open-source model through Ollama or Microsoft Copilot Studio to decide, from meaning, whether a request belongs in Q&A or the supported ADV mission. Mission calculations remain deterministic Python operations.
+The left navigation is organised into three areas.
 
-## Run the demo
+### Intelligence & Execution
 
-```bash
-cd /Users/kimhoong0324/Desktop/BursaIQ-main
-./myenv/bin/pip install -r requirements.txt
-./myenv/bin/python scripts/seed_demo_data.py
-cp .env.example .env
-# Paste the Copilot Studio Mobile app Token Endpoint into .env
-./myenv/bin/python server.py
+- **Home** — submit a natural-language request. A live model routes the request to conversational Q&A or an available registered mission capability.
+- **AI Assistant** — ask general questions or run supported interactive analytics directly in the conversation. Structured analytical responses can render metrics, evidence, and interactive charts without first creating a mission.
+- **Ask Bursa** — role-filtered retrieval-augmented generation over indexed internal documents, with citations kept under **View Source Scope**.
+- **My Workforce** — create and run governed missions, inspect worker stages, configure mission teams, and open the Agent Library and Mission Capability Registry.
+- **Collaborative Rooms** — persist shared rooms, tasks, activity, files, members, AI teammates, and decisions. Pending room decisions also appear in Action.
+- **Automation Studio** — create, reopen, edit, duplicate, delete, validate, test, and run persisted visual workflows.
+- **Intelligence Exchange** — publish approved mission results as reusable, versioned intelligence assets and create a new traceable mission from an asset.
+
+### Governance & Follow-through
+
+- **Action** — shows the backend-derived attention queue, decision memories, and reviewable email schedules. The sidebar badge is hidden at zero and updates from persisted pending work.
+- **Verification Centre** — supports `Submit → Review → Approve / Request Changes → Revise → Resubmit`, retaining versions, comments, evidence, and audit history. Workflow approvals use the same review queue and resume the original run after approval.
+
+### Administration & Platform
+
+- **Knowledge Administration** — upload documents, edit metadata and permissions, ingest or re-index sources, inspect failures, remove content, and review model-generated suggested questions.
+- **Connectors** — records governed connector requests and accurately shows that external access remains unavailable until an administrator configures it.
+- **Settings** — manages local presentation preferences and shows live model-provider availability.
+
+## Main capabilities
+
+### Live model providers
+
+BursaIQ exposes two provider choices:
+
+- **Ollama** for local open-source generation, semantic routing, document embeddings, and suggested-question generation.
+- **Microsoft Copilot Studio** through the Mobile app / Direct Line token endpoint.
+
+Provider secrets stay on the Flask server. The frontend receives availability and model metadata, not credentials. Language-model failures are shown as unavailable states; BursaIQ does not silently substitute a fake successful response.
+
+### Agent Registry and mission teams
+
+The Agent Library stores versioned agents in SQLite. Users can create, edit, duplicate, test, disable, and archive agents with:
+
+- Provider and model settings
+- Instructions and generation parameters
+- Knowledge collections, connectors, tools, and capabilities
+- Input/output schemas and approval policy
+- Department, ownership, and role permissions
+- Execution history
+
+Mission teams reference real registry agents. Users can assign agents to stages, reorder stages, configure dependencies, validate capability coverage, and save reusable team templates. A mission freezes the selected capability, team, and agent versions when it is created.
+
+### Mission Capability Registry
+
+A capability record declares required inputs, agent capabilities, schemas, approval policy, and a symbolic executor. Registration alone does not make arbitrary Python executable: the backend dispatches only executor IDs present in the explicit `MISSION_EXECUTORS` allowlist.
+
+The repository registers two built-in capabilities:
+
+| Capability | Executor | Required input files | Availability |
+|---|---|---|---|
+| Average Daily Trading Value Analysis (`adv-analysis`) | `adv_analysis` | `input/market_trades_demo.csv`, `input/investor_participation_demo.csv` | Available with the committed demo files |
+| Market Liquidity and Turnover Analysis (`market-liquidity-analysis`) | `market_liquidity_analysis` | `input/daily_security_trading_demo.csv` | Available when that file is supplied |
+
+Every executor returns the same capability-neutral result sections: summary metrics, tables, charts, findings, evidence, quality checks, interpretation boundaries, and downloadable outputs. My Workforce, AI Assistant, and Verification Centre render these sections dynamically.
+
+The liquidity CSV requires these columns:
+
+```text
+trade_date, security_code, security_name, board, sector,
+opening_price, highest_price, lowest_price, closing_price,
+market_cap_myr, traded_value_myr, traded_volume, number_of_trades
 ```
 
-The seed command first validates the two committed mission datasets under lowercase `input/`, then generates the supporting knowledge pack under uppercase `Input/`. The executable ADV mission requires only `market_trades_demo.csv` and `investor_participation_demo.csv`; no additional CSV is needed.
+### Workflow Builder
 
-Open [http://127.0.0.1:5000](http://127.0.0.1:5000). Keep the terminal running during the showcase.
+The visual builder supports:
 
-No user sign-in is required. The HTML still opens as a visual preview if the service is unavailable, but live agent conversations, Local Analysis uploads, persisted verification and PDF generation require the backend; Copilot Studio conversations also require network access.
+```text
+Trigger → Gather Data → AI Agent → Condition → Human Approval
+        → Generate Report → Publish / Send
+```
 
-### Optional local language model
+Workflow definitions, node configuration, connections, validation, runs, inputs, outputs, errors, retries, and approval transitions are persisted in SQLite. AI Agent nodes select from the Agent Registry and can be constrained by a registered mission capability. Generate Report uses the real PDF service.
 
-The Home composer defaults to a local Ollama model for semantic request routing. Install Ollama, then prepare and serve the default model:
+Publish / Send runs only an explicitly supported integration, currently publication of an approved mission to Intelligence Exchange. Unconfigured external send integrations are blocked and recorded as unavailable rather than simulated as successful.
+
+### Ask Bursa RAG
+
+Ask Bursa indexes controlled files under `knowledge/` and filters documents by role before retrieval. Supported formats are:
+
+```text
+.pdf  .docx  .xlsx  .pptx  .csv  .txt  .md  .html  .htm
+```
+
+During ingestion BursaIQ extracts text and source locations, creates Ollama embeddings, stores searchable chunks in SQLite, and generates grounded suggested questions. Suggestions are regenerated when a document changes and removed with their source document.
+
+Supported department folders are:
+
+```text
+knowledge/
+├── corporate_policies/
+├── group_technology/
+├── human_resources/
+├── market_operations/
+└── regulations/
+```
+
+Scanned image-only PDFs need OCR before upload; the current ingestion pipeline does not perform OCR.
+
+### Persistence and governance
+
+`runtime/bursaiq_demo.sqlite3` stores missions, versions, worker events, verification cases, audit history, workflows and runs, agents, mission teams, capability records, rooms and other platform items, settings, document chunks, and suggested questions.
+
+Generated PDF reports are written to `output/pdf/`. Local Analysis uploads remain in memory and are cleared when the process restarts or the session is deleted.
+
+The demo uses simulated identities and role checks. A production deployment would replace them with authenticated identities and enterprise authorization claims.
+
+## Requirements
+
+- Python 3.11 or newer
+- Ollama for local generation and document embeddings, or a published Copilot Studio agent
+- Node.js only for the frontend test suite
+
+Install Python dependencies:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+Create local configuration:
+
+```bash
+cp .env.example .env
+```
+
+The available settings are:
+
+```dotenv
+COPILOTSTUDIOAGENT__TOKENENDPOINT=""
+OLLAMA_BASE_URL="http://127.0.0.1:11434"
+OLLAMA_MODEL="qwen2.5:3b"
+OLLAMA_EMBED_MODEL="nomic-embed-text"
+OLLAMA_REQUEST_TIMEOUT="120"
+OLLAMA_KEEP_ALIVE="30m"
+OLLAMA_MAX_TOKENS="1200"
+BURSAIQ_HOST="127.0.0.1"
+BURSAIQ_PORT="5000"
+```
+
+Do not commit `.env` or a Copilot Studio token endpoint.
+
+## Run locally with Ollama
+
+Install and start the models:
 
 ```bash
 ollama pull qwen2.5:3b
@@ -58,25 +166,63 @@ ollama pull nomic-embed-text
 ollama serve
 ```
 
-The backend connects to `http://127.0.0.1:11434` and uses `qwen2.5:3b` by default. Override these with `OLLAMA_BASE_URL` and `OLLAMA_MODEL`. The frontend provider selector also offers Microsoft Copilot Studio when its token endpoint is configured.
+If `ollama serve` reports `bind: address already in use`, an Ollama server is already listening. Confirm it with:
 
-The selected model only produces a validated routing decision and proposed mission title/objective. Python validates the response, restricts execution to the supported ADV mission, and performs all calculations, data-quality checks, persistence and report generation without sending the mission datasets to the language model.
-
-### Load documents into Ask Bursa
-
-Ask Bursa retrieves answers from the local `knowledge/` folders and sends only the permitted retrieved passages to the selected answer model. The committed folders start empty:
-
-```text
-knowledge/
-├── human_resources/
-├── market_operations/
-├── regulations/
-├── group_technology/
-└── corporate_policies/
+```bash
+curl http://127.0.0.1:11434/api/tags
 ```
 
-1. Copy approved `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.csv`, `.txt`, `.md`, `.html`, or `.htm` files into the matching department folder.
-2. Optionally place a sidecar beside a document named `<original-filename>.metadata.json`. For example, `leave-policy.pdf.metadata.json`:
+Prepare the committed synthetic source pack and validate the ADV CSV inputs:
+
+```bash
+source .venv/bin/activate
+python scripts/seed_demo_data.py
+```
+
+Start BursaIQ:
+
+```bash
+python server.py
+```
+
+Open <http://127.0.0.1:5000>.
+
+Check provider availability while the server is running:
+
+```bash
+curl http://127.0.0.1:5000/api/model-providers
+```
+
+Only one process can listen on port 5000. Set `BURSAIQ_PORT` in `.env` if another application uses it.
+
+## Configure Copilot Studio
+
+1. Publish the Copilot Studio agent.
+2. For this synthetic local demonstration, configure the Mobile app channel using the authentication mode appropriate to the environment.
+3. Copy the Mobile app **Token Endpoint**.
+4. Set `COPILOTSTUDIOAGENT__TOKENENDPOINT` in `.env` to the complete HTTPS endpoint.
+5. Restart `server.py` and check `/api/model-providers`.
+
+The backend exchanges the configured endpoint for short-lived Direct Line credentials and keeps the conversation state server-side.
+
+## Add Ask Bursa documents
+
+The recommended method is the **Knowledge Administration** page:
+
+1. Open Knowledge Administration.
+2. Select one or more supported files.
+3. Choose the department, owner, classification, allowed roles, version, and lifecycle dates.
+4. Upload and index the files.
+5. Review ingestion status and generated suggested questions.
+6. Re-index after changing metadata or content; remove retired sources from the same page.
+
+For command-line ingestion, copy documents into the appropriate `knowledge/` department folder and run:
+
+```bash
+python scripts/ingest_knowledge.py
+```
+
+An optional sidecar named `<filename>.metadata.json` can provide governance metadata:
 
 ```json
 {
@@ -84,122 +230,83 @@ knowledge/
   "allowed_roles": ["employee", "hr"],
   "document_owner": "Human Resources",
   "effective_date": "2026-01-01",
+  "expiry_date": "2026-12-31",
   "version": "1.0"
 }
 ```
 
-`employee` grants access to all configured employee demo identities. Use `gcmc`, `hr`, `securities`, or `finance` when a document should be restricted to particular roles.
+Available demonstration roles include `employee`, `gcmc`, `hr`, `securities`, and `finance`. Files beginning with `.` or `_` are ignored.
 
-3. Install dependencies and the local embedding model, then build or refresh the index:
+## Typical end-to-end mission flow
+
+1. Enter a request on Home or choose **Create → New AI Mission**.
+2. The selected live model maps the request to an available registered capability.
+3. The backend validates the capability, required files, mission team, agents, and dependencies.
+4. My Workforce runs the deterministic executor and persists worker events and structured results.
+5. Submit the result to Verification Centre.
+6. A reviewer approves it or requests changes.
+7. A requested change creates a linked new mission version and preserves the original result and comments.
+8. After approval, the owner publishes the result to Intelligence Exchange.
+9. Reusing the asset creates a new mission with retained provenance.
+
+## Tests
+
+Run the backend suite with the standard library test runner:
 
 ```bash
-pip install -r requirements.txt
-ollama pull nomic-embed-text
-python scripts/ingest_knowledge.py
+source .venv/bin/activate
+python -m unittest discover -s tests -p 'test_*.py'
 ```
 
-4. Start BursaIQ and open **Ask Bursa**. The header shows the indexed document count. Ollama-generated topic suggestions come from the role-permitted indexed documents; clicking one runs the normal cited RAG answer flow. Answers include document and page, slide, sheet, or section citations with links to role-permitted source files.
+Run the active frontend integration checks:
 
-Run the ingestion command again whenever documents or metadata change. Suggestion generation happens during ingestion rather than page load. Unchanged files with stored suggestions are skipped, replaced files regenerate their questions, removed files and their questions are deleted, and extraction or generation failures are returned in the command output. Scanned image-only PDFs require OCR before ingestion; the current pipeline does not perform OCR.
+```bash
+node --test tests/test_workforce_platform.cjs
+```
 
-### Run the ADV mission
+Run the optional pre-show source/API/PDF check after generating the uppercase `Input/` source pack:
 
-1. Open **My Workforce** and choose **Configure mission**.
-2. Keep the default `2026-01-01` to `2026-09-30` window or choose a narrower period and board scope.
-3. Run the mission and open its ledger to watch the Mission Manager, Data, Analysis, Insight and Report workers complete with evidence.
-4. Inspect the dashboard, calculation trace and generated PDF, then submit it to **Verification Centre**.
-5. Approve it with the Securities Market reviewer identity, or request changes. Use **Rerun with new dates** and start at `2026-04-01` to demonstrate real recomputation.
+```bash
+python scripts/demo_check.py
+```
 
-The mission is deterministic and remains usable with no Copilot or external AI connection. The supplied CSVs and every output are explicitly labelled synthetic demonstration data.
+At the time of this README rewrite, the repository passes 71 backend tests and 24 frontend tests.
 
-## Suggested five-minute showcase
-
-1. **Frame the problem (35 seconds).** “Colleagues spend time gathering figures, interpreting them, checking sources and turning the result into a reusable briefing.”
-2. **Open Today’s Brief (45 seconds).** Show the role-aware attention queue, investigate the ADV signal, then add it to the Watchlist.
-3. **Ask the hero question (60 seconds).** Ask: `How did the market perform in July?` Open the Decision Canvas and use Actions to save the answer to Decision Memory.
-4. **Close the workflow (45 seconds).** Submit the answer for verification, show its status under My submitted requests, then switch to Arif Rahman to show the separate reviewer-only pending queue.
-5. **Research the signal (40 seconds).** Open Research with the originating question and show the dossier’s finding, counterpoints, source trail and next questions.
-6. **Analyse local evidence (40 seconds).** Open Local Analysis, upload a sanitized demo document and ask BursaIQ to extract the key decisions and owners.
-7. **Show adoption value (30 seconds).** Open Learn Bursa and ask: `Explain ADV in plain language.` Point to the raw-source evidence.
-8. **Close (25 seconds).** “BursaIQ turns a question into monitored intelligence, complete research and a traceable decision—without losing its evidence.”
-
-The script leaves roughly 45 seconds for transitions and judge reaction. All three team members can own a segment: problem/vision, GCMC intelligence, and responsible workflow/scale.
-
-## Demo identities
-
-| Identity | Department | Demonstrated access |
-|---|---|---|
-| Nadia Karim | GCMC | BursaIQ Assistant, Learn Bursa, Today’s Brief, Research, Local Analysis, Watchlist, Verification Centre, Source Health, Decision Memory |
-| Arif Rahman | Securities Market | BursaIQ Assistant, Learn Bursa, Ask Reg, Research, Local Analysis, market review queue, Source Health, Decision Memory |
-| Farah Lee | HR | BursaIQ Assistant, Learn Bursa, Research, Local Analysis, Verification Centre, Source Health, Decision Memory |
-| Mei Tan | Finance | BursaIQ Assistant, Learn Bursa, Today’s Brief, Research, Local Analysis, Watchlist, Verification Centre, Source Health, Decision Memory |
-
-Verification cases are filtered in both the UI and API: identities receive their own submitted requests, reviewers additionally receive assigned cases, and only assigned reviewers can record a decision. These remain simulated identities rather than production authentication; a production pilot would bind the same policies to Microsoft Entra ID and server-side group claims.
-
-## Replacing the synthetic files later
-
-1. Keep the same workbook names and worksheet/column names shown below.
-2. Replace only with sanitized files explicitly approved for the competition environment.
-3. Update dates/owner metadata in `Input/manifest.json`.
-4. Restart the server or call `POST /api/refresh`.
-5. Run `./myenv/bin/python scripts/demo_check.py` before presenting.
-
-### GCMC workbook contract
-
-`Input/GCMC/GCMC_Market_Pulse.xlsx` contains:
-
-| Worksheet | Required columns |
-|---|---|
-| Headline | Metric, Value, Unit, As of, Classification |
-| Monthly | month, index, valueBn, volumeBn |
-| Sectors | name, mtdPct, contributionPoints, valueBn |
-| Counters | name, ticker, contributionPoints, pricePct |
-| Participation | group, netFlowMn, sharePct |
-| Regional | market, mtdPct, ytdPct, currency |
-
-### Ask Reg source contract
-
-`Input/Regulatory/Market_Regulation_Guide_Demo.json` contains controlled synthetic topics with an `id`, `title`, `summary` and `actions`. It is demonstration guidance rather than legal advice or an official interpretation of Bursa Malaysia rules.
-
-## Microsoft Copilot Studio setup
-
-### Hybrid demo routing
-
-The BursaIQ Assistant composer has a persisted **Local / Live** dropdown beside Send. Local is the default and uses prepared browser answers without sending the question to Copilot. Live uses the existing Flask-to-Copilot connection; disconnected supported questions are explicitly labelled as local fallbacks. Switching modes clears the Copilot conversation ID without forwarding earlier local messages. The selector is disabled while a turn is pending.
-
-Sidebar route labels are **Live** or **Local** only: Research is Live; Learn Bursa, Ask Reg, Today's Brief, and Local Analysis are Local. Assistant follows the selected mode. These describe demo routing, not real-time data or an installed local model. Local Analysis retains its separate explicit Copilot-synthesis opt-in. Workflow panels retain their task labels and counts rather than model badges.
-
-No open-source model is trained or deployed in this prototype. The public Sites edition remains frontend-only; selecting Live there demonstrates the disclosed fallback behavior. Run `node --test tests/test_chat_modes.cjs` to verify mode routing alongside the Python test suite.
-
-This prototype uses Copilot Studio's Mobile app channel and the Bot Framework Direct Line API, so visitors do not need a Microsoft account.
-
-1. In Copilot Studio, set the agent's authentication to **No authentication**, then publish the agent again.
-2. Open **Channels → Mobile app** and copy the **Token Endpoint**.
-3. Copy `.env.example` to `.env` and set `COPILOTSTUDIOAGENT__TOKENENDPOINT` to that complete HTTPS URL.
-4. Start BursaIQ. The backend exchanges the endpoint for short-lived Direct Line tokens and keeps them in memory.
-
-The token endpoint belongs only in the server-side `.env`; never put it in browser JavaScript or commit it. No-auth agents are appropriate for this synthetic prototype, but anyone who can reach the published channel may use the agent. Re-enable authentication before handling sensitive or production data.
-
-## Project layout
+## Repository layout
 
 ```text
-index.html                 Application shell
-bursaiq/data_loader.py     Excel/PDF/JSON ingestion and local retrieval
-bursaiq/metrics.py         Governed GCMC calculation tools
-bursaiq/store.py           SQLite verification/audit queue
-bursaiq/mission_engine.py  Persisted ADV mission orchestration and calculations
-bursaiq/reporting.py       PDF generation and validation
-bursaiq/copilot_studio.py  Anonymous Direct Line and Copilot Studio gateway
-Input/                     Controlled synthetic source pack
-input/                     Competition mission CSV inputs
-output/pdf/                Generated briefings
-runtime/                   Local demo database
+index.html                       Current application shell
+server.py                        Flask API and integration boundary
+static/css/workforce.css         Current responsive interface styles
+static/js/workforce.js           Current frontend state and interactions
+bursaiq/agents.py                Agent Registry and execution history
+bursaiq/capabilities.py          Mission Capability Registry
+bursaiq/mission_teams.py         Reusable mission-team persistence
+bursaiq/mission_engine.py        Mission state, ADV executor, and worker ledger
+bursaiq/liquidity_analysis.py    Security liquidity and turnover executor
+bursaiq/workflows.py             Workflow definitions, validation, and runs
+bursaiq/knowledge_rag.py         Document extraction, indexing, retrieval, citations
+bursaiq/model_providers.py       Ollama provider
+bursaiq/copilot_studio.py        Copilot Studio / Direct Line provider
+bursaiq/platform_store.py        Rooms, actions, connectors, and settings
+bursaiq/store.py                 Verification and audit persistence
+bursaiq/reporting.py             PDF generation and validation
+input/                           Mission CSV inputs
+Input/                           Generated synthetic supporting source pack
+knowledge/                       Ask Bursa governed documents
+runtime/                         Local SQLite state
+output/pdf/                      Generated reports
+scripts/                         Seeding, ingestion, and demo checks
+tests/                           Backend and active frontend tests
 ```
 
-## Honest Stage 02 boundaries
+## Demonstration boundaries
 
-- Business-impact numbers from the pitch should be labelled **illustrative estimates** until a measured pilot validates them. Keep them in the presentation as the hypothesis and label them; do not present them as measured product results.
-- BursaIQ's demo identities, role groups, source approvals and review ownership are simulated or local. The prototype agent is intentionally published without user authentication.
-- Microsoft Lists, Power Automate and notification email are presented as the proposed pilot architecture; the competition demo does not call a live Microsoft 365 tenant.
-- Current regional data is a controlled local comparison, not live market data.
-- English should remain the authoritative demo language. Bahasa Malaysia is a worthwhile stretch only after the five-minute English journey is stable; Chinese should be deferred.
+- The Flask development server is for local demonstration, not production deployment.
+- Included identities and permissions are simulated.
+- SQLite is a local demonstration store.
+- External connectors and email delivery are not configured.
+- The application does not claim successful external execution when credentials or integrations are unavailable.
+- Ollama keeps generation and embeddings local to the configured machine; Copilot Studio sends permitted prompts to the configured Microsoft service.
+- Mission calculations are deterministic Python operations and execute only registered, allowlisted capability code.
+- All committed datasets and generated source packs are synthetic.
