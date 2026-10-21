@@ -56,9 +56,27 @@ test('AI Assistant is a governed question-and-answer workspace', () => {
   assert.match(js, /function assistantBarChart\(/);
   assert.match(js, /function assistantLineChart\(/);
   assert.match(js, /tabindex="0" role="img"/);
+  assert.match(js, /class="html-line-chart"/);
+  assert.match(js, /class="line-chart-hotspot"/);
+  assert.match(css, /\.html-chart-x-labels/);
+  assert.match(css, /\.html-chart-y-labels/);
   assert.doesNotMatch(js, /Values are normalised for the visual/);
   assert.match(css, /@keyframes assistant-bar-in/);
   assert.match(css, /\.chart-datum:hover/);
+});
+
+test('AI answers render a safe, readable Markdown subset', () => {
+  assert.match(js, /function markdownInline\(value\)/);
+  assert.match(js, /function markdownHtml\(value\)/);
+  assert.match(js, /return escapeHtml\(value\)/);
+  assert.match(js, /<strong>\$1<\/strong>/);
+  assert.match(js, /<em>\$2<\/em>/);
+  assert.match(js, /class="answer-section-title"/);
+  assert.match(js, /<li>/);
+  assert.match(js, /class="rich-answer">' \+ markdownHtml\(answer\.summary\)/);
+  assert.match(css, /\.rich-answer strong/);
+  assert.match(css, /\.rich-answer em/);
+  assert.match(css, /\.rich-answer ul, \.rich-answer ol/);
 });
 
 test('home commands use live semantic routing without a keyword fallback', () => {

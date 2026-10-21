@@ -137,6 +137,65 @@
     });
   }
 
+  function markdownInline(value) {
+    return escapeHtml(value)
+      .replace(/`([^`\n]+)`/g, "<code>$1</code>")
+      .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/__([^_\n]+)__/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+      .replace(/(^|[^_])_([^_\n]+)_/g, "$1<em>$2</em>");
+  }
+
+  function markdownHtml(value) {
+    var source = String(value == null ? "" : value).replace(/\r\n?/g, "\n").trim();
+    if (!source) return "";
+    source = source
+      .replace(/([^\n])\s+(#{1,4}\s+)/g, "$1\n\n$2")
+      .replace(/([^\n])\s+(\d+\.\s+\*\*)/g, "$1\n$2")
+      .replace(/([^\n])\s+(-\s+\*\*)/g, "$1\n$2");
+    var lines = source.split("\n");
+    var html = [];
+    var paragraph = [];
+    var listType = "";
+
+    function flushParagraph() {
+      if (!paragraph.length) return;
+      html.push("<p>" + markdownInline(paragraph.join(" ")) + "</p>");
+      paragraph = [];
+    }
+
+    function closeList() {
+      if (!listType) return;
+      html.push("</" + listType + ">");
+      listType = "";
+    }
+
+    lines.forEach(function (line) {
+      var trimmed = line.trim();
+      var heading = /^(#{1,4})\s+(.+)$/.exec(trimmed);
+      var ordered = /^\d+\.\s+(.+)$/.exec(trimmed);
+      var unordered = /^[-*]\s+(.+)$/.exec(trimmed);
+      if (!trimmed) { flushParagraph(); closeList(); return; }
+      if (heading) {
+        flushParagraph(); closeList();
+        html.push('<h4 class="answer-section-title">' + markdownInline(heading[2]) + "</h4>");
+        return;
+      }
+      if (ordered || unordered) {
+        flushParagraph();
+        var nextType = ordered ? "ol" : "ul";
+        if (listType !== nextType) { closeList(); listType = nextType; html.push("<" + listType + ">"); }
+        html.push("<li>" + markdownInline((ordered || unordered)[1]) + "</li>");
+        return;
+      }
+      closeList();
+      paragraph.push(trimmed);
+    });
+    flushParagraph();
+    closeList();
+    return html.join("");
+  }
+
   function apiJson(url, options) {
     var request = options || {};
     request.headers = Object.assign({ "Content-Type": "application/json" }, request.headers || {});
@@ -660,7 +719,7 @@
     if (message.pending) return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble"><div class="typing" aria-label="Ask Bursa is preparing an answer"><i></i><i></i><i></i></div></div></article>';
     var answer = message.answer;
     if (!answer) return "";
-    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.body) + '</p><div class="answer-actions"><button type="button" data-bursa-sources="' + Number(messageIndex) + '">View Source Scope</button></div></div></article>';
+    return '<article class="chat-message"><div class="avatar blue">B</div><div class="chat-bubble bursa-answer"><span class="bursa-department">' + escapeHtml(answer.department) + '</span><h3>' + escapeHtml(answer.title) + '</h3><div class="rich-answer">' + markdownHtml(answer.body) + '</div><div class="answer-actions"><button type="button" data-bursa-sources="' + Number(messageIndex) + '">View Source Scope</button></div></div></article>';
   }
 
   function openAskBursaSources(messageIndex) {
@@ -689,9 +748,9 @@
     }
     var answer = message.answer;
     if (!answer) return "";
-    return '<article class="chat-message"><div class="avatar violet">IQ</div><div class="chat-bubble"><span class="answer-label">' + (answer.isError ? "Connection error" : "Live governed answer") + '</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.summary) + '</p><div class="answer-evidence">' + answer.stats.map(function (item) {
+    return '<article class="chat-message"><div class="avatar violet">IQ</div><div class="chat-bubble"><span class="answer-label">' + (answer.isError ? "Connection error" : "Live governed answer") + '</span><h3>' + escapeHtml(answer.title) + '</h3><div class="rich-answer">' + markdownHtml(answer.summary) + '</div><div class="answer-evidence">' + answer.stats.map(function (item) {
       return '<div class="evidence-stat"><strong>' + escapeHtml(item[0]) + '</strong><small>' + escapeHtml(item[1]) + '</small></div>';
-    }).join("") + '</div><p class="answer-takeaway"><strong>What this means:</strong> ' + escapeHtml(answer.takeaway) + '</p><div class="answer-actions"><button type="button" data-assistant-canvas-tab="analysis">View analysis</button><button type="button" data-assistant-canvas-tab="source">Check sources</button><button type="button" data-demo-action="verify">Verify answer</button><button type="button" data-demo-action="briefing">Create briefing</button></div></div></article>';
+    }).join("") + '</div><div class="answer-takeaway"><strong>What this means:</strong><div class="rich-answer">' + markdownHtml(answer.takeaway) + '</div></div><div class="answer-actions"><button type="button" data-assistant-canvas-tab="analysis">View analysis</button><button type="button" data-assistant-canvas-tab="source">Check sources</button><button type="button" data-demo-action="verify">Verify answer</button><button type="button" data-demo-action="briefing">Create briefing</button></div></div></article>';
   }
 
   function liveAssistantAnswer(payload, question) {
@@ -800,7 +859,7 @@
       return '<section class="canvas-actions"><h3>Move this answer into action</h3><p>Keep the evidence attached when you record the decision or schedule a refreshed answer.</p><div class="canvas-action-list"><button type="button" class="' + (decisionSaved ? 'is-complete' : '') + '" data-canvas-action="memory"><span>' + svg("i-brief") + '</span><span><strong>' + (decisionSaved ? 'Saved to Decision Memory' : 'Save to Decision Memory') + '</strong><small>Record the question, rationale, owner, and evidence trail.</small></span><em>' + (decisionSaved ? 'Saved' : 'Record') + '</em></button><button type="button" class="' + (emailSaved ? 'is-complete' : '') + '" data-canvas-action="email"><span>' + svg("i-send") + '</span><span><strong>' + (emailSaved ? 'Email automation scheduled' : 'Automate by Email') + '</strong><small>Repeat this question weekly with a refreshed source snapshot.</small></span><em>' + (emailSaved ? 'Active' : 'Schedule') + '</em></button></div><button class="canvas-action-link" type="button" data-page-jump="action">Open Action workspace ' + svg("i-arrow") + '</button><div class="action-boundary"><strong>Synthetic workflow</strong><p>Decision records and email schedules are stored only in this browser demo. No external email is sent.</p></div></section>';
     }
     if (state.assistantCanvasTab === "analysis") {
-      return '<section class="canvas-analysis"><span class="canvas-kicker">Interpretation</span><h3>' + escapeHtml(answer.title) + '</h3><p>' + escapeHtml(answer.analysis) + '</p><div class="analysis-method"><span>' + svg("i-research") + '</span><div><strong>How this was calculated</strong><p>' + escapeHtml(answer.method) + '</p></div></div><div class="analysis-stats">' + answer.stats.map(function (item) { return '<article><strong>' + escapeHtml(item[0]) + '</strong><small>' + escapeHtml(item[1]) + '</small></article>'; }).join("") + '</div></section>';
+      return '<section class="canvas-analysis"><span class="canvas-kicker">Interpretation</span><h3>' + escapeHtml(answer.title) + '</h3><div class="rich-answer">' + markdownHtml(answer.analysis) + '</div><div class="analysis-method"><span>' + svg("i-research") + '</span><div><strong>How this was calculated</strong><div class="rich-answer">' + markdownHtml(answer.method) + '</div></div></div><div class="analysis-stats">' + answer.stats.map(function (item) { return '<article><strong>' + escapeHtml(item[0]) + '</strong><small>' + escapeHtml(item[1]) + '</small></article>'; }).join("") + '</div></section>';
     }
     if (state.assistantCanvasTab === "source") {
       return '<section class="canvas-sources"><div class="source-summary"><span><strong>92%</strong><small>Evidence coverage</small></span><i><b></b></i><em>High confidence</em></div>' + answer.sources.map(function (source, index) {
@@ -864,33 +923,31 @@
   }
 
   function assistantLineChart(answer, values) {
-    var width = 520;
-    var height = 280;
-    var left = 70;
-    var right = 18;
-    var top = 48;
-    var bottom = 62;
+    var width = 432;
+    var height = 170;
     var maximum = Math.max.apply(Math, values);
     var minimum = Math.min.apply(Math, values);
     var padding = (maximum - minimum || Math.abs(maximum) || 1) * 0.12;
     var yMax = maximum + padding;
     var yMin = Math.min(0, minimum - padding);
     var ySpan = yMax - yMin || 1;
-    var x = function (index) { return left + index * (width - left - right) / Math.max(1, values.length - 1); };
-    var y = function (value) { return top + (yMax - value) / ySpan * (height - top - bottom); };
+    var x = function (index) { return index * width / Math.max(1, values.length - 1); };
+    var y = function (value) { return (yMax - value) / ySpan * height; };
     var ticks = [0, 1, 2, 3, 4].map(function (index) { return yMin + (yMax - yMin) * index / 4; });
-    var grid = ticks.map(function (tick) { var yy = y(tick); return '<line x1="' + left + '" x2="' + (width - right) + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"></line><text x="' + (left - 10) + '" y="' + (yy + 4).toFixed(1) + '" text-anchor="end">' + escapeHtml(chartNumber(tick)) + '</text>'; }).join("");
+    var grid = ticks.map(function (tick) { var yy = y(tick); return '<line x1="0" x2="' + width + '" y1="' + yy.toFixed(1) + '" y2="' + yy.toFixed(1) + '"></line>'; }).join("");
+    var yLabels = ticks.map(function (tick) { return '<span style="top:' + (y(tick) / height * 100).toFixed(3) + '%">' + escapeHtml(chartNumber(tick)) + '</span>'; }).join("");
     var points = values.map(function (value, index) { return x(index).toFixed(1) + ',' + y(value).toFixed(1); }).join(" ");
-    var area = points + ' ' + x(values.length - 1).toFixed(1) + ',' + (height - bottom) + ' ' + x(0).toFixed(1) + ',' + (height - bottom);
+    var area = points + ' ' + x(values.length - 1).toFixed(1) + ',' + height + ' ' + x(0).toFixed(1) + ',' + height;
     var labelStep = Math.max(1, Math.ceil(values.length / 5));
-    var labels = answer.plotLabels.map(function (label, index) { if (index % labelStep && index !== answer.plotLabels.length - 1) return ""; return '<text class="chart-axis-label" x="' + x(index).toFixed(1) + '" y="' + (height - 17) + '" text-anchor="middle">' + escapeHtml(label) + '</text>'; }).join("");
-    var dots = values.map(function (value, index) {
+    var labels = answer.plotLabels.map(function (label, index) { return '<span>' + (index % labelStep && index !== answer.plotLabels.length - 1 ? "" : escapeHtml(label)) + '</span>'; }).join("");
+    var dots = values.map(function (value, index) { return '<circle cx="' + x(index).toFixed(1) + '" cy="' + y(value).toFixed(1) + '" r="5"></circle>'; }).join("");
+    var hotspots = values.map(function (value, index) {
       var label = String(answer.plotLabels[index] == null ? "" : answer.plotLabels[index]);
       var exact = chartValue(value, answer.plotUnit);
-      return '<g class="chart-datum" tabindex="0" role="img" aria-label="' + escapeHtml(label + ": " + exact) + '"><title>' + escapeHtml(label + ": " + exact) + '</title><circle cx="' + x(index).toFixed(1) + '" cy="' + y(value).toFixed(1) + '" r="5"></circle><g class="chart-point-label" transform="translate(' + x(index).toFixed(1) + ' ' + (y(value) - 12).toFixed(1) + ')"><rect x="-39" y="-20" width="78" height="20" rx="5"></rect><text y="-6" text-anchor="middle">' + escapeHtml(exact) + '</text></g></g>';
+      return '<button class="line-chart-hotspot" type="button" style="left:' + (x(index) / width * 100).toFixed(3) + '%;top:' + (y(value) / height * 100).toFixed(3) + '%" aria-label="' + escapeHtml(label + ": " + exact) + '" data-value="' + escapeHtml(exact) + '"></button>';
     }).join("");
     var valueAxis = (answer.plotSeriesName || "Value") + (answer.plotUnit ? " (" + answer.plotUnit + ")" : "");
-    return '<div class="assistant-chart is-line"><svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="' + escapeHtml(answer.plotTitle) + '"><title>' + escapeHtml(answer.plotTitle) + '</title><desc>Line chart of ' + escapeHtml(valueAxis) + ' by period.</desc><text class="chart-axis-title chart-y-title" x="' + left + '" y="20">' + escapeHtml(valueAxis) + '</text><text class="chart-axis-title" x="' + ((left + width - right) / 2) + '" y="' + (height - 5) + '" text-anchor="middle">Period</text><g class="chart-grid">' + grid + '</g><polygon class="chart-area" points="' + area + '"></polygon><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + dots + '</g>' + labels + '</svg></div>';
+    return '<div class="assistant-chart is-line" role="img" aria-label="' + escapeHtml(answer.plotTitle + ". " + valueAxis + " by period.") + '"><div class="html-line-chart" style="--chart-columns:' + values.length + '"><div class="html-chart-title">' + escapeHtml(valueAxis) + '</div><div class="html-chart-main"><div class="html-chart-y-labels" aria-hidden="true">' + yLabels + '</div><div class="html-chart-plot"><svg viewBox="0 0 ' + width + ' ' + height + '" aria-hidden="true"><g class="chart-grid">' + grid + '</g><polygon class="chart-area" points="' + area + '"></polygon><polyline class="chart-line" points="' + points + '"></polyline><g class="chart-points">' + dots + '</g></svg>' + hotspots + '</div></div><div class="html-chart-x-row"><span></span><div class="html-chart-x-labels" aria-hidden="true">' + labels + '</div></div><div class="html-chart-x-title">Period</div></div></div>';
   }
 
   function workforcePage() {
