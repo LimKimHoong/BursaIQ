@@ -177,11 +177,12 @@ test('Decision Canvas exposes plot, analysis, source, and action views', () => {
 });
 
 test('sidebar reflects the focused navigation model', () => {
-  assert.match(html, /data-page="assistant"[\s\S]*data-page="ask-bursa"/);
-  assert.match(html, /data-page="workforce"[\s\S]*data-page="automation"[\s\S]*data-page="rooms"[\s\S]*data-page="exchange"/);
-  assert.match(html, /data-page="exchange"[\s\S]*data-page="action"[\s\S]*data-page="verification"/);
-  assert.match(html, /data-page="connectors"[\s\S]*class="sidebar-footer"[\s\S]*data-page="settings"/);
+  assert.match(html, /Intelligence &amp; Execution[\s\S]*data-page="home"[\s\S]*data-page="assistant"[\s\S]*data-page="ask-bursa"/);
+  assert.match(html, /data-page="workforce"[\s\S]*data-page="rooms"[\s\S]*data-page="automation"[\s\S]*data-page="exchange"/);
+  assert.match(html, /Governance &amp; Follow-through[\s\S]*data-page="action"[\s\S]*data-page="verification"/);
+  assert.match(html, /Administration &amp; Platform[\s\S]*data-page="knowledge-admin"[\s\S]*data-page="connectors"[\s\S]*data-page="settings"/);
   assert.match(html, /data-page="rooms"[^>]*>[\s\S]{0,180}<strong>Collaborative Rooms<\/strong>/);
+  assert.doesNotMatch(html, /Projects &amp; Workspace|Help &amp; Support|data-demo-action="help"/);
   assert.doesNotMatch(html, /data-page="workspace"/);
   assert.doesNotMatch(html, /data-page="brief"/);
 });
