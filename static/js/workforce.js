@@ -1713,7 +1713,7 @@
       if (active) button.setAttribute("aria-current", "page");
       else button.removeAttribute("aria-current");
     });
-    document.title = (pages[state.page] ? pages[state.page][0] : "BursaIQ") + " — BursaIQ";
+    document.title = "bursaiq_ai_workforce";
     updateActionBadge();
     bindPageEvents();
   }

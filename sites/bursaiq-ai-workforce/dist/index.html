@@ -5,9 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#071a34">
   <meta name="description" content="BursaIQ — The Intelligence Exchange. A fully interactive enterprise AI workforce demo for Bursa Malaysia.">
-  <title>BursaIQ — The Intelligence Exchange</title>
+  <title>bursaiq_ai_workforce</title>
   <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/static/css/workforce.css?v=20261020-2">
+  <link rel="stylesheet" href="/static/css/workforce.css?v=20261021-5">
 </head>
 <body>
   <!--
@@ -37,7 +37,6 @@
     <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5"/></symbol>
     <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
     <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0v5l2 3H4l2-3zM10 20h4"/></symbol>
-    <symbol id="i-grid" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
     <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
     <symbol id="i-send" viewBox="0 0 24 24"><path d="m3 11 18-8-7 18-3-7zM11 14 21 3"/></symbol>
@@ -63,23 +62,28 @@
       </div>
 
       <nav class="main-nav" aria-label="BursaIQ modules">
+        <span class="nav-section-title">Intelligence &amp; Execution</span>
         <button class="nav-link is-active" type="button" data-page="home"><svg><use href="#i-home"/></svg><span><strong>Home</strong><small>Your command centre</small></span></button>
         <button class="nav-link" type="button" data-page="assistant"><svg><use href="#i-spark"/></svg><span><strong>AI Assistant</strong><small>Ask. Understand. Decide.</small></span></button>
         <button class="nav-link" type="button" data-page="ask-bursa"><svg><use href="#i-book"/></svg><span><strong>Ask Bursa</strong><small>Internal knowledge Q&amp;A</small></span></button>
         <button class="nav-link" type="button" data-page="workforce"><svg><use href="#i-agents"/></svg><span><strong>My Workforce</strong><small>Agents, tasks, missions</small></span></button>
+        <button class="nav-link" type="button" data-page="rooms"><svg><use href="#i-room"/></svg><span><strong>Collaborative Rooms</strong><small>People and AI workspaces</small></span></button>
         <button class="nav-link" type="button" data-page="automation"><svg><use href="#i-automation"/></svg><span><strong>Automation Studio</strong><small>Build intelligent workflows</small></span></button>
         <button class="nav-link" type="button" data-page="exchange"><svg><use href="#i-exchange"/></svg><span><strong>Intelligence Exchange</strong><small>Discover and share</small></span></button>
 
         <span class="nav-separator" aria-hidden="true"></span>
+        <span class="nav-section-title">Governance &amp; Follow-through</span>
         <button class="nav-link nav-link-compact" type="button" data-page="action"><svg><use href="#i-check"/></svg><span><strong>Action</strong><small>Memory and email follow-ups</small></span><b id="action-nav-count" aria-label="Pending actions" hidden></b></button>
         <button class="nav-link nav-link-compact" type="button" data-page="verification"><svg><use href="#i-shield"/></svg><span><strong>Verification Centre</strong><small>Approvals and audit</small></span></button>
+
+        <span class="nav-separator" aria-hidden="true"></span>
+        <span class="nav-section-title">Administration &amp; Platform</span>
         <button class="nav-link nav-link-compact" type="button" data-page="knowledge-admin"><svg><use href="#i-folder"/></svg><span><strong>Knowledge Administration</strong><small>Documents and permissions</small></span></button>
         <button class="nav-link nav-link-compact" type="button" data-page="connectors"><svg><use href="#i-plug"/></svg><span><strong>Connectors</strong><small>M365 and internal apps</small></span></button>
+        <button class="nav-link nav-link-compact" type="button" data-page="settings"><svg><use href="#i-settings"/></svg><span><strong>Settings</strong><small>Preferences and access</small></span></button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="nav-link nav-link-compact" type="button" data-page="settings"><svg><use href="#i-settings"/></svg><span><strong>Settings</strong><small>Preferences and access</small></span></button>
-        <button class="nav-link nav-link-compact" type="button" data-demo-action="help"><svg><use href="#i-help"/></svg><span><strong>Help &amp; Support</strong><small>Guides and assistance</small></span></button>
         <div class="impact-note"><strong>Creating Opportunities,<br>Growing Value.</strong><span>Intelligence Exchange</span><svg viewBox="0 0 180 80" aria-hidden="true"><path d="M0 72 30 48l18 12 34-44 24 24 22-12 52 44"/><path d="M20 72V42h22v30M82 72V28h25v44M128 72V40h31v32"/></svg></div>
       </div>
     </aside>
@@ -99,7 +103,6 @@
             </div>
           </div>
           <button class="top-icon" type="button" data-demo-action="notifications" aria-label="Notifications"><svg><use href="#i-bell"/></svg></button>
-          <button class="top-icon" type="button" data-demo-action="apps" aria-label="Connected apps"><svg><use href="#i-grid"/></svg></button>
           <button class="identity" type="button" data-demo-action="identity" aria-label="Open profile for Lim Kim Hoong"><span>KH</span><div><strong>Lim Kim Hoong</strong><small>Product Development</small></div><svg><use href="#i-chevron"/></svg></button>
         </div>
       </header>
@@ -129,6 +132,6 @@
   </div>
   <div class="toast-region" id="toast-region" aria-live="polite" aria-atomic="true"></div>
 
-  <script src="/static/js/workforce.js?v=20261020-8"></script>
+  <script src="/static/js/workforce.js?v=20261021-5"></script>
 </body>
 </html>
