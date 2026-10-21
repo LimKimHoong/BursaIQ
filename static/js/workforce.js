@@ -24,7 +24,7 @@
   }
   var requestedPage = new URLSearchParams(window.location.search).get("page");
   var requestedMissionId = new URLSearchParams(window.location.search).get("mission");
-  if (["assistant", "ask-bursa", "knowledge-admin", "workforce", "agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library", "exchange", "automation", "workflow-builder", "rooms", "workspace", "brief", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
+  if (["assistant", "ask-bursa", "knowledge-admin", "workforce", "agent-library", "agent-builder", "mission-teams", "mission-team-builder", "capability-library", "exchange", "automation", "workflow-builder", "rooms", "verification", "connectors", "action", "settings"].indexOf(requestedPage) === -1) requestedPage = "home";
   var requestedWorkflowId = new URLSearchParams(window.location.search).get("workflow");
   var requestedAgentId = new URLSearchParams(window.location.search).get("agent");
   var requestedTeamId = new URLSearchParams(window.location.search).get("team");
@@ -63,8 +63,6 @@
     automationTab: "workflows",
     roomScope: "mine",
     roomTab: "overview",
-    briefFilter: "for-you",
-    workspaceView: "projects",
     verificationFilter: "pending",
     notificationCount: 0,
     reducedUpdates: false,
@@ -111,8 +109,6 @@
     automation: ["Automation Studio", "Build intelligent workflows", "i-automation", "violet"],
     "workflow-builder": ["Workflow Builder", "Configure nodes, dependencies and execution", "i-flow", "violet"],
     rooms: ["Collaborative Rooms", "Work with people and AI", "i-room", "blue"],
-    workspace: ["Projects & Workspace", "Your files, context and decision memory", "i-folder", "amber"],
-    brief: ["Today's Brief", "Priorities, approvals and relevant changes", "i-brief", "blue"],
     verification: ["Verification Centre", "Evidence, approvals and accountable actions", "i-shield", "teal"],
     connectors: ["Connectors", "Approved systems and data sources", "i-plug", "violet"],
     action: ["Action", "Decision memory and email follow-ups", "i-check", "teal"],
@@ -388,12 +384,12 @@
       state.platformLoading = false;
       state.platformError = "";
       updateActionBadge();
-      if (["rooms", "workspace", "brief", "connectors", "action", "settings", "exchange", "home"].indexOf(state.page) !== -1) render();
+      if (["rooms", "connectors", "action", "settings", "exchange", "home"].indexOf(state.page) !== -1) render();
       return payload;
     }).catch(function (error) {
       state.platformLoading = false;
       state.platformError = error.message;
-      if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(state.page) !== -1) render();
+      if (["rooms", "connectors", "action", "settings"].indexOf(state.page) !== -1) render();
       return null;
     });
   }
@@ -544,7 +540,7 @@
       '<div class="quick-actions">' + quick.map(function (item) {
         return '<button class="quick-action" type="button" data-page-jump="' + item[4] + '">' + miniIcon(item[0], item[1]) + '<span><strong>' + item[2] + '</strong><small>' + item[3] + "</small></span></button>";
       }).join("") + "</div>",
-      '<div class="brief-continuation">',
+      '<div class="home-continuation">',
       '<section class="panel">' + panelHead("My Work Brief", "i-spark", "verification") + (pendingReviews.length ? '<div class="home-live-list">' + pendingReviews.slice(0, 3).map(homeMissionItem).join("") + '</div>' : '<div class="clean-empty">' + miniIcon("i-brief", "blue") + '<strong>Your brief is clear</strong><p>No mission approvals currently need attention.</p></div>') + '</section>',
       '<section class="panel">' + panelHead("Continue Your Work", "i-brief", "workforce") + (latestMission ? '<div class="home-live-list">' + homeMissionItem(latestMission) + '</div>' : '<div class="clean-empty">' + miniIcon("i-flow", "teal") + '<strong>No work in progress</strong><p>Start a mission or ask BursaIQ a question to begin.</p></div>') + '</section></div>',
       '<section class="panel exchange-strip">' + panelHead("Explore the Intelligence Exchange", "i-exchange", "exchange") +
@@ -1129,34 +1125,6 @@
     return '<li><span class="avatar">' + initials + '</span><span><strong>' + name + '</strong><small>' + dept + '</small></span><span class="status ' + (presence === "Online" ? "green" : "amber") + '">' + presence + "</span></li>";
   }
 
-  function workspacePage() {
-    var projectData = state.projects;
-    var governedFiles = state.roomItems.filter(function (item) { return item.data.kind === "file"; });
-    return '<section class="page page-enter">' + pageHead("Projects & Workspace", "Files, governed context and decision memory for people and AI.", "New project", "project") +
-      '<div class="metric-row">' + metric("i-folder", "blue", String(projectData.length), "Active projects", "Persisted workspaces") + metric("i-document", "violet", String(governedFiles.length), "Governed files", "Room file records") + metric("i-book", "teal", String(state.savedDecisions.length), "Saved decisions", "Evidence retained") + metric("i-agents", "amber", String(new Set(projectData.map(function (item) { return item.owner; })).size), "Contributors", "Accountable owners") + '</div>' +
-      '<section class="panel tabs-toolbar"><button class="tab-button ' + (state.workspaceView === "projects" ? "is-active" : "") + '" type="button" data-workspace-view="projects">' + svg("i-folder") + 'Projects</button><button class="tab-button ' + (state.workspaceView === "files" ? "is-active" : "") + '" type="button" data-workspace-view="files">' + svg("i-document") + 'Recent files</button><button class="tab-button ' + (state.workspaceView === "decisions" ? "is-active" : "") + '" type="button" data-workspace-view="decisions">' + svg("i-shield") + 'Decision memory</button><span class="toolbar-spacer"></span><label class="inline-search">' + svg("i-search") + '<input id="workspace-search" type="search" placeholder="Search workspace…"></label></section>' +
-      '<div class="support-layout"><div class="support-main"><section class="panel content-view">' + workspaceContent(projectData) + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Workspace health", "i-shield") + '<div class="clean-empty compact"><strong>' + (projectData.length ? "Governance active" : "No workspace data yet") + '</strong><p>' + (projectData.length ? projectData.length + " persisted project records." : "Governance health will appear after work is added.") + '</p></div></section><section class="panel rail-panel">' + panelHead("Accountable owners", "i-agents") + (projectData.length ? '<ul class="compact-list">' + projectData.map(function (item) { return '<li><span><strong>' + escapeHtml(item.owner) + '</strong><small>' + escapeHtml(item.title) + '</small></span></li>'; }).join("") + '</ul>' : '<div class="clean-empty compact"><strong>No collaborators yet</strong></div>') + '</section></aside></div></section>';
-  }
-
-  function workspaceContent(projectData) {
-    if (state.workspaceView === "files") { var files = state.roomItems.filter(function (item) { return item.data.kind === "file"; }); return '<div class="content-view-head"><div><h2>Recent files</h2><p>Documents retain owner, sensitivity and verification state.</p></div><button class="secondary-button" type="button" data-platform-create="file">Add file record</button></div>' + platformItemList(files, "No files yet"); }
-    if (state.workspaceView === "decisions") return '<div class="content-view-head"><div><h2>Decision memory</h2><p>The rationale, evidence and accountable owner behind important choices.</p></div><button class="secondary-button" type="button" data-platform-create="decision">Record decision</button></div>' + platformItemList(state.savedDecisions, "No decisions recorded");
-    return '<div class="content-view-head"><div><h2>Active projects</h2><p>Spaces that carry approved context into every mission.</p></div><button class="secondary-button" type="button" data-create="project">New project</button></div>' + platformItemList(projectData, "No projects yet");
-  }
-
-  function platformItemList(items, emptyLabel) {
-    if (!items.length) return '<div class="clean-empty"><strong>' + emptyLabel + '</strong><p>Create a record to add governed context to this workspace.</p></div>';
-    return '<div class="focus-list">' + items.map(function (item) { return '<button type="button" data-platform-open="' + escapeHtml((item.type || "decision") + ":" + item.id) + '" data-filter-text="' + escapeHtml(item.title) + '"><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.status || "Draft") + ' · ' + escapeHtml(item.owner || "Lim Kim Hoong") + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") + '</div>';
-  }
-
-  function briefPage() {
-    var approvals = state.liveMissions.filter(function (item) { return item.status === "AWAITING REVIEW"; });
-    var active = state.liveMissions.filter(function (item) { return ["PLANNED", "RUNNING", "DRAFT READY", "REVISION REQUESTED"].indexOf(item.status) !== -1; });
-    var updates = state.workflowRuns.slice(0, 5);
-    var briefItems = state.briefFilter === "approvals" ? approvals.map(function (item) { return { id: item.id, title: item.title, detail: "Mission awaiting human review", page: "verification" }; }) : state.briefFilter === "updates" ? updates.map(function (item) { return { id: item.id, title: item.mode + " · " + item.status, detail: formatWorkflowDate(item.startedAt), page: "automation" }; }) : approvals.concat(active).slice(0, 8).map(function (item) { return { id: item.id, title: item.title, detail: missionDisplayStatus(item.status), page: item.status === "AWAITING REVIEW" ? "verification" : "workforce" }; });
-    return '<section class="page page-enter">' + pageHead("Today\'s Brief", "Priorities, approvals and verified changes from live backend data.", "Ask about today", "assistant") + '<section class="brief-hero"><div><h2>Good morning, Kim Hoong.</h2><p>' + (briefItems.length ? briefItems.length + " current items need context or attention." : "You are all caught up. New priorities will appear as work begins.") + '</p></div><div class="brief-orbit" aria-hidden="true"><i></i><i></i><i></i><span>' + svg("i-spark") + '</span></div></section><div class="support-layout"><div class="support-main"><section class="panel"><div class="filter-tabs"><button class="' + (state.briefFilter === "for-you" ? "is-active" : "") + '" type="button" data-brief-filter="for-you">For you <b>' + (approvals.length + active.length) + '</b></button><button class="' + (state.briefFilter === "approvals" ? "is-active" : "") + '" type="button" data-brief-filter="approvals">Approvals <b>' + approvals.length + '</b></button><button class="' + (state.briefFilter === "updates" ? "is-active" : "") + '" type="button" data-brief-filter="updates">Updates <b>' + updates.length + '</b></button></div>' + (briefItems.length ? '<div class="focus-list">' + briefItems.map(function (item) { return '<button type="button" data-page-jump="' + item.page + '"><span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + svg("i-chevron") + '</button>'; }).join("") + '</div>' : '<div class="clean-empty"><strong>Nothing needs your attention</strong><p>Your tasks, approvals and updates will appear here.</p></div>') + '</section></div><aside class="support-rail"><section class="panel rail-panel">' + panelHead("Mission pulse", "i-flow", "workforce") + '<div class="clean-empty compact"><strong>' + active.length + ' missions moving</strong><p>Loaded from My Workforce.</p></div></section><section class="panel rail-panel">' + panelHead("Workflow activity", "i-clock", "runs") + '<div class="clean-empty compact"><strong>' + updates.length + ' recent records</strong></div></section></aside></div></section>';
-  }
-
   function verificationPage() {
     var reviewable = state.liveMissions.filter(function (mission) { return ["AWAITING REVIEW", "APPROVED", "REVISION REQUESTED"].indexOf(mission.status) !== -1; });
     var pending = reviewable.filter(function (mission) { return mission.status === "AWAITING REVIEW"; });
@@ -1206,7 +1174,7 @@
   function settingsPage() {
     var section = state.settingsSection;
     var content;
-    if (section === "general") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>General</h2><p>Choose how BursaIQ opens and presents your work.</p></div><span class="save-state" id="settings-save-state">Saved</span></div><label class="settings-field"><span><strong>Default workspace</strong><small>The context used when you start a new request.</small></span><select id="default-workspace"><option' + (state.userSettings.defaultWorkspace === "Product Development" ? " selected" : "") + '>Product Development</option><option' + (state.userSettings.defaultWorkspace === "Personal workspace" ? " selected" : "") + '>Personal workspace</option><option' + (state.userSettings.defaultWorkspace === "Ask every time" ? " selected" : "") + '>Ask every time</option></select></label>' + settingToggle("Start with Today\'s Brief", "Open your role-aware brief after sign-in.", state.userSettings.startWithBrief === true) + settingToggle("Compact enterprise density", "Show more operational information on larger screens.", state.userSettings.compactDensity === true) + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section>';
+    if (section === "general") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>General</h2><p>Choose how BursaIQ opens and presents your work.</p></div><span class="save-state" id="settings-save-state">Saved</span></div><label class="settings-field"><span><strong>Default workspace</strong><small>The context used when you start a new request.</small></span><select id="default-workspace"><option' + (state.userSettings.defaultWorkspace === "Product Development" ? " selected" : "") + '>Product Development</option><option' + (state.userSettings.defaultWorkspace === "Personal workspace" ? " selected" : "") + '>Personal workspace</option><option' + (state.userSettings.defaultWorkspace === "Ask every time" ? " selected" : "") + '>Ask every time</option></select></label>' + settingToggle("Compact enterprise density", "Show more operational information on larger screens.", state.userSettings.compactDensity === true) + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section>';
     else if (section === "notifications") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Notifications</h2><p>Notification counts come from pending backend reviews and workflow approvals.</p></div></div>' + settingToggle("Reduce non-essential updates", "Keep notifications limited to approvals and mission changes.", state.reducedUpdates) + '</section>';
     else if (section === "agents") content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Agent access</h2><p>Live language-model providers and their current availability.</p></div></div>' + state.modelProviders.map(function (item) { return '<div class="settings-field"><span><strong>' + escapeHtml(item.label || item.id) + '</strong><small>' + escapeHtml(item.provider || item.id) + '</small></span>' + workflowStatus(item.available === true ? "ACTIVE" : "UNAVAILABLE") + '</div>'; }).join("") + '</section>';
     else content = '<section class="panel settings-section"><div class="content-view-head"><div><h2>Privacy &amp; data</h2><p>Controls inherited from Bursa policy are visible and cannot be weakened here.</p></div>' + status("Policy managed") + '</div>' + settingToggle("Require evidence for factual answers", "Answers must retain citations to permitted sources.", true, true) + settingToggle("Human approval for external actions", "Publishing, sending and permission changes always pause for review.", true, true) + '</section>';
@@ -1251,7 +1219,6 @@
       workflow: ["Create workflow", "Turn a repeatable process into a governed sequence of people, agents and approvals.", "Workflow name", "e.g. Weekly project digest", "Process to automate", "Describe the trigger, steps and desired result…", "Open workflow builder"],
       room: ["Create collaborative room", "Bring the right colleagues, evidence and AI specialists into one mission space.", "Room name", "e.g. Market Data Pilot", "Shared mission", "What will this room accomplish?", "Create room"],
       skill: ["Teach a reusable skill", "Package trusted instructions, examples and boundaries for the Intelligence Exchange.", "Skill name", "e.g. Budget Justification", "What should BursaIQ learn?", "Describe the method and quality bar…", "Start teaching"],
-      project: ["Create project", "Establish a governed home for files, decisions and mission context.", "Project name", "e.g. Institutional Data Services", "Project objective", "Describe the outcome and accountable team…", "Create project"],
       connector: ["Request a connector", "Submit a scoped request for an approved system or data source.", "System name", "e.g. Records Management", "Business need", "Explain the data and actions required…", "Submit request"],
       policy: ["Verification policy", "Policy-managed controls keep evidence and accountability in every high-impact workflow.", "Policy question", "e.g. Which actions require approval?", "Context", "Describe the workflow or decision you are checking…", "Ask policy agent"]
     }[type] || null;
@@ -1676,9 +1643,6 @@
       } else {
         items = rooms.filter(function (room) { return context !== "Rooms with AI agents" || Number(room.agents || 0) > 0; }).map(function (room) { return { title: room.title, detail: Number(room.members || 0) + " members · " + Number(room.agents || 0) + " agents", state: room.status || "Active" }; });
       }
-    } else if (state.page === "workspace") {
-      if (context === "Saved decisions") items = state.savedDecisions.map(function (item) { return { title: item.title, detail: item.owner + " · " + item.created, state: item.status }; });
-      else items = state.projects.map(function (item) { return { title: item.name, detail: item.owner + " · " + Number(item.files || 0) + " files", state: item.status }; });
     } else if (state.page === "verification") {
       if (context === "Persisted review cases") items = state.verificationCases.map(function (item) { return { title: item.title, detail: item.id + " · " + item.workspace, state: item.status }; });
       else items = state.liveMissions.filter(function (item) { return context === "Pending review" ? item.status === "AWAITING REVIEW" : context === "Approved missions" ? item.status === "APPROVED" : Boolean(item.result); }).map(function (item) { return { title: item.title, detail: item.id + " · version " + Number(item.version || 1), state: item.status }; });
@@ -1701,10 +1665,6 @@
     }
     if (action === "identity") {
       openExperience({ title: "Lim Kim Hoong", subtitle: "Product Development · Demo identity", body: '<div class="identity-profile"><span>KH</span><div><strong>Employee workspace</strong><small>Role-aware access inherited from Product Development.</small></div></div><div class="detail-grid"><article><small>Primary workspace</small><strong>' + escapeHtml(state.userSettings.defaultWorkspace || "Product Development") + '</strong></article><article><small>Approval role</small><strong>Mission owner</strong></article><article><small>Connector requests</small><strong>' + state.connectors.length + '</strong></article><article><small>Data class</small><strong>Synthetic demonstration</strong></article></div>', footer: '<button class="secondary-button" type="button" data-page-target="settings">Open settings</button><button class="primary-button" type="button" data-experience-close>Done</button>' });
-      return;
-    }
-    if (action === "help") {
-      openExperience({ title: "IQ Guide", subtitle: "A fast orientation to the AI workforce", body: '<div class="guide-steps"><article><b>1</b><span><strong>Ask or define an outcome</strong><small>Begin on Home or with the AI Assistant.</small></span></article><article><b>2</b><span><strong>Let BursaIQ assemble the work</strong><small>Agents, knowledge and approvals become one mission.</small></span></article><article><b>3</b><span><strong>Verify before impact</strong><small>Evidence and human accountability remain visible.</small></span></article><article><b>4</b><span><strong>Reuse what works</strong><small>Publish approved intelligence back to the Exchange.</small></span></article></div>', footer: '<button class="secondary-button" type="button" data-experience-close>Close</button><button class="primary-button" type="button" data-page-target="assistant">Ask BursaIQ</button>' });
       return;
     }
     if (action === "review" || action === "approve" || action === "request-changes") { navigate("verification"); return; }
@@ -1741,8 +1701,6 @@
     else if (state.page === "automation") html = automationPage();
     else if (state.page === "workflow-builder") html = workflowBuilderPage();
     else if (state.page === "rooms") html = roomsPage();
-    else if (state.page === "workspace") html = workspacePage();
-    else if (state.page === "brief") html = briefPage();
     else if (state.page === "verification") html = verificationPage();
     else if (state.page === "connectors") html = connectorsPage();
     else if (state.page === "action") html = actionPage();
@@ -1771,7 +1729,7 @@
     if (page === "agent-library") loadAgents();
     if (page === "mission-teams") loadMissionTeams();
     if (page === "capability-library") loadMissionCapabilities();
-    if (["rooms", "workspace", "brief", "connectors", "action", "settings"].indexOf(page) !== -1) loadPlatform();
+    if (["rooms", "connectors", "action", "settings"].indexOf(page) !== -1) loadPlatform();
     closeMobileNav();
     document.getElementById("main-content").focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -2251,21 +2209,6 @@
     if (accessBoundary) accessBoundary.addEventListener("click", function () { openExperience({ title: "Connector access boundary", subtitle: "Existing permissions and administrator approval", body: '<div class="detail-callout">' + svg("i-shield") + '<span><strong>No connector grants access by itself</strong><small>Each external system requires administrator configuration, role-scoped credentials, human approval for writes, and audit logging.</small></span></div>', footer: '<button class="primary-button" type="button" data-experience-close>Understood</button>' }); });
     var roomSearch = document.getElementById("room-search");
     if (roomSearch) roomSearch.addEventListener("input", function () { filterCurrentView(roomSearch.value, ".room-card", document.getElementById("room-empty")); });
-    root.querySelectorAll("[data-workspace-view]").forEach(function (button) {
-      button.addEventListener("click", function () { state.workspaceView = button.dataset.workspaceView; render(); });
-    });
-    var workspaceSearch = document.getElementById("workspace-search");
-    if (workspaceSearch) workspaceSearch.addEventListener("input", function () { filterCurrentView(workspaceSearch.value, "[data-filter-text]", null); });
-    root.querySelectorAll("[data-project-open], [data-file-open], [data-decision-open], [data-brief-item], [data-verification-open]").forEach(function (button) {
-      button.addEventListener("click", function () {
-        var context = button.dataset.projectOpen || button.dataset.fileOpen || button.dataset.decisionOpen || button.dataset.briefItem || button.dataset.verificationOpen;
-        if (button.dataset.verificationOpen || button.dataset.briefItem && button.dataset.briefItem.toLowerCase().indexOf("review") !== -1) navigate("verification");
-        else openInfoPanel("detail", context);
-      });
-    });
-    root.querySelectorAll("[data-brief-filter]").forEach(function (button) {
-      button.addEventListener("click", function () { state.briefFilter = button.dataset.briefFilter; render(); });
-    });
     root.querySelectorAll("[data-connector]").forEach(function (button) {
       button.addEventListener("click", function () {
         var name = button.dataset.connector;
@@ -2277,7 +2220,7 @@
       button.addEventListener("click", function () {
         if (button.disabled) return;
         var on = button.getAttribute("aria-pressed") !== "true";
-        var key = { "Start with Today's Brief": "startWithBrief", "Compact enterprise density": "compactDensity", "Reduce non-essential updates": "reducedUpdates" }[button.dataset.settingToggle];
+        var key = { "Compact enterprise density": "compactDensity", "Reduce non-essential updates": "reducedUpdates" }[button.dataset.settingToggle];
         var saveState = document.getElementById("settings-save-state");
         if (saveState) saveState.textContent = "Saving…";
         var payload = {}; payload[key] = on;

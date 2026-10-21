@@ -184,10 +184,6 @@ The token endpoint belongs only in the server-side `.env`; never put it in brows
 
 ```text
 index.html                 Application shell
-static/css/app.css         Visual system and responsive layout
-static/js/demo-data.js     Browser fallback data
-static/js/engine.js        Offline answer composition
-static/js/app.js           Workspace state and interactions
 bursaiq/data_loader.py     Excel/PDF/JSON ingestion and local retrieval
 bursaiq/metrics.py         Governed GCMC calculation tools
 bursaiq/store.py           SQLite verification/audit queue

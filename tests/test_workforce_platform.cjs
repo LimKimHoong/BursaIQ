@@ -11,7 +11,7 @@ const designDocs = fs.readFileSync(path.join(root, 'DESIGN.md'), 'utf8');
 const designLibrary = fs.readFileSync(path.join(root, '.impeccable/design.json'), 'utf8');
 
 test('the complete platform modules have dedicated renderers', () => {
-  for (const name of ['workspacePage', 'briefPage', 'verificationPage', 'connectorsPage', 'settingsPage']) {
+  for (const name of ['verificationPage', 'connectorsPage', 'settingsPage']) {
     assert.match(js, new RegExp(`function ${name}\\(`));
   }
   assert.doesNotMatch(js, /else html = placeholderPage/);
@@ -20,7 +20,7 @@ test('the complete platform modules have dedicated renderers', () => {
 test('every major action family has an interaction handler', () => {
   for (const hook of [
     'data-demo-action', 'data-create', 'data-asset-open', 'data-agent-open',
-    'data-mission', 'data-automation-tab', 'data-room-tab', 'data-workspace-view',
+    'data-mission', 'data-automation-tab', 'data-room-tab',
     'data-connector', 'data-setting-toggle'
   ]) {
     assert.match(js, new RegExp(`\\[${hook}\\]`));
@@ -160,7 +160,6 @@ test('a new login starts without fabricated work or notification counts', () => 
   assert.match(js, /var missions = \[\]/);
   assert.match(js, /var assets = \[\]/);
   assert.match(js, /var rooms = \[\]/);
-  assert.match(js, /Nothing needs your attention/);
   assert.match(js, /No work in progress/);
   assert.match(js, /No connectors configured/);
   assert.doesNotMatch(html, /class="top-icon has-badge"/);
@@ -186,6 +185,7 @@ test('sidebar reflects the focused navigation model', () => {
   assert.doesNotMatch(html, /Projects &amp; Workspace|Help &amp; Support|data-demo-action="help"/);
   assert.doesNotMatch(html, /data-page="workspace"/);
   assert.doesNotMatch(html, /data-page="brief"/);
+  assert.doesNotMatch(js, /function (?:workspacePage|briefPage)\(|Projects & Workspace|Today\'s Brief|data-workspace-view|data-brief-filter|startWithBrief/);
 });
 
 test('Ask Bursa is internal question-and-answer without a Decision Canvas', () => {
