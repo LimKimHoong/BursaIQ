@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0b2b5e" flood-opacity="0.14"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#7f9fc7"/></marker>
+    <style>
+      .title{font-family:Arial,sans-serif;font-size:36px;font-weight:700;fill:#072a68}.sub{font-family:Arial,sans-serif;font-size:18px;fill:#4d6b91}.layer{font-family:Arial,sans-serif;font-size:17px;font-weight:700;fill:white}.head{font-family:Arial,sans-serif;font-size:20px;font-weight:700;fill:#072a68}.body{font-family:Arial,sans-serif;font-size:15px;fill:#486486}.small{font-family:Arial,sans-serif;font-size:13px;fill:#486486}.white{fill:white}.center{text-anchor:middle}.caps{font-family:Arial,sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;fill:#0b63ce}
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="#f7fbff"/>
+  <rect x="0" y="0" width="1600" height="12" fill="#0874df"/>
+  <text x="800" y="58" class="title center">BursaIQ — Hybrid AI Workforce</text>
+  <text x="800" y="88" class="sub center">One governed experience across Microsoft AI services and self-hosted open-source models</text>
+
+  <rect x="40" y="122" width="205" height="82" rx="14" fill="#08336c"/>
+  <text x="142" y="151" class="layer center">1  USERS</text><text x="142" y="177" class="small center white">Employees, analysts, reviewers</text>
+  <rect x="270" y="122" width="380" height="82" rx="14" fill="#ffffff" stroke="#c7d9ef" filter="url(#shadow)"/>
+  <text x="460" y="154" class="head center">Internal teams</text><text x="460" y="180" class="small center">Research, operations, technology and support functions</text>
+  <rect x="675" y="122" width="290" height="82" rx="14" fill="#ffffff" stroke="#c7d9ef" filter="url(#shadow)"/>
+  <text x="820" y="154" class="head center">Reviewers</text><text x="820" y="180" class="small center">Validate, approve and refine outputs</text>
+  <rect x="990" y="122" width="290" height="82" rx="14" fill="#ffffff" stroke="#c7d9ef" filter="url(#shadow)"/>
+  <text x="1135" y="154" class="head center">Administrators</text><text x="1135" y="180" class="small center">Set access, models and policies</text>
+  <rect x="1305" y="122" width="255" height="82" rx="14" fill="#fff6d9" stroke="#f0c65c"/>
+  <text x="1432" y="151" class="head center">Proposal scope</text><text x="1432" y="177" class="small center">Hybrid model strategy</text>
+
+  <line x1="800" y1="204" x2="800" y2="236" stroke="#7f9fc7" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="40" y="238" width="205" height="100" rx="14" fill="#0874df"/>
+  <text x="142" y="270" class="layer center">2  EXPERIENCE</text><text x="142" y="299" class="small center white">One BursaIQ workspace</text><text x="142" y="320" class="small center white">for every model path</text>
+  <rect x="270" y="238" width="1290" height="100" rx="14" fill="#eaf4ff" stroke="#bfd7f2"/>
+  <text x="390" y="276" class="head center">AI Assistant</text><text x="625" y="276" class="head center">Ask Bursa</text><text x="865" y="276" class="head center">My Workforce</text><text x="1130" y="276" class="head center">Intelligence Exchange</text><text x="1420" y="276" class="head center">Verification &amp; Admin</text>
+  <text x="390" y="307" class="small center">Conversational support</text><text x="625" y="307" class="small center">Trusted knowledge</text><text x="865" y="307" class="small center">Specialist AI workers</text><text x="1130" y="307" class="small center">Approved reuse</text><text x="1420" y="307" class="small center">Human control</text>
+
+  <line x1="800" y1="338" x2="800" y2="370" stroke="#7f9fc7" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="40" y="372" width="205" height="136" rx="14" fill="#08336c"/>
+  <text x="142" y="406" class="layer center">3  BURSAIQ CORE</text><text x="142" y="436" class="small center white">Orchestration</text><text x="142" y="458" class="small center white">governance and routing</text>
+  <rect x="270" y="372" width="1290" height="136" rx="18" fill="#0b4f91" filter="url(#shadow)"/>
+  <text x="915" y="409" style="font-family:Arial,sans-serif;font-size:25px;font-weight:700;fill:white" text-anchor="middle">BursaIQ Orchestration &amp; Governance</text>
+  <rect x="315" y="434" width="265" height="48" rx="12" fill="#ffffff" fill-opacity="0.14"/><rect x="600" y="434" width="265" height="48" rx="12" fill="#ffffff" fill-opacity="0.14"/><rect x="885" y="434" width="265" height="48" rx="12" fill="#ffffff" fill-opacity="0.14"/><rect x="1170" y="434" width="340" height="48" rx="12" fill="#ffffff" fill-opacity="0.14"/>
+  <text x="447" y="464" class="layer center">Intent &amp; workload routing</text><text x="732" y="464" class="layer center">AI workforce coordination</text><text x="1017" y="464" class="layer center">Knowledge &amp; evidence</text><text x="1340" y="464" class="layer center">Policy, approval &amp; audit</text>
+
+  <line x1="800" y1="508" x2="800" y2="540" stroke="#7f9fc7" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="40" y="542" width="205" height="196" rx="14" fill="#0874df"/>
+  <text x="142" y="580" class="layer center">4  HYBRID AI</text><text x="142" y="612" class="small center white">Choose the model path</text><text x="142" y="634" class="small center white">that fits the work</text>
+  <rect x="270" y="542" width="615" height="196" rx="18" fill="#edf5ff" stroke="#72aef0" stroke-width="2" filter="url(#shadow)"/>
+  <text x="577" y="582" class="caps center">MICROSOFT AI ECOSYSTEM</text><text x="577" y="620" class="head center">Connected enterprise experiences</text>
+  <text x="577" y="654" class="body center">Microsoft Copilot providers and services</text><text x="577" y="680" class="body center">Enterprise channels, identity and connected workflows</text><text x="577" y="710" class="small center">Best suited to managed and connected enterprise use cases</text>
+  <rect x="945" y="542" width="615" height="196" rx="18" fill="#e9fbf7" stroke="#34bca5" stroke-width="2" filter="url(#shadow)"/>
+  <text x="1252" y="582" class="caps center" style="fill:#099078">SELF-HOSTED OPEN-SOURCE AI</text><text x="1252" y="620" class="head center">Local control and deployment choice</text>
+  <text x="1252" y="654" class="body center">Open-source language and embedding models</text><text x="1252" y="680" class="body center">Self-hosted inference within a controlled environment</text><text x="1252" y="710" class="small center">Best suited to local processing and greater model control</text>
+
+  <line x1="800" y1="738" x2="800" y2="770" stroke="#7f9fc7" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="40" y="772" width="205" height="88" rx="14" fill="#08336c"/>
+  <text x="142" y="804" class="layer center">5  TRUST LAYER</text><text x="142" y="832" class="small center white">Common controls</text>
+  <rect x="270" y="772" width="1290" height="88" rx="14" fill="#eef1f7" stroke="#ccd6e5"/>
+  <text x="465" y="807" class="head center">Approved data &amp; knowledge</text><text x="765" y="807" class="head center">Role-based access</text><text x="1035" y="807" class="head center">Human verification</text><text x="1340" y="807" class="head center">Audit &amp; reusable intelligence</text>
+  <text x="915" y="848" class="small center">One experience. Two model paths. One governance layer.</text>
+</svg>
