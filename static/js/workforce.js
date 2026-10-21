@@ -1699,7 +1699,6 @@
       openExperience({ title: "Notifications", subtitle: notificationRows.length ? notificationRows.length + " pending actions" : "You are all caught up", body: notificationRows.length ? '<div class="focus-list">' + notificationRows.join("") + '</div>' : '<div class="clean-empty"><strong>No notifications</strong><p>Approvals and mission updates will appear here.</p></div>', footer: '<button class="primary-button" type="button" data-experience-close>Close</button>' });
       return;
     }
-    if (action === "apps") { navigate("connectors"); return; }
     if (action === "identity") {
       openExperience({ title: "Lim Kim Hoong", subtitle: "Product Development · Demo identity", body: '<div class="identity-profile"><span>KH</span><div><strong>Employee workspace</strong><small>Role-aware access inherited from Product Development.</small></div></div><div class="detail-grid"><article><small>Primary workspace</small><strong>' + escapeHtml(state.userSettings.defaultWorkspace || "Product Development") + '</strong></article><article><small>Approval role</small><strong>Mission owner</strong></article><article><small>Connector requests</small><strong>' + state.connectors.length + '</strong></article><article><small>Data class</small><strong>Synthetic demonstration</strong></article></div>', footer: '<button class="secondary-button" type="button" data-page-target="settings">Open settings</button><button class="primary-button" type="button" data-experience-close>Done</button>' });
       return;

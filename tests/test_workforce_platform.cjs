@@ -37,6 +37,7 @@ test('creation and detail work use an accessible synthetic-demo sheet', () => {
 
 test('mobile create control keeps an accessible name when its text is hidden', () => {
   assert.match(html, /id="create-button"[^>]*aria-label="Create"/);
+  assert.doesNotMatch(html, /data-demo-action="apps"|aria-label="Connected apps"/);
   const createMenu = html.slice(html.indexOf('id="create-menu"'), html.indexOf('</div>', html.indexOf('id="create-menu"')));
   assert.doesNotMatch(createMenu, /New room|data-create="room"/);
 });
