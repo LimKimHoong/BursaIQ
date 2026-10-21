@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import socket
 import uuid
 from dataclasses import dataclass
 from typing import Any
@@ -33,6 +34,17 @@ class OllamaService:
         self.base_url = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434").strip().rstrip("/")
         self.model = os.getenv("OLLAMA_MODEL", "qwen2.5:3b").strip()
         self.embedding_model = os.getenv("OLLAMA_EMBED_MODEL", "nomic-embed-text").strip()
+        self.request_timeout = self._bounded_number("OLLAMA_REQUEST_TIMEOUT", 120, 10, 600)
+        self.keep_alive = os.getenv("OLLAMA_KEEP_ALIVE", "30m").strip() or "30m"
+        self.max_tokens = int(self._bounded_number("OLLAMA_MAX_TOKENS", 1200, 64, 8192))
+
+    @staticmethod
+    def _bounded_number(name: str, default: float, minimum: float, maximum: float) -> float:
+        try:
+            value = float(os.getenv(name, str(default)))
+        except ValueError:
+            return default
+        return min(maximum, max(minimum, value))
 
     def _validated_base_url(self) -> str:
         parsed = urlparse(self.base_url)
@@ -42,19 +54,24 @@ class OllamaService:
             raise ModelConfigurationError("OLLAMA_MODEL must name an installed Ollama model.")
         return self.base_url
 
-    def _request_json(self, path: str, *, payload: dict[str, Any] | None = None, timeout: float = 30) -> dict[str, Any]:
+    def _request_json(self, path: str, *, payload: dict[str, Any] | None = None, timeout: float | None = None) -> dict[str, Any]:
         url = f"{self._validated_base_url()}{path}"
+        effective_timeout = self.request_timeout if timeout is None else timeout
         data = json.dumps(payload).encode("utf-8") if payload is not None else None
         headers = {"Accept": "application/json"}
         if data is not None:
             headers["Content-Type"] = "application/json"
         request = Request(url, data=data, headers=headers, method="POST" if data is not None else "GET")
         try:
-            with urlopen(request, timeout=timeout) as response:
+            with urlopen(request, timeout=effective_timeout) as response:
                 body = response.read().decode("utf-8")
         except HTTPError as exc:
             raise ModelRequestError(f"Ollama returned HTTP {exc.code}.") from exc
-        except (URLError, TimeoutError) as exc:
+        except (TimeoutError, socket.timeout) as exc:
+            raise ModelRequestError(f"The Ollama request exceeded the configured {effective_timeout:g}-second timeout.") from exc
+        except URLError as exc:
+            if isinstance(exc.reason, (TimeoutError, socket.timeout)):
+                raise ModelRequestError(f"The Ollama request exceeded the configured {effective_timeout:g}-second timeout.") from exc
             raise ModelRequestError("BursaIQ could not reach the configured Ollama server.") from exc
         try:
             parsed = json.loads(body) if body else {}
@@ -100,10 +117,10 @@ class OllamaService:
             "model": str(model or self.model).strip(),
             "messages": [{"role": "user", "content": prompt}],
             "stream": False,
+            "keep_alive": self.keep_alive,
             "options": {"temperature": 0 if json_format else (0.2 if temperature is None else float(temperature))},
         }
-        if max_tokens is not None:
-            payload["options"]["num_predict"] = int(max_tokens)
+        payload["options"]["num_predict"] = int(max_tokens if max_tokens is not None else self.max_tokens)
         if json_format:
             payload["format"] = "json"
         response = self._request_json("/api/chat", payload=payload)

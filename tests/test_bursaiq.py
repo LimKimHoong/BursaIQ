@@ -154,7 +154,16 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(request_json.call_args.args[0], "/api/chat")
         self.assertEqual(payload["format"], "json")
         self.assertFalse(payload["stream"])
+        self.assertEqual(payload["keep_alive"], "30m")
         self.assertEqual(payload["options"]["temperature"], 0)
+        self.assertEqual(payload["options"]["num_predict"], 1200)
+
+    def test_ollama_generation_settings_are_configurable_and_bounded(self) -> None:
+        with patch.dict("os.environ", {"OLLAMA_REQUEST_TIMEOUT": "180", "OLLAMA_KEEP_ALIVE": "45m", "OLLAMA_MAX_TOKENS": "900"}):
+            service = OllamaService()
+        self.assertEqual(service.request_timeout, 180)
+        self.assertEqual(service.keep_alive, "45m")
+        self.assertEqual(service.max_tokens, 900)
 
     def test_routing_guardrail_blocks_people_questions(self) -> None:
         self.assertEqual(choose_workspace("What are the product options available in Bursa?", "market"), ("learn", "policy-router"))
