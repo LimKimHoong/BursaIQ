@@ -1334,11 +1334,24 @@ def pending_action_count():
         }
         for case in assigned if case.get("status") == "Pending review"
     ]
-    actions = review_actions
+    room_actions = [
+        {
+            "id": item["id"],
+            "type": "room-decision",
+            "title": item.get("title") or "Collaborative room decision",
+            "detail": item.get("data", {}).get("description") or "A room decision requires attention",
+            "status": item["status"],
+            "page": "rooms",
+        }
+        for item in platform.list("room-item")
+        if item.get("status") == "PENDING" and item.get("data", {}).get("kind") == "decision"
+    ]
+    actions = review_actions + room_actions
     return jsonify({
         "count": len(actions),
         "pendingReviews": len([item for item in review_actions if item.get("type") == "verification"]),
         "pendingWorkflowApprovals": len([item for item in review_actions if item.get("type") == "workflow-approval"]),
+        "pendingRoomDecisions": len(room_actions),
         "actions": actions,
     })
 

@@ -192,17 +192,25 @@ class WorkflowBuilderTests(unittest.TestCase):
             {"id": "complete", "status": "COMPLETED"},
             {"id": "rejected", "status": "REJECTED"},
         ]
+        platform_store = Mock()
+        platform_store.list.return_value = [
+            {"id": "room-pending", "title": "Confirm scope", "status": "PENDING", "data": {"kind": "decision", "roomId": "ROOM-1", "description": "Confirm the shared scope."}},
+            {"id": "room-complete", "title": "Approved scope", "status": "COMPLETED", "data": {"kind": "decision", "roomId": "ROOM-1"}},
+            {"id": "room-task", "title": "Prepare data", "status": "PENDING", "data": {"kind": "task", "roomId": "ROOM-1"}},
+        ]
 
-        with patch("server.verification", verification_store), patch("server.workflows", workflow_store):
+        with patch("server.verification", verification_store), patch("server.workflows", workflow_store), patch("server.platform", platform_store):
             with app.test_client() as client:
                 payload = client.get("/api/actions/pending-count?role=securities").get_json()
 
-        self.assertEqual(payload["count"], 2)
+        self.assertEqual(payload["count"], 3)
         self.assertEqual(payload["pendingReviews"], 1)
         self.assertEqual(payload["pendingWorkflowApprovals"], 1)
-        self.assertEqual(len(payload["actions"]), 2)
+        self.assertEqual(payload["pendingRoomDecisions"], 1)
+        self.assertEqual(len(payload["actions"]), 3)
         self.assertEqual(payload["actions"][0]["page"], "verification")
         self.assertEqual(payload["actions"][1]["type"], "workflow-approval")
+        self.assertEqual(payload["actions"][2]["page"], "rooms")
 
     def test_server_report_executor_is_live_and_agent_names_are_not_provider_aliases(self) -> None:
         import server

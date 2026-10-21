@@ -1114,7 +1114,7 @@
 
   function roomTabContent(current) {
     if (state.roomTab === "overview") {
-      return '<div class="room-summary"><article class="summary-block"><h3>Shared mission</h3><p>' + escapeHtml(current.description || "No mission description saved.") + '</p></article><article class="summary-block"><h3>Governance</h3><p>' + escapeHtml(current.governance || "Standard approval") + '</p></article><article class="summary-block"><h3>Persisted activity</h3><p>' + state.roomItems.filter(function (item) { return item.data.roomId === current.id; }).length + ' room items saved.</p></article></div>';
+      return '<div class="room-summary"><article class="summary-block"><h3>Shared mission</h3><p>' + escapeHtml(current.description || "No mission description saved.") + '</p></article><article class="summary-block"><h3>Governance</h3><p>' + escapeHtml(current.governance || "Standard approval") + '</p><button class="secondary-button" type="button" data-room-add="decision">Record decision</button></article><article class="summary-block"><h3>Persisted activity</h3><p>' + state.roomItems.filter(function (item) { return item.data.roomId === current.id; }).length + ' room items saved.</p></article></div>';
     }
     var labels = { activity: ["Room activity", "activity"], tasks: ["Room tasks", "task"], files: ["Files and knowledge", "file"], agents: ["AI teammates", "agent"], members: ["Room members", "member"] }[state.roomTab];
     var items = state.roomItems.filter(function (item) { return item.data.roomId === current.id && item.data.kind === labels[1]; });
@@ -1186,7 +1186,7 @@
   function actionPage() {
     var pendingRows = state.pendingActions.map(function (item) {
       var target = item.type === "workflow-approval" ? ' data-verification-case="' + escapeHtml(item.id) + '"' : ' data-page-jump="' + escapeHtml(item.page) + '"';
-      return '<button class="verification-item" type="button"' + target + '>' + miniIcon(item.type === "verification" ? "i-shield" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
+      return '<button class="verification-item" type="button"' + target + '>' + miniIcon(item.type === "verification" ? "i-shield" : item.type === "room-decision" ? "i-room" : "i-flow", "amber") + '<span><strong>' + escapeHtml(item.title) + '</strong><small>' + escapeHtml(item.detail) + '</small></span>' + status(item.status) + svg("i-chevron") + '</button>';
     }).join("");
     var decisionRows = state.savedDecisions.map(function (item) {
       return '<article class="action-record"><span class="action-record-icon">' + svg("i-brief") + '</span><div><div><strong>' + escapeHtml(item.title) + '</strong>' + status(item.status) + '</div><p>' + escapeHtml(item.question) + '</p><small>' + escapeHtml(item.id) + ' · ' + escapeHtml(item.owner) + ' · ' + escapeHtml(item.created) + '</small></div><button type="button" data-action-open="' + escapeHtml(item.id) + '" aria-label="Open ' + escapeHtml(item.title) + '">' + svg("i-chevron") + '</button></article>';
@@ -1298,7 +1298,9 @@
 
   function openPlatformCreate(kind, roomId) {
     var label = kind === "file" ? "file record" : kind;
-    openExperience({ title: "Add " + label, subtitle: "Persisted governed workspace record", body: '<form class="creation-form" id="platform-item-form" data-platform-kind="' + escapeHtml(kind) + '" data-room-id="' + escapeHtml(roomId || "") + '"><label class="form-field">Title<input name="title" maxlength="160" required></label><label class="form-field">Details<textarea name="description" maxlength="1000" required></textarea></label><label class="form-field">Status<select name="status"><option value="DRAFT">Draft</option><option value="ACTIVE">Active</option><option value="PENDING">Pending</option><option value="COMPLETED">Completed</option></select></label></form>', footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="platform-item-form">Save record</button>' });
+    var statuses = [["DRAFT", "Draft"], ["ACTIVE", "Active"], ["PENDING", "Pending"], ["COMPLETED", "Completed"]];
+    var statusOptions = statuses.map(function (item) { return '<option value="' + item[0] + '"' + (kind === "decision" && item[0] === "PENDING" ? " selected" : "") + '>' + item[1] + '</option>'; }).join("");
+    openExperience({ title: "Add " + label, subtitle: "Persisted governed workspace record", body: '<form class="creation-form" id="platform-item-form" data-platform-kind="' + escapeHtml(kind) + '" data-room-id="' + escapeHtml(roomId || "") + '"><label class="form-field">Title<input name="title" maxlength="160" required></label><label class="form-field">Details<textarea name="description" maxlength="1000" required></textarea></label><label class="form-field">Status<select name="status">' + statusOptions + '</select></label></form>', footer: '<button class="secondary-button" type="button" data-experience-close>Cancel</button><button class="primary-button" type="submit" form="platform-item-form">Save record</button>' });
   }
 
   function openPlatformItem(reference) {
@@ -1664,7 +1666,16 @@
       if (context === "Pending approvals") items = state.workflowRuns.filter(function (run) { return run.status === "WAITING_APPROVAL"; }).map(function (run) { return { title: run.id, detail: "Workflow " + run.workflowId + " requires a reviewer decision", state: "Pending" }; });
       else items = (context === "Active workflows" ? state.workflows : state.workflowRuns).map(function (item) { return { title: item.name || item.id, detail: item.name ? item.id + " · " + Number(item.runCount || 0) + " runs" : item.workflowId + " · " + item.mode, state: item.status }; });
     } else if (state.page === "rooms") {
-      items = state.roomItems.filter(function (room) { if (context === "Rooms with AI agents") return Number(room.agents || 0) > 0; if (context === "Pending decisions") return Number(room.pendingDecisions || 0) > 0; return true; }).map(function (room) { return { title: room.name, detail: Number(room.members || 0) + " members · " + Number(room.agents || 0) + " agents", state: room.status || "Active" }; });
+      if (context === "Pending decisions") {
+        items = state.roomItems.filter(function (item) { return item.data.kind === "decision" && item.status === "PENDING"; }).map(function (item) {
+          var room = rooms.filter(function (candidate) { return candidate.id === item.data.roomId; })[0];
+          return { title: item.title, detail: (room ? room.title + " · " : "") + (item.data.description || "Reviewer decision required"), state: item.status };
+        });
+      } else if (context === "Linked projects") {
+        items = state.projects.map(function (project) { return { title: project.name, detail: project.owner + " · " + Number(project.files || 0) + " files", state: project.status }; });
+      } else {
+        items = rooms.filter(function (room) { return context !== "Rooms with AI agents" || Number(room.agents || 0) > 0; }).map(function (room) { return { title: room.title, detail: Number(room.members || 0) + " members · " + Number(room.agents || 0) + " agents", state: room.status || "Active" }; });
+      }
     } else if (state.page === "workspace") {
       if (context === "Saved decisions") items = state.savedDecisions.map(function (item) { return { title: item.title, detail: item.owner + " · " + item.created, state: item.status }; });
       else items = state.projects.map(function (item) { return { title: item.name, detail: item.owner + " · " + Number(item.files || 0) + " files", state: item.status }; });
@@ -2560,7 +2571,7 @@
       var data = new FormData(form);
       var kind = form.dataset.platformKind;
       var roomId = form.dataset.roomId;
-      var apiType = kind === "decision" ? "decision" : "room-item";
+      var apiType = roomId ? "room-item" : kind === "decision" ? "decision" : "room-item";
       createPlatformItem(apiType, { title: String(data.get("title")), owner: "Lim Kim Hoong", status: String(data.get("status")), data: { kind: kind, roomId: roomId, description: String(data.get("description")) } }).then(function () { closeExperience(); render(); toast("Record saved", "The " + kind + " is persisted in BursaIQ."); }).catch(function (error) { toast("Save failed", error.message); });
     }
   });

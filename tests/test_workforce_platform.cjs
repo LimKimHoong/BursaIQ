@@ -178,10 +178,10 @@ test('Decision Canvas exposes plot, analysis, source, and action views', () => {
 
 test('sidebar reflects the focused navigation model', () => {
   assert.match(html, /data-page="assistant"[\s\S]*data-page="ask-bursa"/);
-  assert.match(html, /data-page="workforce"[\s\S]*data-page="automation"[\s\S]*data-page="exchange"/);
+  assert.match(html, /data-page="workforce"[\s\S]*data-page="automation"[\s\S]*data-page="rooms"[\s\S]*data-page="exchange"/);
   assert.match(html, /data-page="exchange"[\s\S]*data-page="action"[\s\S]*data-page="verification"/);
   assert.match(html, /data-page="connectors"[\s\S]*class="sidebar-footer"[\s\S]*data-page="settings"/);
-  assert.doesNotMatch(html, /data-page="rooms"/);
+  assert.match(html, /data-page="rooms"[^>]*>[\s\S]{0,180}<strong>Collaborative Rooms<\/strong>/);
   assert.doesNotMatch(html, /data-page="workspace"/);
   assert.doesNotMatch(html, /data-page="brief"/);
 });
@@ -324,6 +324,8 @@ test('employee workspace modules load and mutate persistent backend state', () =
   assert.match(js, /createPlatformItem\("email-automation"/);
   assert.match(js, /data-platform-open/);
   assert.match(js, /data-room-add/);
+  assert.match(js, /data-room-add="decision"/);
+  assert.match(js, /var apiType = roomId \? "room-item"/);
   assert.match(js, /function chooseAttachments\(/);
   assert.match(js, /\/api\/local-analysis\/upload/);
   assert.match(js, /function verifyAssistantAnswer\(/);
